@@ -1,0 +1,11 @@
+node_modules/
+.cache/
+.tools/
+dist/
+release/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.sdd/

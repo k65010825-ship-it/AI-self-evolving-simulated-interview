@@ -1,0 +1,58 @@
+{
+  "name": "interview-agent-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "pi:offline": "bun run experiments/pi-sdk/offline-spike.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check:knowledge": "bun run scripts/check-knowledge.ts",
+    "openapi:generate": "bun run scripts/generate-openapi.ts",
+    "openapi:lint": "redocly lint docs/openapi.yaml",
+    "dev:api": "bun run apps/api/src/index.ts",
+    "dev:agent": "bun run apps/agent/src/index.ts",
+    "desktop:build": "bun run scripts/build-desktop.ts",
+    "desktop:start": "electron apps/desktop/dist/main.mjs",
+    "desktop:runtime": "node node_modules/electron/install.js"
+  },
+  "overrides": {
+    "minimatch": "11.0.3",
+    "undici": "8.12.3"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@redocly/cli": "2.72.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/bun": "1.4.4",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "45.2.1",
+    "esbuild": "0.28.2",
+    "tailwindcss": "4.3.3",
+    "typebox": "1.3.27",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "yaml": "2.9.1"
+  },
+  "optionalDependencies": { "@oven/bun-windows-x64": "1.4.4" },
+  "dependencies": {
+    "@radix-ui/react-slot": "1.5.0",
+    "@tanstack/react-query": "5.105.1",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.16",
+    "jotai": "3.0.1",
+    "postgres": "4.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "status": "planned-not-collected",
+  "datasets": [
+    { "id": "java-development", "roleId": "java-backend", "split": "development", "targetCount": 30, "observedCount": 0 },
+    { "id": "java-validation", "roleId": "java-backend", "split": "validation", "targetCount": 10, "observedCount": 0 },
+    { "id": "java-final", "roleId": "java-backend", "split": "final", "targetCount": 20, "observedCount": 0 },
+    { "id": "web-development", "roleId": "web-frontend", "split": "development", "targetCount": 30, "observedCount": 0 },
+    { "id": "web-validation", "roleId": "web-frontend", "split": "validation", "targetCount": 10, "observedCount": 0 },
+    { "id": "web-final", "roleId": "web-frontend", "split": "final", "targetCount": 20, "observedCount": 0 }
+  ]
+}

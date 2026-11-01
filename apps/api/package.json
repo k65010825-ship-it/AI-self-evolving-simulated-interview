@@ -1,0 +1,4 @@
+{
+  "name": "@interview/api", "version": "0.1.0", "private": true, "type": "module",
+  "dependencies": { "@interview/contracts": "workspace:*", "@interview/db": "workspace:*", "hono": "4.13.16" }
+}

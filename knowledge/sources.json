@@ -1,0 +1,7 @@
+[
+  {"id":"spring-transactions","title":"Spring Framework Using @Transactional","url":"https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html","owner":"Spring","licenseNote":"已读取一手页面；仅链接与原创要点，不批量复制，知识草案仍待岗位审核。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
+  {"id":"java-specification","title":"Java SE 21 JLS Chapter 17 Threads and Locks","url":"https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html","owner":"Oracle","licenseNote":"已读取规范页面；仅登记引用与原创要点，未转载全文。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
+  {"id":"mdn-javascript","title":"MDN JavaScript Closures","url":"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures","owner":"MDN contributors","licenseNote":"已读取页面；链接与原创题目，不批量转载。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
+  {"id":"react-learn","title":"React useEffect Reference","url":"https://react.dev/reference/react/useEffect","owner":"React contributors","licenseNote":"已读取竞态与清理相关段落；正式题目仍需岗位审核。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
+  {"id":"team-original","title":"团队原创面试场景草案","url":null,"owner":"project-team","licenseNote":"项目内原创示例，需岗位审核。","retrievedAt":null,"verificationStatus":"draft"}
+]

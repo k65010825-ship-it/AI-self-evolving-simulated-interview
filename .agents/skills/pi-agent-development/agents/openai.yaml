@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pi Agent SDK 开发"
+  short_description: "Pi SDK 会话、受控工具、资源隔离、流式事件与取消的版本化开发参考"
+  default_prompt: "使用 $pi-agent-development，基于已安装 Pi SDK 的文档与示例实现并验证受控 Agent 服务。"

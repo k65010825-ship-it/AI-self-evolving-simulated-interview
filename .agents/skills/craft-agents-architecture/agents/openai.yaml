@@ -1,0 +1,4 @@
+interface:
+  display_name: "Craft Agents 架构参考"
+  short_description: "基于固定源码解释全栈 Agent 分层，并映射到当前产品的工程取舍"
+  default_prompt: "使用 $craft-agents-architecture，基于源码解释这项全栈 Agent 设计的职责、调用链与取舍，并提出适合当前项目的最小改动和验收方式。"

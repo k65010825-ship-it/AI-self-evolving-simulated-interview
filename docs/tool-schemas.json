@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "query_role_knowledge": {
+    "input": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "roleId": {
+          "type": "string",
+          "enum": [
+            "java-backend",
+            "web-frontend"
+          ]
+        },
+        "skillId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "questioning",
+            "scoring"
+          ]
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "limit": {
+          "default": 3,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      },
+      "required": [
+        "roleId",
+        "skillId",
+        "purpose"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "callId": {
+          "type": "string"
+        },
+        "toolName": {
+          "type": "string",
+          "const": "query_role_knowledge"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "empty",
+            "error"
+          ]
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durationMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "roleId": {
+                    "type": "string",
+                    "enum": [
+                      "java-backend",
+                      "web-frontend"
+                    ]
+                  },
+                  "skillId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "questionType": {
+                    "type": "string",
+                    "enum": [
+                      "technical",
+                      "project",
+                      "scenario",
+                      "behavioral"
+                    ]
+                  },
+                  "difficulty": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "question": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "keyPoints": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "rubric": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "criterionId": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "maxScore": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "required": [
+                        "criterionId",
+                        "description",
+                        "maxScore",
+                        "weight"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "sourceIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reviewStatus": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "reviewed"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "roleId",
+                  "skillId",
+                  "questionType",
+                  "difficulty",
+                  "question",
+                  "keyPoints",
+                  "rubric",
+                  "sourceIds",
+                  "version",
+                  "reviewStatus"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "VALIDATION_ERROR",
+                "UNAUTHENTICATED",
+                "FORBIDDEN",
+                "ROLE_FORBIDDEN",
+                "NOT_FOUND",
+                "VERSION_CONFLICT",
+                "RUN_CANCELLED",
+                "TOOL_BUDGET_EXCEEDED",
+                "RATE_LIMITED",
+                "DEPENDENCY_UNAVAILABLE",
+                "DEADLINE_EXCEEDED",
+                "MODEL_OUTPUT_INVALID",
+                "NOT_IMPLEMENTED",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "callId",
+        "toolName",
+        "status",
+        "sourceIds",
+        "durationMs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

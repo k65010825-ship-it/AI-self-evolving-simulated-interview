@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: interview
+      POSTGRES_PASSWORD: local-dev-only
+      POSTGRES_DB: interview
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - interview-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interview -d interview"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  interview-db:
+# Development infrastructure only; this task does not launch it or claim persistence verification.

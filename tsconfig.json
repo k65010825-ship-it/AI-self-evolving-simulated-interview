@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2023", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "noUncheckedIndexedAccess": true, "exactOptionalPropertyTypes": true,
+    "allowImportingTsExtensions": true, "verbatimModuleSyntax": true,
+    "resolveJsonModule": true, "jsx": "react-jsx", "noEmit": true,
+    "skipLibCheck": true, "types": ["node", "bun"], "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts", "tests/**/*.ts", "experiments/**/*.ts", "scripts/**/*.ts", "evals/**/*.ts"]
+}

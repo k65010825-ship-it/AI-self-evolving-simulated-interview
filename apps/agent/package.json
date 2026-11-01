@@ -1,0 +1,7 @@
+{
+  "name": "@interview/agent", "version": "0.1.0", "private": true, "type": "module",
+  "dependencies": {
+    "@interview/contracts": "workspace:*", "@interview/interview-domain": "workspace:*", "hono": "4.13.16",
+    "@earendil-works/pi-coding-agent": "1.4.0", "@earendil-works/pi-ai": "1.4.0", "typebox": "1.3.27"
+  }
+}
