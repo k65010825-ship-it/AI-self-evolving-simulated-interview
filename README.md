@@ -128,4 +128,4 @@ flowchart LR
 | [评测计划](docs/evaluation-plan.md) | 数据划分、指标、对照实验与验收方法 |
 | [OpenAPI](docs/openapi.yaml) / [工具 JSON Schema](docs/tool-schemas.json) | 由生成脚本维护的机器可读契约 |
 
-参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md](AGENTS.md)。
+参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md
