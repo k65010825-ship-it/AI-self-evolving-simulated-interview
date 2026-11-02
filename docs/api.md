@@ -150,7 +150,7 @@ Agent 目前仅提供健康接口；/internal/v1/* 返回 501。API→Agent 的 
 
 query_role_knowledge 是 SDK 内工具，不是公开 HTTP 查询端点。模型输入 roleId/skillId/purpose/query/limit，执行上下文由宿主注入；详见[工具契约](tool-contracts.md)与[工具 JSON Schema](tool-schemas.json)。
 
-桌面当前暴露的桥接只有 window.interview.getVersion() 与 getApiHealth()；不能调用通用 ipcRenderer、任意 channel 或任意 URL。新增提交/取消/订阅桥接时须按本文契约单独实现。
+桌面当前暴露的桥接只有 window.interview.getVersion() 与 getApiHealth()；不能调用通用 ipcRenderer、任意 channel 或任意 URL。新增提交/取消/订阅桥接时必须按本文契约单独实现。
 
 ## 7. 错误与联调流程
 
@@ -172,4 +172,4 @@ query_role_knowledge 是 SDK 内工具，不是公开 HTTP 查询端点。模型
 
 联调顺序：先确认目标状态与字段 → 修改 packages/contracts 与 OpenAPI 生成脚本 → 生成机器文档 → 前后端按相同样例实现 → 验证正常/错误/取消路径。执行 bun run openapi:generate、bun run openapi:lint；不要手改生成后的 YAML/JSON。接口实现后同时更新“当前可用”标记。
 
-待进一步设计：登录/刷新、音频上传与转写、学习资源/完成记录、结束面试、策略审核/回退等 HTTP 端点。它们是产品需求，尚未冻结路径和请求体，不能据界面先假定已可调用。
+待进一步设计：登录/刷新、音频上传与转写、学习资源/完成记录、结束面试、策略审核/回退等 HTTP 端点。它们是产品需求，尚未冻结路径和请求体，不能据界面先假定已可调用=。
