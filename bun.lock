@@ -67,6 +67,14 @@
         "react-dom": "19.3.1",
       },
     },
+    "packages/agent-client": {
+      "name": "@interview/agent-client",
+      "version": "0.1.0",
+      "dependencies": {
+        "@interview/contracts": "workspace:*",
+        "zod": "4.6.7",
+      },
+    },
     "packages/contracts": {
       "name": "@interview/contracts",
       "version": "0.1.0",
@@ -207,6 +215,8 @@
     "@google/genai": ["@google/genai@2.21.0", "http://registry.npmmirror.com/@google/genai/-/genai-2.21.0.tgz", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"], "hasInstallScript": true }, "sha512-+PDtco2/Z0ONdzCGekCoCT+O1VJS9xJQNN4XzQpXG/t3El/SWWMkCWlFRO1KmivOHPa4Q0VjUYu1HBKCZ/v33Q=="],
 
     "@interview/agent": ["@interview/agent@workspace:apps/agent"],
+
+    "@interview/agent-client": ["@interview/agent-client@workspace:packages/agent-client"],
 
     "@interview/api": ["@interview/api@workspace:apps/api"],
 

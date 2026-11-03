@@ -1,0 +1,21 @@
+{
+  "profileId": "live-planned-disabled",
+  "version": "profile-0.1",
+  "mode": "live-planned",
+  "providerId": "unselected",
+  "modelId": "unselected",
+  "apiFamily": "unselected",
+  "endpoint": "https://example.invalid/v1",
+  "credentialSource": { "kind": "env-reference-only", "name": "INTERVIEW_MODEL_API_KEY" },
+  "pricing": {
+    "id": "unselected",
+    "version": "unselected",
+    "currency": "USD",
+    "provenance": "host-declared-unverified",
+    "rates": { "inputMicrosPerMillionTokens": 0, "outputMicrosPerMillionTokens": 0 }
+  },
+  "limits": {
+    "maxCalls": 1, "maxConcurrent": 1, "maxInputTokens": 2000, "maxOutputTokens": 256,
+    "maxTotalTokens": 2256, "maxCostMicros": 0, "maxInputCharacters": 12000, "maxOutputCharacters": 4000, "timeoutMs": 1000
+  }
+}

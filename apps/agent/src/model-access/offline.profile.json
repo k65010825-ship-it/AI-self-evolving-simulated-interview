@@ -1,0 +1,27 @@
+{
+  "profileId": "offline-budget-fixture",
+  "version": "profile-0.1",
+  "mode": "offline-fixture",
+  "providerId": "local-fixture",
+  "modelId": "deterministic-budget-fixture",
+  "apiFamily": "fixture-only",
+  "credentialSource": { "kind": "none" },
+  "pricing": {
+    "id": "illustrative-synthetic-rate",
+    "version": "rate-0.1",
+    "currency": "USD",
+    "provenance": "synthetic-not-current-pricing",
+    "rates": { "inputMicrosPerMillionTokens": 1000000, "outputMicrosPerMillionTokens": 2000000 }
+  },
+  "limits": {
+    "maxCalls": 3,
+    "maxConcurrent": 1,
+    "maxInputTokens": 2000,
+    "maxOutputTokens": 256,
+    "maxTotalTokens": 5000,
+    "maxCostMicros": 10000,
+    "maxInputCharacters": 12000,
+    "maxOutputCharacters": 4000,
+    "timeoutMs": 1000
+  }
+}

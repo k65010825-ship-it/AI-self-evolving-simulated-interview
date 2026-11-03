@@ -6,7 +6,7 @@
 
 交付形式为 **Windows Electron 客户端＋统一服务器**，目标交付日期为 **2026 年 12 月 19 日**。
 
-当前仓库处于开发骨架阶段：已有 Pi SDK 离线工具循环、岗位知识草案、共享契约、健康接口及桌面构建入口；正式面试、登录、语音评估、数据库任务和 RSI 业务流程待实现。
+当前仓库处于开发阶段：已有 Pi SDK 离线工具循环、岗位知识草案、状态规划、结构化评估适配与选题离线闭环、共享契约、离线内部 HTTP/SSE 运行入口及桌面构建入口；正式面试提交、登录、语音评估、数据库任务和 RSI 业务流程待实现。
 
 ## 开发入口
 
@@ -20,7 +20,7 @@ bun run dev:api
 bun run dev:agent
 ```
 
-API：`http://127.0.0.1:3100/health`；Agent：`http://127.0.0.1:3200/health`。当前仅健康接口可用，业务接口返回 `501 NOT_IMPLEMENTED`。
+API：`http://127.0.0.1:3100/health`；Agent：`http://127.0.0.1:3200/health`。默认仅健康接口可用，正式业务接口返回 `501 NOT_IMPLEMENTED`。显式启用离线 Agent 内部运行接口见 [运行入口](docs/agent-runtime.md)。
 
 构建和启动桌面客户端：
 
@@ -38,12 +38,43 @@ bun run desktop:start
 bun run typecheck
 bun test
 bun run pi:offline
+bun run agent:state:demo
+bun run agent:context:demo
+bun run agent:scoring:demo
+bun run agent:turn:demo
+bun run agent:pi:demo
+bun run agent:report:demo
+bun run agent:resources:demo
+bun run agent:memory:demo
+bun run agent:reflection:demo
+bun run agent:experiment:demo
+bun run agent:learning:demo
+bun run agent:runtime:demo
+bun run agent:speech:demo
+bun run agent:speech:runtime:demo
+bun run agent:rubrics:demo
+bun run agent:planner:demo
+bun run agent:planner:runtime:demo
+bun run agent:session:demo
+bun run agent:workflow:http:demo
+bun run agent:client:demo
+bun run agent:rsi:workflow:demo
+bun run agent:rsi:http:demo
+bun run agent:acceptance
+bun run agent:knowledge:demo
+bun run knowledge:review
+bun run agent:answers:eval
+bun run model:preflight
+bun run agent:model:budget:demo
+bun run agent:commit:demo
 bun run check:knowledge
 bun run openapi:generate
 bun run openapi:lint
 ```
 
 `pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](.env.example)。
+
+`agent:pi:demo` 演示两岗状态选题、独立无工具 Pi 评估、证据评分和下一题候选，使用明确启用的草案题库与本地手工评分替身；不会提交数据库，也不证明真实模型评分准确。
 
 <details>
 <summary>Windows 没有全局 Bun 时的引导方式</summary>
@@ -69,6 +100,7 @@ apps/
   agent/                     Pi 适配、面试编排与工具执行
 packages/
   contracts/                 跨服务 Zod 契约、错误与事件
+  agent-client/              业务后端调用Agent的类型化HTTP/SSE客户端
   interview-domain/          纯领域规则
   db/                        Drizzle 数据模型
 knowledge/                   两岗知识、题目草案与来源登记
@@ -119,6 +151,20 @@ flowchart LR
 | 文档 | 主要内容 |
 | --- | --- |
 | [需求文档（PRD）](docs/prd.md) | 产品范围、用户流程、需求编号、验收与当前状态 |
+| [Agent 内部运行接口](docs/agent-runtime.md) | 离线 HTTP/SSE、任务快照、取消、重放与后端提交边界 |
+| [语音转写与表达特征](docs/speech.md) | WAV/ASR适配、确认文进入评分、逐回答音频报告及离线边界 |
+| [岗位题型与内容量规](docs/content-rubrics.md) | 项目/行为题、两岗多维锚点、范围隔离与证据评分边界 |
+| [知识规划Agent](docs/knowledge-planner.md) | 模型发起真实知识查询、宿主候选校验、预算及显式启用 |
+| [完整会话与收尾](docs/session-workflow.md) | 首题/连续回答、修订与发题时序、同版本报告/记忆/反思候选 |
+| [会话HTTP/SSE联调](docs/workflow-http.md) | 五类操作、上下文绑定、候选结果、重试/取消及后端CAS顺序 |
+| [会话收尾与RSI实验](docs/workflow-rsi.md) | 完整来源重验、独立合成评测、实验审计与下一场pin预览 |
+| [离线验收与报告回放](docs/agent-acceptance.md) | 双岗固定场景、TCP/宿主边界、安全报告与源码指纹校验 |
+| [知识扩充与审核流程](docs/knowledge-curation.md) | 每岗12条草案、答题/追问资料、来源版本与人工声明审核闸门 |
+| [回答参考与评分误差](docs/answer-benchmark.md) | 合成回答草案、标签盲化、分岗位MAE/null分歧与安全报告 |
+| [模型预检与预算闸门](docs/model-access.md) | 离线声明预检、预留/未知/结算、调用与额度限制及在线禁用边界 |
+| [候选提交与CAS联调](docs/workflow-commit.md) | 后端SDK准入校验、任务fence、存储/画像CAS与内存事务演练 |
+| [统一Agent交付验收](docs/agent-delivery.md) | `bun run agent:delivery`六项工程检查、双岗离线场景、安全报告和协作交接 |
+| [后端Agent客户端](docs/agent-client.md) | workspace SDK、类型化调用、SSE续订、安全错误与总预算 |
 | [接口文档](docs/api.md) | 服务地址、鉴权约定、HTTP 请求示例、状态与事件、联调边界 |
 | [项目架构](docs/architecture.md) | 模块责任、数据模型、运行与恢复、Agent 和 RSI 设计 |
 | [协作与里程碑](docs/collaboration.md) | 三人分工、接口变更流程、PR 与每周交付 |
@@ -126,6 +172,9 @@ flowchart LR
 | [Agent 工具契约](docs/tool-contracts.md) | 工具输入、回执、岗位授权与调用预算 |
 | [错误处理](docs/error-handling.md) | 错误码、重试与取消规则 |
 | [评测计划](docs/evaluation-plan.md) | 数据划分、指标、对照实验与验收方法 |
+| [反思与离线策略评测](docs/agent-reflection.md) | 策略pin、反思口径、受限候选、合成成对验证与未发布边界 |
+| [学习证据与复测配对](docs/learning-retest.md) | 点击/核验完成区分、冻结预测、不同题配对与分组校准边界 |
 | [OpenAPI](docs/openapi.yaml) / [工具 JSON Schema](docs/tool-schemas.json) | 由生成脚本维护的机器可读契约 |
+| [评估与单轮候选 JSON Schema](docs/evaluation-schemas.json) | 宿主单轮输入、模型评估输出与未提交候选；内部运行路由已可显式启用，正式提交仍待实现 |
 
 参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md](AGENTS.md)。

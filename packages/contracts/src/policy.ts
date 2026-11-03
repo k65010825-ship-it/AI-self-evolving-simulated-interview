@@ -1,0 +1,5 @@
+import {z} from 'zod';
+import {RoleIdSchema} from './tools.ts';
+export const PlanningPolicySchema=z.object({maxFollowupDepth:z.number().int().min(0).max(5).default(2),
+ wrapUpSeconds:z.number().int().min(0).max(300).default(30),maxTurns:z.number().int().min(1).max(200).default(12)}).strict();
+export const PlanningPolicyVersionSchema=z.object({id:z.string().min(1).max(80),roleId:RoleIdSchema,parameters:PlanningPolicySchema}).strict();

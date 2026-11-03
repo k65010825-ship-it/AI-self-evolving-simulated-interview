@@ -1,0 +1,691 @@
+{
+  "version": 1,
+  "profile": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "maxCalls": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "maxConcurrent": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "maxInputTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "maxOutputTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "maxTotalTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000000
+              },
+              "maxCostMicros": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "maxInputCharacters": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "maxOutputCharacters": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 60000
+              }
+            },
+            "required": [
+              "maxCalls",
+              "maxConcurrent",
+              "maxInputTokens",
+              "maxOutputTokens",
+              "maxTotalTokens",
+              "maxCostMicros",
+              "maxInputCharacters",
+              "maxOutputCharacters",
+              "timeoutMs"
+            ],
+            "additionalProperties": false
+          },
+          "mode": {
+            "type": "string",
+            "const": "offline-fixture"
+          },
+          "providerId": {
+            "type": "string",
+            "const": "local-fixture"
+          },
+          "modelId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "apiFamily": {
+            "type": "string",
+            "const": "fixture-only"
+          },
+          "credentialSource": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "none"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "currency": {
+                "type": "string",
+                "const": "USD"
+              },
+              "rates": {
+                "type": "object",
+                "properties": {
+                  "inputMicrosPerMillionTokens": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "outputMicrosPerMillionTokens": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  }
+                },
+                "required": [
+                  "inputMicrosPerMillionTokens",
+                  "outputMicrosPerMillionTokens"
+                ],
+                "additionalProperties": false
+              },
+              "provenance": {
+                "type": "string",
+                "const": "synthetic-not-current-pricing"
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "currency",
+              "rates",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "profileId",
+          "version",
+          "limits",
+          "mode",
+          "providerId",
+          "modelId",
+          "apiFamily",
+          "credentialSource",
+          "pricing"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "maxCalls": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "maxConcurrent": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "maxInputTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "maxOutputTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "maxTotalTokens": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000000
+              },
+              "maxCostMicros": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000000000
+              },
+              "maxInputCharacters": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "maxOutputCharacters": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100000
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 60000
+              }
+            },
+            "required": [
+              "maxCalls",
+              "maxConcurrent",
+              "maxInputTokens",
+              "maxOutputTokens",
+              "maxTotalTokens",
+              "maxCostMicros",
+              "maxInputCharacters",
+              "maxOutputCharacters",
+              "timeoutMs"
+            ],
+            "additionalProperties": false
+          },
+          "mode": {
+            "type": "string",
+            "const": "live-planned"
+          },
+          "providerId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "modelId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "apiFamily": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "endpoint": {
+            "type": "string",
+            "format": "uri"
+          },
+          "credentialSource": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "env-reference-only"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^INTERVIEW_[A-Z0-9_]{1,80}$"
+              }
+            },
+            "required": [
+              "kind",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "currency": {
+                "type": "string",
+                "const": "USD"
+              },
+              "rates": {
+                "type": "object",
+                "properties": {
+                  "inputMicrosPerMillionTokens": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "outputMicrosPerMillionTokens": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  }
+                },
+                "required": [
+                  "inputMicrosPerMillionTokens",
+                  "outputMicrosPerMillionTokens"
+                ],
+                "additionalProperties": false
+              },
+              "provenance": {
+                "type": "string",
+                "const": "host-declared-unverified"
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "currency",
+              "rates",
+              "provenance"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "profileId",
+          "version",
+          "limits",
+          "mode",
+          "providerId",
+          "modelId",
+          "apiFamily",
+          "endpoint",
+          "credentialSource",
+          "pricing"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "preflight": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "configValid": {
+        "type": "boolean"
+      },
+      "mode": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "offline-fixture",
+              "live-planned"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "canExecuteFixture": {
+        "type": "boolean"
+      },
+      "canExecuteLive": {
+        "type": "boolean",
+        "const": false
+      },
+      "credentialInspection": {
+        "type": "string",
+        "const": "not-performed"
+      },
+      "networkAccess": {
+        "type": "string",
+        "const": "disabled"
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "MODEL_CONFIG_INVALID",
+            "LIVE_TRANSPORT_DISABLED",
+            "PROVIDER_MODEL_OR_PRICING_UNSELECTED"
+          ]
+        }
+      }
+    },
+    "required": [
+      "configValid",
+      "mode",
+      "canExecuteFixture",
+      "canExecuteLive",
+      "credentialInspection",
+      "networkAccess",
+      "issues"
+    ],
+    "additionalProperties": false
+  },
+  "snapshot": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "profileDigest": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "scope": {
+        "type": "object",
+        "properties": {
+          "budgetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "userId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "roleId": {
+            "type": "string",
+            "enum": [
+              "java-backend",
+              "web-frontend"
+            ]
+          },
+          "runId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "deadlineAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "budgetId",
+          "userId",
+          "roleId",
+          "runId",
+          "attemptId",
+          "deadlineAt"
+        ],
+        "additionalProperties": false
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "offline-fixture",
+          "live-planned"
+        ]
+      },
+      "locked": {
+        "type": "boolean"
+      },
+      "accounting": {
+        "type": "string",
+        "const": "in-memory-declared-rate-not-vendor-billing"
+      },
+      "entries": {
+        "maxItems": 100,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "callId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "reserved",
+                "dispatched",
+                "unknown",
+                "released",
+                "settled"
+              ]
+            },
+            "planned": {
+              "type": "object",
+              "properties": {
+                "inputTokens": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                },
+                "outputTokens": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000000
+                }
+              },
+              "required": [
+                "inputTokens",
+                "outputTokens"
+              ],
+              "additionalProperties": false
+            },
+            "reservedCostMicros": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            "usage": {
+              "type": "object",
+              "properties": {
+                "inputTokens": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000000
+                },
+                "outputTokens": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000000
+                },
+                "complete": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "reportedCostMicros": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000000
+                }
+              },
+              "required": [
+                "inputTokens",
+                "outputTokens",
+                "complete"
+              ],
+              "additionalProperties": false
+            },
+            "actualCostMicros": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000000000
+            },
+            "overrun": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "callId",
+            "status",
+            "planned",
+            "reservedCostMicros",
+            "overrun"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "totals": {
+        "type": "object",
+        "properties": {
+          "callsConsumed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "activeSlots": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "heldTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "usedTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "heldCostMicros": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "usedCostMicros": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "callsConsumed",
+          "activeSlots",
+          "heldTokens",
+          "usedTokens",
+          "heldCostMicros",
+          "usedCostMicros"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "version",
+      "profileDigest",
+      "scope",
+      "mode",
+      "locked",
+      "accounting",
+      "entries",
+      "totals"
+    ],
+    "additionalProperties": false
+  },
+  "usage": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "inputTokens": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000000
+      },
+      "outputTokens": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000000
+      },
+      "complete": {
+        "type": "boolean",
+        "const": true
+      },
+      "reportedCostMicros": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1000000000000
+      }
+    },
+    "required": [
+      "inputTokens",
+      "outputTokens",
+      "complete"
+    ],
+    "additionalProperties": false
+  }
+}

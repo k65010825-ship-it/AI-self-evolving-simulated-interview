@@ -1,0 +1,541 @@
+[
+  {
+    "itemId": "java-behavior-incident",
+    "itemVersion": "seed-0.2",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE21/默认Spring代理语义或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "说明真实或假设案例，先确认影响，再区分事实与猜测、分工沟通、核对修复及复盘；不评价人格或编造线上结果。",
+    "followups": [
+      {
+        "question": "怎样确认修复对实际影响有效？",
+        "assesses": "验收与沟通闭环"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-behavior-release-disagreement",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "团队原创行为讨论；无真实事故经历不扣分。",
+    "answerGuide": "先说明已验证项和缺失调用路径，提出最小集成回滚/并发用例，与同伴约定负责人、验收条件及未验证风险的处理。沟通应基于事实而非指责。若场景是假设须明确标注，结果未知时不能编造成功上线。",
+    "followups": [
+      {
+        "question": "时间不足时如何表达仍未关闭的风险？",
+        "assesses": "透明沟通与验收责任"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-project-capacity",
+    "itemVersion": "seed-0.2",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE21/默认Spring代理语义或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "明确项目或假设场景、个人动作、容量不变量、并发检查与写入窗口，再说明事务/锁/原子约束、失败恢复及可复现验证。不要用本地测试外推生产效果。",
+    "followups": [
+      {
+        "question": "检查容量与写入之间有哪些并发窗口？",
+        "assesses": "约束维护与证据"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-project-retry-boundary",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "团队原创项目讨论，不要求真实实习或线上经历。",
+    "answerGuide": "先交代实际或假设场景、本人职责和超时后执行状态是否已知，再定义业务幂等键、唯一约束/事务边界与重试范围。用相同请求并发、重复到达及提交前后失败测试业务效果数量。明确测试环境和未覆盖条件，不把HTTP重发或本地单次成功等同业务恰好一次。",
+    "followups": [
+      {
+        "question": "幂等记录成功但响应丢失时，下一次调用如何返回？",
+        "assesses": "可恢复的结果保存"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-scenario-self-invocation",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Spring默认代理事务模式；不把AspectJ织入模式结论混用。",
+    "answerGuide": "默认代理模式下this调用没有经过代理入口，内部注解不会因此单独生效。若外层已有事务，代码可能仍处于外层事务中，不能说一定没有任何事务。可将事务边界移到经代理调用的服务方法，并通过实际Bean调用路径、事务状态和回滚测试验证；AspectJ模式属于另一个前提。",
+    "followups": [
+      {
+        "question": "外层方法已有事务时，自调用内部方法会完全没有事务吗？",
+        "assesses": "传播边界与调用路径"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "spring-transactions",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Using @Transactional：代理/self-invocation及回滚规则段落"
+      }
+    ]
+  },
+  {
+    "itemId": "java-scenario-stock-update",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "PostgreSQL 17 Read Committed，单商品单行库存示例，不涵盖跨行/跨系统原子性。",
+    "answerGuide": "读到库存后再无条件写回存在交错窗口。可用单条UPDATE stock=stock-qty WHERE stock>=qty，并检查影响行数；在Read Committed并发更新等待后，搜索条件会基于更新后的行重新检查。该方案只讨论单行边界，重复下单、订单与库存事务以及跨商品约束仍须独立处理。",
+    "followups": [
+      {
+        "question": "相同请求重复提交两次，条件UPDATE是否避免重复扣减？",
+        "assesses": "库存不变量与幂等的区别"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "postgres-isolation-17",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "13.2.1 Read Committed；普通SELECT快照及并发UPDATE条件重检查"
+      },
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-scenario-transactions",
+    "itemVersion": "seed-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE21/默认Spring代理语义或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "数据库事务与缓存更新是不同边界，说明提交前后失败窗口、可重试动作和幂等；实际一致性承诺取决于方案，不能声称@Transactional自动回滚缓存。",
+    "followups": [
+      {
+        "question": "缓存更新超时能否确定它没有执行？",
+        "assesses": "失败结果不确定性"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "spring-transactions",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Using @Transactional：代理/self-invocation及回滚规则段落"
+      }
+    ]
+  },
+  {
+    "itemId": "java-technical-atomic-counter",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE 21；单进程多线程计数，不讨论分布式计数。",
+    "answerGuide": "count++包含读取、计算和写回。volatile提供相关可见性/顺序保证但不合并这些步骤；AtomicInteger的增量方法提供该变量上的原子更新。若还需同时维护金额和数量等不变量，应设计更大同步边界，不能从单个计数器推断整体业务原子性。",
+    "followups": [
+      {
+        "question": "多个字段需要一起变化怎么办？",
+        "assesses": "并发不变量的同步边界"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "java-atomic-integer",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "incrementAndGet / updateAndGet：原子操作与无副作用更新函数"
+      },
+      {
+        "sourceId": "java-specification",
+        "sourceVersion": "docs-2026-11-01",
+        "locator": "JLS 17.4 Memory Model / 17.4.5 Happens-before Order"
+      }
+    ]
+  },
+  {
+    "itemId": "java-technical-atomic-side-effects",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE 21 AtomicInteger.updateAndGet。",
+    "answerGuide": "该更新函数在竞争中可能被重复应用，因此不应在里面发送邮件或写不可幂等的外部系统。计数值原子更新不等于外部副作用恰好一次。将副作用移出函数后仍需基于业务语义设计幂等或可靠投递，不能仅凭CAS保证。",
+    "followups": [
+      {
+        "question": "移出更新函数就能保证邮件恰好一次吗？",
+        "assesses": "原子变量与外部副作用的区别"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "java-atomic-integer",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "incrementAndGet / updateAndGet：原子操作与无副作用更新函数"
+      }
+    ]
+  },
+  {
+    "itemId": "java-technical-read-committed",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "PostgreSQL 17，普通非锁定SELECT，Read Committed。",
+    "answerGuide": "在Read Committed下，普通SELECT观察其开始时已提交的数据；两条语句的快照可以不同。另一事务在两次查询间提交，可产生不可重复读。Repeatable Read改变快照口径，但不是所有业务并发问题的万能解决方案，也仍需处理其冲突失败。",
+    "followups": [
+      {
+        "question": "换成Repeatable Read后是否就不需要处理并发失败？",
+        "assesses": "隔离与重试边界"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "postgres-isolation-17",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "13.2.1 Read Committed；普通SELECT快照及并发UPDATE条件重检查"
+      }
+    ]
+  },
+  {
+    "itemId": "java-technical-rollback-rules",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Spring声明式事务；以默认回滚规则为前提，实际版本/全局配置须核对。",
+    "answerGuide": "默认规则对RuntimeException和Error回滚，对受检异常不自动按同一规则回滚；rollbackFor等配置和较新版本的全局规则可改变它。若方法捕获异常并正常返回，拦截器可能看不到该异常，但不能据此保证一定提交：其他参与者可能已标记rollback-only。需说明配置、传播和调用路径。",
+    "followups": [
+      {
+        "question": "内部参与者已标记rollback-only时，外层捕获异常能保证提交吗？",
+        "assesses": "异常传播与事务状态"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "spring-transactions",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Using @Transactional：代理/self-invocation及回滚规则段落"
+      }
+    ]
+  },
+  {
+    "itemId": "java-technical-visibility",
+    "itemVersion": "seed-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "Java SE21/默认Spring代理语义或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "区分volatile的可见性/顺序与count++的复合更新；同步或原子类仅在对应不变量边界内提供保证。",
+    "followups": [
+      {
+        "question": "多个字段一起变化时怎么设计？",
+        "assesses": "原子性作用范围"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "java-specification",
+        "sourceVersion": "docs-2026-11-01",
+        "locator": "JLS 17.4 Memory Model / 17.4.5 Happens-before Order"
+      }
+    ]
+  },
+  {
+    "itemId": "web-behavior-loading-conflict",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "团队原创协作讨论；无实际工作经历不扣分。",
+    "answerGuide": "把“立即成功”拆为用户需要反馈和业务结果确认两个目标，解释已接受不等于成功，提出处理中状态、结果确认或可撤销反馈等可执行选项。与后端/产品确认状态语义、责任和失败提示，列出慢响应/失败/重复点击的验收。假设场景不得捏造落地收益。",
+    "followups": [
+      {
+        "question": "对方仍坚持立即成功，你会怎样记录尚未满足的条件？",
+        "assesses": "事实沟通与验收闭环"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-behavior-requirements",
+    "itemVersion": "seed-0.2",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器JS/React客户端或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "把冲突表述成用户动作和接口约束，给出可执行选项及责任/验收，说明事实、假设和未解决条件；不因缺少实际实习经历扣分。",
+    "followups": [
+      {
+        "question": "哪些交互边界必须共同确认？",
+        "assesses": "协商与验收"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-project-error-state",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器请求页面原创项目讨论，不要求实际生产经历。",
+    "answerGuide": "先定义用户动作和状态转换，再说明HTTP/网络/解析错误如何映射交互；空数组与尚未加载不同。说明本人负责的状态或组件改动，使用可控响应验证每种路径并防止旧请求覆盖。没有真实数据时明确是假设，不虚构满意度或线上提升。",
+    "followups": [
+      {
+        "question": "一次重试未结束又发起新查询，谁有权更新错误状态？",
+        "assesses": "状态归属与验证"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-fetch",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Checking response status / Canceling a request / Reading the response body"
+      },
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-project-rendering",
+    "itemVersion": "seed-0.2",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器JS/React客户端或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "先定义实际或假设页面、测量条件、本人修改与替代方案，再解释组件更新与交互回归。不给缺少基线和可复现条件的数据附会全站性能提升。",
+    "followups": [
+      {
+        "question": "怎样确认优化没有破坏输入交互？",
+        "assesses": "性能与回归证据"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "useEffect：参数/cleanup、Fetching data with Effects及依赖说明"
+      },
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-scenario-autocomplete",
+    "itemVersion": "seed-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器JS/React客户端或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "按当前请求标识维护结果、错误和加载，失效旧请求并配合清理/取消；覆盖晚返回、输入清空及卸载，不假定取消总能阻止远端执行。",
+    "followups": [
+      {
+        "question": "旧请求finally会影响新请求加载状态吗？",
+        "assesses": "状态写入归属"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-javascript",
+        "sourceVersion": "docs-2026-11-01",
+        "locator": "Closures：Lexical scoping及闭包示例"
+      },
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "useEffect：参数/cleanup、Fetching data with Effects及依赖说明"
+      }
+    ]
+  },
+  {
+    "itemId": "web-scenario-effect-subscription",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "React客户端Effect管理外部订阅；具体订阅API由场景定义。",
+    "answerGuide": "每次setup为当前用户建立连接或监听，并返回清理函数取消同一次setup拥有的资源。依赖变化时先清理旧值再建立新订阅，卸载时也清理。开发期额外循环不应靠跳过执行掩盖，需验证订阅/取消数量和切换后消息归属。",
+    "followups": [
+      {
+        "question": "清理函数读取新用户ID而不是setup捕获的旧ID会怎样？",
+        "assesses": "资源归属与闭包"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "useEffect：参数/cleanup、Fetching data with Effects及依赖说明"
+      }
+    ]
+  },
+  {
+    "itemId": "web-scenario-search-clear",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "React客户端搜索场景；请求可取消也可能忽略取消。",
+    "answerGuide": "清空输入也应使旧请求失效：用请求序号或cleanup中的失效标记拦截迟到结果，可配合AbortController减少浪费。只有当前请求才能更新结果、错误和加载状态。不能只判断输入非空或只取消网络就宣称没有竞态，尤其需要验证取消被忽略的晚返回。",
+    "followups": [
+      {
+        "question": "旧请求finally将loading置false会影响新请求吗？",
+        "assesses": "所有状态写入的请求归属"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "useEffect：参数/cleanup、Fetching data with Effects及依赖说明"
+      },
+      {
+        "sourceId": "mdn-fetch",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Checking response status / Canceling a request / Reading the response body"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-abort-scope",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器Fetch取消；远端业务结果需服务器协议确认。",
+    "answerGuide": "abort使本地请求/读取进入中止处理，不是远端事务回滚协议。服务器可能已经处理写请求，应通过业务状态或幂等协议确认。AbortSignal中止后不能恢复成未中止状态；新请求应创建对应的新控制器，取消当前请求不能误取消后续请求。",
+    "followups": [
+      {
+        "question": "写请求取消后用户再次点击，怎样避免重复业务效果？",
+        "assesses": "客户端生命周期与服务端协议"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-fetch",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Checking response status / Canceling a request / Reading the response body"
+      },
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-closure",
+    "itemVersion": "seed-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器JS/React客户端或团队原创项目场景；具体以前提为准。",
+    "answerGuide": "闭包保留对词法环境的访问，不是统一复制某时刻所有变量值。用具体绑定与读取时机解释异步输出，避免把语言闭包和React某次render绑定混为一谈。",
+    "followups": [
+      {
+        "question": "不同调用各自的局部绑定会相互共享吗？",
+        "assesses": "词法环境与变量绑定"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-javascript",
+        "sourceVersion": "docs-2026-11-01",
+        "locator": "Closures：Lexical scoping及闭包示例"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-effect-dependencies",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "React客户端useEffect；以官方读取日页面为依据。",
+    "answerGuide": "Effect使用的响应式值需要正确声明依赖，省略可能使同步逻辑保留旧值。应分析Effect是否必要、把非响应式逻辑移出或调整对象/函数创建位置，而不是为了少跑而删依赖。依赖比较和清理时机共同影响行为；开发期额外setup/cleanup不应靠全局标记掩盖。",
+    "followups": [
+      {
+        "question": "依赖是每次render新建的对象时，该怎样分析？",
+        "assesses": "引用变化与Effect职责"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "useEffect：参数/cleanup、Fetching data with Effects及依赖说明"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-fetch-status",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器Fetch API；不将所有异常等同HTTP失败。",
+    "answerGuide": "fetch的Promise主要在请求失败等情况下拒绝，HTTP 500通常仍返回Response。调用方应检查ok或status，再决定读取或抛出HTTP错误；json解析也可能独立失败。UI需分别描述失败阶段，不能仅因拿到Response就显示业务成功。",
+    "followups": [
+      {
+        "question": "HTTP 200但返回体不是JSON应该怎样呈现？",
+        "assesses": "响应状态与数据契约"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-fetch",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Checking response status / Canceling a request / Reading the response body"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-microtask-order",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-03",
+    "applicability": "浏览器普通脚本、单个定时器和已兑现Promise；不混用Node事件循环。",
+    "answerGuide": "同步脚本先输出A，Promise回调作为微任务在当前任务结束后的检查点执行，再处理定时器任务输出C。微任务不是同步调用。持续向微任务队列添加任务可能延迟后续任务；具体渲染机会不能只按这个三行示例推断。",
+    "followups": [
+      {
+        "question": "微任务里不断安排微任务会怎样影响定时器？",
+        "assesses": "队列清空与饥饿"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-microtasks",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Tasks vs. microtasks；微任务检查点与递归调度警告"
+      }
+    ]
+  }
+]

@@ -1,6 +1,330 @@
 [
-  {"id":"java-scenario-transactions","roleId":"java-backend","skillId":"spring-transactions","questionType":"scenario","difficulty":3,"question":"下单事务中先写数据库再更新缓存，缓存更新失败时你怎样设计一致性与恢复？","keyPoints":["明确数据库事务边界与缓存非原子更新","说明失败窗口、重试幂等与一致性取舍"],"rubric":[{"criterionId":"consistency","description":"指出事务和缓存的边界及失败恢复","maxScore":4,"weight":1}],"sourceIds":["spring-transactions"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"java-technical-visibility","roleId":"java-backend","skillId":"java-concurrency","questionType":"technical","difficulty":2,"question":"volatile 的可见性与复合操作原子性有什么区别？请用计数场景解释。","keyPoints":["区分可见性与原子性","给出同步或原子类的适用条件"],"rubric":[{"criterionId":"jmm","description":"准确区分保证和不保证的行为","maxScore":4,"weight":1}],"sourceIds":["java-specification"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"java-project-capacity","roleId":"java-backend","skillId":"project-design","questionType":"project","difficulty":3,"question":"选择你项目中的一个容量限制，说明它在并发请求下怎样保持，以及你如何验证。","keyPoints":["具体说明个人贡献与不变量","区分测试证据、风险和生产效果"],"rubric":[{"criterionId":"invariant","description":"贡献和不变量清楚且验证可复现","maxScore":4,"weight":1}],"sourceIds":["team-original"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"java-behavior-incident","roleId":"java-backend","skillId":"collaboration","questionType":"behavioral","difficulty":2,"question":"一次接口故障处理中，你怎样和同伴确认影响、分工定位并复盘？没有实际经历时请明确说明。","keyPoints":["影响与沟通顺序具体","动作和复盘有证据，不编造经历"],"rubric":[{"criterionId":"communication","description":"沟通、行动与复盘具体可信","maxScore":4,"weight":1}],"sourceIds":["team-original"],"version":"seed-0.1","reviewStatus":"draft"}
+  {
+    "id": "java-scenario-transactions",
+    "roleId": "java-backend",
+    "skillId": "spring-transactions",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "下单事务中先写数据库再更新缓存，缓存更新失败时你怎样设计一致性与恢复？",
+    "keyPoints": [
+      "明确数据库事务边界与缓存非原子更新",
+      "说明失败窗口、重试幂等与一致性取舍"
+    ],
+    "rubric": [
+      {
+        "criterionId": "consistency",
+        "description": "指出事务和缓存的边界及失败恢复",
+        "maxScore": 4,
+        "weight": 1
+      }
+    ],
+    "sourceIds": [
+      "spring-transactions"
+    ],
+    "version": "seed-0.1",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "java-technical-visibility",
+    "roleId": "java-backend",
+    "skillId": "java-concurrency",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "volatile 的可见性与复合操作原子性有什么区别？请用计数场景解释。",
+    "keyPoints": [
+      "区分可见性与原子性",
+      "给出同步或原子类的适用条件"
+    ],
+    "rubric": [
+      {
+        "criterionId": "jmm",
+        "description": "准确区分保证和不保证的行为",
+        "maxScore": 4,
+        "weight": 1
+      }
+    ],
+    "sourceIds": [
+      "java-specification"
+    ],
+    "version": "seed-0.1",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "java-project-capacity",
+    "roleId": "java-backend",
+    "skillId": "project-design",
+    "questionType": "project",
+    "difficulty": 3,
+    "question": "选择你项目中的一个容量限制，说明它在并发请求下怎样保持，以及你如何验证。",
+    "keyPoints": [
+      "具体说明个人贡献与不变量",
+      "区分测试证据、风险和生产效果"
+    ],
+    "rubric": [
+      {
+        "criterionId": "invariant",
+        "dimension": "correctness",
+        "description": "容量不变量与并发边界",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中体现“容量不变量与并发边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对容量不变量与并发边界只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "提到容量上限但没有边界"
+          },
+          {
+            "score": 2,
+            "description": "说明检查与写入的并发窗口"
+          },
+          {
+            "score": 3,
+            "description": "给出事务/锁/原子操作与失败条件"
+          },
+          {
+            "score": 4,
+            "description": "解释不变量、并发正确性及失败恢复取舍"
+          }
+        ]
+      },
+      {
+        "criterionId": "ownership",
+        "dimension": "ownership",
+        "description": "个人贡献与事实边界",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“个人贡献与事实边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对个人贡献与事实边界只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说参与项目"
+          },
+          {
+            "score": 2,
+            "description": "区分团队方案和个人修改"
+          },
+          {
+            "score": 3,
+            "description": "说明本人修改位置、原因与约束"
+          },
+          {
+            "score": 4,
+            "description": "贡献可定位，明确哪些结果未验证而不夸大"
+          }
+        ]
+      },
+      {
+        "criterionId": "logic",
+        "dimension": "logic",
+        "description": "问题到方案的因果链",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“问题到方案的因果链”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对问题到方案的因果链只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "列出多个技术名词"
+          },
+          {
+            "score": 2,
+            "description": "说明问题与一种方案的联系"
+          },
+          {
+            "score": 3,
+            "description": "按约束、方案、代价组织回答"
+          },
+          {
+            "score": 4,
+            "description": "对替代方案给出一致的因果比较与适用条件"
+          }
+        ]
+      },
+      {
+        "criterionId": "verification",
+        "dimension": "verification",
+        "description": "并发验证与容量证据",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“并发验证与容量证据”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对并发验证与容量证据只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "声称测试过"
+          },
+          {
+            "score": 2,
+            "description": "描述测试输入和预期不变量"
+          },
+          {
+            "score": 3,
+            "description": "说明并发执行、观测指标和失败样例"
+          },
+          {
+            "score": 4,
+            "description": "给出可复现实验及局限，不把本地测试冒充生产效果"
+          }
+        ]
+      }
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "seed-0.2",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "java-behavior-incident",
+    "roleId": "java-backend",
+    "skillId": "collaboration",
+    "questionType": "behavioral",
+    "difficulty": 2,
+    "question": "一次接口故障处理中，你怎样和同伴确认影响、分工定位并复盘？没有实际经历时请明确说明。 可明确使用假设案例，不因缺少实际故障或实习经历扣分。",
+    "keyPoints": [
+      "影响与沟通顺序具体",
+      "动作和复盘有证据，不编造经历"
+    ],
+    "rubric": [
+      {
+        "criterionId": "impact_triage",
+        "dimension": "relevance",
+        "description": "故障影响确认与安全分工",
+        "maxScore": 4,
+        "weight": 0.35,
+        "evidenceRule": "引用回答中体现“故障影响确认与安全分工”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对故障影响确认与安全分工只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说快速修复"
+          },
+          {
+            "score": 2,
+            "description": "描述影响和需要联系的人"
+          },
+          {
+            "score": 3,
+            "description": "说明影响范围、优先级与分工顺序"
+          },
+          {
+            "score": 4,
+            "description": "在约束下说明止损、协作边界与不确定性"
+          }
+        ]
+      },
+      {
+        "criterionId": "communication",
+        "dimension": "communication",
+        "description": "故障信息与闭环沟通",
+        "maxScore": 4,
+        "weight": 0.3,
+        "evidenceRule": "引用回答中体现“故障信息与闭环沟通”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对故障信息与闭环沟通只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说积极沟通"
+          },
+          {
+            "score": 2,
+            "description": "指出沟通对象与问题"
+          },
+          {
+            "score": 3,
+            "description": "给出事实、假设、动作、负责人和同步方式"
+          },
+          {
+            "score": 4,
+            "description": "解释确认反馈、升级条件与复盘闭环，不归因人格"
+          }
+        ]
+      },
+      {
+        "criterionId": "logic",
+        "dimension": "logic",
+        "description": "故障叙述的因果顺序",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“故障叙述的因果顺序”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对故障叙述的因果顺序只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只罗列动作"
+          },
+          {
+            "score": 2,
+            "description": "区分背景和采取的动作"
+          },
+          {
+            "score": 3,
+            "description": "按影响、假设、行动、结果组织"
+          },
+          {
+            "score": 4,
+            "description": "解释为何先做某动作，并区分证据与猜测"
+          }
+        ]
+      },
+      {
+        "criterionId": "verification",
+        "dimension": "verification",
+        "description": "修复核对与复盘依据",
+        "maxScore": 4,
+        "weight": 0.15,
+        "evidenceRule": "引用回答中体现“修复核对与复盘依据”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对修复核对与复盘依据只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说已经解决"
+          },
+          {
+            "score": 2,
+            "description": "说明怎样确认恢复"
+          },
+          {
+            "score": 3,
+            "description": "列出恢复依据与后续行动"
+          },
+          {
+            "score": 4,
+            "description": "交代可复核证据、仍存风险及复盘措施；假设经历明确标注"
+          }
+        ]
+      }
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "seed-0.2",
+    "reviewStatus": "draft"
+  }
 ]

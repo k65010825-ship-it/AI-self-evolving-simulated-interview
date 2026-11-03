@@ -1,10 +1,29 @@
 # 错误、取消与恢复契约 v1
 
+语音宿主函数沿用本目录错误码：WAV/确认格式错误为VALIDATION_ERROR，音频大小或时长超限为CONTEXT_BUDGET_EXCEEDED，ASR输出/时间段不合法为MODEL_OUTPUT_INVALID，供应商异常为DEPENDENCY_UNAVAILABLE。未新增HTTP语音路径，详情见 [语音契约](speech.md)。
+
+学习/复测：跨用户FORBIDDEN、跨岗位宿主归属ROLE_FORBIDDEN、任务/事件版本或同ID改内容VERSION_CONFLICT；损坏事件/报告、未来时间、非法证据引用等VALIDATION_ERROR。合法但学习未核实、条件不符或缺参考返回ineligible及原因；聚合样本不足insufficient_data且MAE=null，不当作运行异常或0误差。
+
+离线实验：experimentId不符FORBIDDEN，岗位不符ROLE_FORBIDDEN；新操作版本/当前基线/策略ID定义/回退祖先不符或同operationId变更业务内容VERSION_CONFLICT。时钟倒退、伪造summary、审计结构或容量非法VALIDATION_ERROR。合法评测失败记录rejected而非抛依赖异常。旧操作相同重放不重新启用候选，不越过offline-experiment作用域；正式事务由API负责。
+
+反思/策略：基线ID与报告版本不符为VERSION_CONFLICT，岗位不符ROLE_FORBIDDEN，未pin/篡改规划/非法候选参数/开发验证来源重叠为VALIDATION_ERROR。合法评测样本不足、未改善或退化返回rejected及reasons，不冒充运行异常。失败不自动发布或修改基线，缺后续表现时校准保持等待。
+
+记忆：跨用户FORBIDDEN、跨岗位ROLE_FORBIDDEN；重复会话内容变化或新追加版本落后VERSION_CONFLICT；损坏JSON/schema/未来历史/时钟倒退/容量超限VALIDATION_ERROR。旧会话相同内容重试先按该会话acceptedAt与幂等处理，不因后续updatedAt变化而失败。任何失败均不改输入快照；没有自动截断、归属兜底或覆盖新版本。
+
+资源目录非法（含畸形URL/非allowlist/重复ID）统一VALIDATION_ERROR，不泄漏URL解析异常。查询错误按取消、期限、岗位和预算分类；合法无命中为empty，不冒充依赖故障。报告增强遇到工具错误或取消/过期拒绝整个增强结果，不更改原报告；缺匹配资源只保留gap警告。
+
+内容报告错误：schema/缺记录/重复ID/评分重算不符/引用或轨迹错配/时钟倒退返回VALIDATION_ERROR；轮次跨岗位或跨宿主用户返回ROLE_FORBIDDEN。失败不返回部分报告，不自动补分或跳过非法轮次。仅本地计算，无模型依赖重试；报告HTTP鉴权与正式提交尚未实现。
+
+单轮编排：宿主参数非法为 VALIDATION_ERROR；端口返回结构、证据、必填或完整性不合格为 MODEL_OUTPUT_INVALID；端口抛出的内部异常统一 DEPENDENCY_UNAVAILABLE，不泄漏原文。超时/期限为 DEADLINE_EXCEEDED，用户取消为 RUN_CANCELLED。任何错误均不返回状态候选，不自动重试。后台供应商取消效果、API 最终提交撤销与重试幂等仍需独立实现验证。
+
+Pi评估器的已分类AgentStateError会由编排层保留；未知异常才归一为DEPENDENCY_UNAVAILABLE。最终stopReason=error也映射为依赖不可用，不混淆为内容结构错误。工具尝试、非stop完成、无效JSON、额外字段和超出输出预算为MODEL_OUTPUT_INVALID；输入提示超限为CONTEXT_BUDGET_EXCEEDED。SDK错误原文/原始事件不透传。选题缺口是unavailable状态，不伪装成功或供应商异常。
+
 HTTP 错误使用 application/problem+json：type（稳定 URN）、title、status、code、detail（可公开摘要）、requestId、retryable。不返回 stack、供应商原文、key、SQL 或内部路径。所有集合接口未来使用 cursor/limit，默认 20、最大 100。
 
 | code | HTTP | 可重试 | 行为 |
 | --- | --- | --- | --- |
 | VALIDATION_ERROR | 422 | 否 | 指出输入不合法；不回显敏感字段 |
+| CONTEXT_BUDGET_EXCEEDED | 413 | 否 | 必要状态或完整评分回答超出字符预算；不得静默截断评分 |
 | UNAUTHENTICATED | 401 | 否 | 要求重新登录；不后台循环刷新失败凭证 |
 | ROLE_FORBIDDEN / FORBIDDEN | 403 | 否 | 停止该访问，禁止跨岗/跨用户兜底 |
 | NOT_FOUND | 404 | 否 | 资源不存在或不可见 |
@@ -31,3 +50,7 @@ HTTP 超时不保证远端没执行。API 用 run/attempt/sessionVersion/租约�
 ## 骨架行为
 
 当前 /health 返回 stage=scaffold、能力列表和 liveModelConfigured=false。/v1 或 /internal/v1 下未实现能力统一 501；未知路径 404。没有登录/模型/数据库时绝不返回“面试完成”。error→HTTP 公开映射使用固定说明，不信任任意 Error.message。
+
+## 内部离线运行
+
+内部 HTTP 使用同一错误目录；运行期间的错误写入失败快照和 run.failed。取消与超时均拒绝迟到结果，SSE 断开只退订。429 表示内存记录或活跃上限，不承诺排队；409 包括同 runId 变更内容/attempt、旧 attempt 取消及超前游标。重启丢失内存任务和幂等记录，不能依此恢复正式提交。详见 [内部运行契约](agent-runtime.md)。

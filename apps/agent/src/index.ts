@@ -1,5 +1,13 @@
 import { createAgentApp } from './app.ts';
+import{createOfflineRunManager}from'./runtime/offline-runtime.ts';
 const port = Number(process.env.AGENT_PORT ?? 3200);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid AGENT_PORT');
-Bun.serve({ hostname: process.env.AGENT_HOST ?? '127.0.0.1', port, fetch: createAgentApp().fetch });
-console.log(`Agent scaffold: http://127.0.0.1:${port}/health`);
+const mode=process.env.AGENT_MODE??'scaffold';
+if(!['scaffold','offline-fixture'].includes(mode))throw new Error('Unsupported AGENT_MODE');
+if(mode==='offline-fixture'&&!/^[A-Za-z0-9_-]{32,256}$/.test(process.env.AGENT_INTERNAL_TOKEN??''))throw new Error('Set an explicit internal service token');
+const planning=process.env.AGENT_PLANNING_MODE??'deterministic';
+if(planning!=='deterministic'&&planning!=='pi-knowledge')throw new Error('Unsupported AGENT_PLANNING_MODE');
+const runtime=mode==='offline-fixture'?await createOfflineRunManager({planning}):undefined;
+const app=runtime?createAgentApp({runtime,internalToken:process.env.AGENT_INTERNAL_TOKEN!}):createAgentApp();
+Bun.serve({ hostname: process.env.AGENT_HOST ?? '127.0.0.1', port, fetch:app.fetch });
+console.log(`Agent ${mode}: http://127.0.0.1:${port}/health`);

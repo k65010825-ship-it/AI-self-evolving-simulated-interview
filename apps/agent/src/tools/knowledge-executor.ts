@@ -2,15 +2,17 @@ import { z } from 'zod';
 import javaSeed from '../../../../knowledge/java-backend/seed.json' with { type: 'json' };
 import webSeed from '../../../../knowledge/web-frontend/seed.json' with { type: 'json' };
 import { KnowledgeItemSchema, KnowledgeQuerySchema, ToolContextSchema, ToolReceiptSchema,
-  type ErrorCode, type ToolContext, type ToolReceipt } from '../../../../packages/contracts/src/tools.ts';
+  type ErrorCode, type ToolContext, type ToolReceipt, type KnowledgeItem } from '../../../../packages/contracts/src/tools.ts';
 import { describeError } from '../../../../packages/contracts/src/errors.ts';
 
 const seed = z.array(KnowledgeItemSchema).parse([...javaSeed, ...webSeed]);
 /** Development seed adapter; draft records are explicit, never a production repository. */
-export function createKnowledgeExecutor(context: ToolContext, options: { maxCalls?: number; includeDrafts?: boolean } = {}) {
+export function createKnowledgeExecutor(context: ToolContext, options: { maxCalls?: number; includeDrafts?: boolean; catalog?: KnowledgeItem[] } = {}) {
   const ctx = ToolContextSchema.parse(context);
   const maxCalls = options.maxCalls ?? 5;
   if (!Number.isInteger(maxCalls) || maxCalls < 0) throw new RangeError('maxCalls must be a nonnegative integer.');
+  // Empty injected catalogs must stay empty, never fall back to the development seeds.
+  const catalog = options.catalog === undefined ? seed : z.array(KnowledgeItemSchema).max(400).parse(options.catalog);
   let calls = 0;
   return async (callId: string, raw: unknown, signal?: AbortSignal): Promise<ToolReceipt> => {
     const started = performance.now();
@@ -28,7 +30,7 @@ export function createKnowledgeExecutor(context: ToolContext, options: { maxCall
     if (calls >= maxCalls) return fail('TOOL_BUDGET_EXCEEDED');
     calls++;
     const query = input.query?.toLocaleLowerCase();
-    const items = seed.filter((item) => item.roleId === ctx.roleId && item.skillId === input.skillId
+    const items = catalog.filter((item) => item.roleId === ctx.roleId && item.skillId === input.skillId
       && (options.includeDrafts !== false || item.reviewStatus === 'reviewed')
       && (!query || `${item.question} ${item.keyPoints.join(' ')}`.toLocaleLowerCase().includes(query))).slice(0, input.limit);
     if (signal?.aborted) return fail('RUN_CANCELLED');

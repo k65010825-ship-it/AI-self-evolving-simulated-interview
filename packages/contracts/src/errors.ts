@@ -1,5 +1,6 @@
 import type { ErrorCode } from './tools.ts';
 const catalog = {
+  CONTEXT_BUDGET_EXCEEDED: [413, '上下文超出预算，请缩小输入后重试。', false],
   VALIDATION_ERROR: [422, '输入不符合契约。', false], UNAUTHENTICATED: [401, '请重新登录。', false],
   FORBIDDEN: [403, '没有访问该资源的权限。', false], ROLE_FORBIDDEN: [403, '不能访问当前面试岗位之外的知识。', false],
   NOT_FOUND: [404, '资源不存在。', false], VERSION_CONFLICT: [409, '状态已经变化，请刷新。', false],

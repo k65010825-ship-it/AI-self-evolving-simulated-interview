@@ -13,7 +13,7 @@
 
 初始目录 knowledge/{java-backend,web-frontend}。每个知识项：id、roleId、skillId、questionType、difficulty、question、keyPoints、rubric、sourceIds、version、reviewStatus。sourceIds 必须在 sources.json 登记，记录 title/url/owner/licenseNote/retrievedAt/verificationStatus。未访问的来源标记 pending，不填写虚假抓取日期或“已核验”。
 
-当前种子是原创示例草案，标为 draft，尚未达到每岗 40 题或经过岗位专家审核。两岗各四类题各一例用于契约与查询测试；reviewStatus 决定可否进入正式题库，目标发布流程只接纳 reviewed。当前开发种子工具默认可返回 draft 并在回执标注；不能直接作为正式题库发布入口。
+当前每岗12条原创草案（4条seed+8条expansion），尚未达到每岗40题或经过岗位专家审核。默认开发种子工具保留4条和draft标签；新增curated adapter默认reviewed-only，必须通过本地声明审核闸门才能派生reviewed，不能直接作为正式发布入口。来源、逐题指南、追问和审核包维护见[审核流程](knowledge-curation.md)。
 
 ## 候选一手来源
 
@@ -27,6 +27,8 @@
 sources.json 已登记并读取 Spring @Transactional、Java SE 21 JLS 第 17 章、MDN Closures 和 React useEffect 四个具体页面，状态为 content-checked，含读取日期。PostgreSQL 等扩展来源尚待核验。来源读取不等于题目和 rubric 已通过岗位审核，记录只保存引用与原创要点，不落库整篇第三方文档。批量导入仍需核对准确性、版本和使用范围。
 
 ## 查询策略与质检
+
+资源目录knowledge/resources.json已加入四条官方页面索引，2026-11-02通过MarkItDown MCP读取并确认正文非空且包含目标章节；lastCheckedAt记录实际核验毫秒时间，reviewStatus仍为draft，内容可访问不等于人工审核教学适用性。目录等级分别为Spring事务intermediate、JLS并发advanced、MDN闭包foundational、React Effect intermediate；精确等级匹配会出现基础资源缺口，不能为填满推荐偷偷改等级。运行时资源工具不抓网页或更新核验时间，失效/过期条目由维护侧更新。30天默认有效期只是维护规则，不保证期间链接不会变化。
 
 模型只拿岗位概览，按需调用 query_role_knowledge。先过滤 roleId/skillId/purpose，再对 query 做有限关键词匹配，最多 3 条；限制单条长度和上下文预算，返回来源与版本。空结果不跨岗兜底；任务缺知识时换题/澄清并记录 gap。
 

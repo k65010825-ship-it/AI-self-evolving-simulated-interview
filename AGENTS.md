@@ -15,3 +15,4 @@
 - 知识 sourceId/version/reviewStatus 可追溯，draft 不当 reviewed；评测数据分组隔离，真实/模拟证据分开。
 - 有行为改动时运行相应测试；交付前运行 typecheck、test、pi:offline、check:knowledge、openapi:lint、desktop:build。构建不证明 GUI、麦克风、安装或数据库已验证。
 - 不提交或推送未经用户要求的 Git 历史，不部署；不要更新全局技能或记忆。
+- 若存在本地 `.sdd/agent-learning/maintenance.md`，Agent 模块变更完成后按其同步个人教程、问题记录和周报。该本地约定不进入 Git，其他成员没有此文件时无需执行。

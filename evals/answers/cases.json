@@ -1,0 +1,164 @@
+[
+  {
+    "id": "java-technical-atomic-counter-complete",
+    "version": "case-0-1",
+    "questionId": "java-technical-atomic-counter",
+    "groupId": "family-java-technical-atomic-counter",
+    "split": "development",
+    "variant": "complete",
+    "answer": "volatile不把count++的读取、计算、写回合成原子操作，线程交错会丢失更新。AtomicInteger.incrementAndGet原子地更新一个变量，不能自动维护多个字段的业务约束。可让多个线程经起跑同步累加，join后核对预期总数；测试能暴露竞争，不能证明所有执行都正确。"
+  },
+  {
+    "id": "java-technical-atomic-counter-misconception",
+    "version": "case-0-1",
+    "questionId": "java-technical-atomic-counter",
+    "groupId": "family-java-technical-atomic-counter",
+    "split": "development",
+    "variant": "misconception",
+    "answer": "volatile会让count++作为不可分割的操作执行，所以不会丢失更新。我只需单线程打印一次正确结果，就证明所有并发计数都正确。"
+  },
+  {
+    "id": "java-technical-atomic-counter-insufficient",
+    "version": "case-0-1",
+    "questionId": "java-technical-atomic-counter",
+    "groupId": "family-java-technical-atomic-counter",
+    "split": "development",
+    "variant": "insufficient",
+    "answer": "我没有掌握AtomicInteger和volatile，无法说明它们的操作边界，也不知道如何验证计数。"
+  },
+  {
+    "id": "java-scenario-self-invocation-complete",
+    "version": "case-0-1",
+    "questionId": "java-scenario-self-invocation",
+    "groupId": "family-java-scenario-self-invocation",
+    "split": "validation",
+    "variant": "complete",
+    "answer": "默认代理事务只拦截经过代理入口的调用，this调用内部方法不会单独应用其事务注解；如果外层已有事务，内部仍可能参与外层事务，不能说必然完全无事务。可把边界放到经代理调用的协作服务，用真实容器Bean的事务状态与回滚对照测试验证。AspectJ织入属于不同前提。"
+  },
+  {
+    "id": "java-scenario-self-invocation-misconception",
+    "version": "case-0-1",
+    "questionId": "java-scenario-self-invocation",
+    "groupId": "family-java-scenario-self-invocation",
+    "split": "validation",
+    "variant": "misconception",
+    "answer": "同一个Bean内只要写了@Transactional，this调用一定被代理拦截。直接new服务对象并看到没有异常，就足以证明容器中的事务回滚路径正确。"
+  },
+  {
+    "id": "java-scenario-self-invocation-insufficient",
+    "version": "case-0-1",
+    "questionId": "java-scenario-self-invocation",
+    "groupId": "family-java-scenario-self-invocation",
+    "split": "validation",
+    "variant": "insufficient",
+    "answer": "我不理解Spring事务代理，暂时不能解释this调用与容器调用的差异，也没有验证思路。"
+  },
+  {
+    "id": "java-technical-read-committed-complete",
+    "version": "case-0-1",
+    "questionId": "java-technical-read-committed",
+    "groupId": "family-java-technical-read-committed",
+    "split": "reserved-final",
+    "variant": "complete",
+    "answer": "PostgreSQL17 Read Committed的普通SELECT各自读取语句开始时已提交的数据，不保证事务中两次SELECT共享一个固定快照。连接A先查，B修改并提交，再让A查，可观察后一次变化。应明确交错和提交位置；锁定查询和其他隔离级别另论，Repeatable Read也不免除所有并发失败处理。"
+  },
+  {
+    "id": "java-technical-read-committed-misconception",
+    "version": "case-0-1",
+    "questionId": "java-technical-read-committed",
+    "groupId": "family-java-technical-read-committed",
+    "split": "reserved-final",
+    "variant": "misconception",
+    "answer": "Read Committed保证整个事务始终使用同一份快照，因此两次SELECT绝不会看到其他事务后来提交的数据。只开一个连接连续读两次相同值就证明隔离没有并发问题。"
+  },
+  {
+    "id": "java-technical-read-committed-insufficient",
+    "version": "case-0-1",
+    "questionId": "java-technical-read-committed",
+    "groupId": "family-java-technical-read-committed",
+    "split": "reserved-final",
+    "variant": "insufficient",
+    "answer": "我尚未学习PostgreSQL隔离级别，不能说明两次查询的快照时机或两个连接的实验。"
+  },
+  {
+    "id": "web-technical-microtask-order-complete",
+    "version": "case-0-1",
+    "questionId": "web-technical-microtask-order",
+    "groupId": "family-web-technical-microtask-order",
+    "split": "development",
+    "variant": "complete",
+    "answer": "普通浏览器脚本先完成同步日志A，已兑现Promise的then是微任务，在当前任务结束后的检查点执行B，之后定时器任务才输出C。不断加入的微任务会延迟后续任务，不是then立即同步执行。可在最小浏览器脚本中先注册定时器再注册then，核对ABC；不能据此推断所有渲染时机或Node阶段。"
+  },
+  {
+    "id": "web-technical-microtask-order-misconception",
+    "version": "case-0-1",
+    "questionId": "web-technical-microtask-order",
+    "groupId": "family-web-technical-microtask-order",
+    "split": "development",
+    "variant": "misconception",
+    "answer": "定时器C先注册就必然先于Promise回调B执行，Promise.then本身也是同步调用。这一规则可以直接证明所有Node事件循环阶段和浏览器渲染时机完全相同。"
+  },
+  {
+    "id": "web-technical-microtask-order-insufficient",
+    "version": "case-0-1",
+    "questionId": "web-technical-microtask-order",
+    "groupId": "family-web-technical-microtask-order",
+    "split": "development",
+    "variant": "insufficient",
+    "answer": "我不清楚浏览器微任务和定时器的区别，无法预测这段脚本的日志顺序或说明验证条件。"
+  },
+  {
+    "id": "web-scenario-search-clear-complete",
+    "version": "case-0-1",
+    "questionId": "web-scenario-search-clear",
+    "groupId": "family-web-scenario-search-clear",
+    "split": "validation",
+    "variant": "complete",
+    "answer": "清空输入时也要递增请求序号或在cleanup标记旧请求失效，只有当前请求才能写结果、错误和loading，包括finally。可以配合AbortController减少浪费，但不能假设取消必然阻止晚返回。用受控慢响应测试A后清空、新请求与旧finally交错、错误晚到及卸载，确认没有过期状态覆盖。"
+  },
+  {
+    "id": "web-scenario-search-clear-misconception",
+    "version": "case-0-1",
+    "questionId": "web-scenario-search-clear",
+    "groupId": "family-web-scenario-search-clear",
+    "split": "validation",
+    "variant": "misconception",
+    "answer": "清空时只把结果数组置空即可，旧响应回来仍直接setState。调用abort后绝不会有旧回调，因此不必验证finally或错误回调，只测一次正常返回就够了。"
+  },
+  {
+    "id": "web-scenario-search-clear-insufficient",
+    "version": "case-0-1",
+    "questionId": "web-scenario-search-clear",
+    "groupId": "family-web-scenario-search-clear",
+    "split": "validation",
+    "variant": "insufficient",
+    "answer": "我还不会处理搜索响应竞态，不知道清空输入后旧结果应该怎样失效，也没有加载状态的验证方案。"
+  },
+  {
+    "id": "web-technical-fetch-status-complete",
+    "version": "case-0-1",
+    "questionId": "web-technical-fetch-status",
+    "groupId": "family-web-technical-fetch-status",
+    "split": "reserved-final",
+    "variant": "complete",
+    "answer": "fetch收到HTTP500通常仍兑现为Response，需要检查ok或status；网络请求失败和读取json失败是不同阶段。界面应分别处理加载、空数据、失败和重试，不能拿到Response就提示业务成功。可以控制返回HTTP错误、无效JSON和网络失败来核对反馈，并检查过期请求不能改变当前状态。"
+  },
+  {
+    "id": "web-technical-fetch-status-misconception",
+    "version": "case-0-1",
+    "questionId": "web-technical-fetch-status",
+    "groupId": "family-web-technical-fetch-status",
+    "split": "reserved-final",
+    "variant": "misconception",
+    "answer": "fetch遇到所有非2xx都会自动进入catch，所以不用检查response.ok。只要拿到Response就是业务成功，空数据、解析失败和未加载都显示同一种成功状态。"
+  },
+  {
+    "id": "web-technical-fetch-status-insufficient",
+    "version": "case-0-1",
+    "questionId": "web-technical-fetch-status",
+    "groupId": "family-web-technical-fetch-status",
+    "split": "reserved-final",
+    "variant": "insufficient",
+    "answer": "我不了解Fetch的错误分类，不能判断HTTP500与JSON解析错误，也无法给出页面反馈方案。"
+  }
+]

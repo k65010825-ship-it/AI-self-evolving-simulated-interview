@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "uri": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 70652,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    },
+    {
+      "uri": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 33143,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    },
+    {
+      "uri": "https://www.postgresql.org/docs/17/transaction-iso.html",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 29055,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    },
+    {
+      "uri": "https://react.dev/reference/react/useEffect",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 65318,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    },
+    {
+      "uri": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 36284,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    },
+    {
+      "uri": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch",
+      "checkedAt": "2026-11-03",
+      "method": "MarkItDown MCP",
+      "extractedCharacters": 38723,
+      "status": "body-and-relevant-section-inspected",
+      "scope": "access-and-content-reading-only-not-human-question-review"
+    }
+  ]
+}

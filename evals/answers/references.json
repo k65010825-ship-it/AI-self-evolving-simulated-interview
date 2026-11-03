@@ -1,0 +1,566 @@
+[
+  {
+    "caseId": "java-technical-atomic-counter-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "bd02a908f03ea2e25635dc72a635b4c8362dfc40ddb8521f52ab622ec71df288",
+    "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 144,
+          "excerpt": "volatile不把count++的读取、计算、写回合成原子操作，线程交错会丢失更新。AtomicInteger.incrementAndGet原子地更新一个变量，不能自动维护多个字段的业务约束。可让多个线程经起跑同步累加，join后核对预期总数；测试能暴露竞争，不能证明所有执行都正确。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-technical-atomic-counter-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "703b5bb2f9b69f6793630220bfc537a824343dbe0af61ca8132698f6d74ca641",
+    "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 66,
+          "excerpt": "volatile会让count++作为不可分割的操作执行，所以不会丢失更新。我只需单线程打印一次正确结果，就证明所有并发计数都正确。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-technical-atomic-counter-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "f321541e3422e31a4d0b9d1a1b78fc487c42e4ef38040d7d767f07d4a5d08f04",
+    "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-scenario-self-invocation-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "eaee9290c54efb5db2b99efcda43381ff2a3e01b7943b72351a6be5cd52489fb",
+    "rubricDigest": "c22360512ec8a016239b67c8452a39baebc294bf1be18cfccc97a2f8d756c0c6",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 130,
+          "excerpt": "默认代理事务只拦截经过代理入口的调用，this调用内部方法不会单独应用其事务注解；如果外层已有事务，内部仍可能参与外层事务，不能说必然完全无事务。可把边界放到经代理调用的协作服务，用真实容器Bean的事务状态与回滚对照测试验证。AspectJ织入属于不同前提。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-scenario-self-invocation-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "39cffdfa096bf36d41dcad30e6144e198782b94c03288f8a4e93e795c6004820",
+    "rubricDigest": "c22360512ec8a016239b67c8452a39baebc294bf1be18cfccc97a2f8d756c0c6",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 76,
+          "excerpt": "同一个Bean内只要写了@Transactional，this调用一定被代理拦截。直接new服务对象并看到没有异常，就足以证明容器中的事务回滚路径正确。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-scenario-self-invocation-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "3d58600706d055228580b654836493347a830d22224b830227fd2430995e26f7",
+    "rubricDigest": "c22360512ec8a016239b67c8452a39baebc294bf1be18cfccc97a2f8d756c0c6",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-technical-read-committed-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "8a38148655ac446ebc117cb78e642e98e2af64843ed968e3f5c01ce183b009c9",
+    "rubricDigest": "c8db029528f15ac1fac0c513a061b57cdc5d263315555875086f4676d79e8946",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 155,
+          "excerpt": "PostgreSQL17 Read Committed的普通SELECT各自读取语句开始时已提交的数据，不保证事务中两次SELECT共享一个固定快照。连接A先查，B修改并提交，再让A查，可观察后一次变化。应明确交错和提交位置；锁定查询和其他隔离级别另论，Repeatable Read也不免除所有并发失败处理。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-technical-read-committed-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "2c004282804c9c6b6305f8f9c95751dfe9c86d4799fe2192d938c91169304e65",
+    "rubricDigest": "c8db029528f15ac1fac0c513a061b57cdc5d263315555875086f4676d79e8946",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 83,
+          "excerpt": "Read Committed保证整个事务始终使用同一份快照，因此两次SELECT绝不会看到其他事务后来提交的数据。只开一个连接连续读两次相同值就证明隔离没有并发问题。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "java-technical-read-committed-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "b04b13510430950bc09da6b524b1920f381d4f9b3e7af804dc8285bf6a1cc1e2",
+    "rubricDigest": "c8db029528f15ac1fac0c513a061b57cdc5d263315555875086f4676d79e8946",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-microtask-order-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "88fbadd0922ba7958e492da8f922274f8edff2b6ebb6f541ae463711ce5e6a3f",
+    "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 143,
+          "excerpt": "普通浏览器脚本先完成同步日志A，已兑现Promise的then是微任务，在当前任务结束后的检查点执行B，之后定时器任务才输出C。不断加入的微任务会延迟后续任务，不是then立即同步执行。可在最小浏览器脚本中先注册定时器再注册then，核对ABC；不能据此推断所有渲染时机或Node阶段。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-microtask-order-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "d769fc3ee4384077d28391770ee0b579cb7201e28083cfda31181788c37bf993",
+    "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 81,
+          "excerpt": "定时器C先注册就必然先于Promise回调B执行，Promise.then本身也是同步调用。这一规则可以直接证明所有Node事件循环阶段和浏览器渲染时机完全相同。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-microtask-order-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "6f749b8b2938b7eac6e5324886db3d4dbab306ee45d28b0defb90d5ad45dd660",
+    "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-scenario-search-clear-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "039222af623852409002cf7e6003c653e32e9c1820234046d8d6697ae7338be0",
+    "rubricDigest": "80633c6d7ce05f4091c5a5d4e5443feb14375f2a37d6f7d3fb762a0cbf1deb78",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 149,
+          "excerpt": "清空输入时也要递增请求序号或在cleanup标记旧请求失效，只有当前请求才能写结果、错误和loading，包括finally。可以配合AbortController减少浪费，但不能假设取消必然阻止晚返回。用受控慢响应测试A后清空、新请求与旧finally交错、错误晚到及卸载，确认没有过期状态覆盖。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-scenario-search-clear-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "cccdfd476d625b31b0abe41ba532d41135340e0fd3088308a40bfb8e8ee51cc3",
+    "rubricDigest": "80633c6d7ce05f4091c5a5d4e5443feb14375f2a37d6f7d3fb762a0cbf1deb78",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 78,
+          "excerpt": "清空时只把结果数组置空即可，旧响应回来仍直接setState。调用abort后绝不会有旧回调，因此不必验证finally或错误回调，只测一次正常返回就够了。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-scenario-search-clear-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "d128b4cb84dc285d1dd89a28c8cf72a766b76d1c303e57cd11e90161a055c33a",
+    "rubricDigest": "80633c6d7ce05f4091c5a5d4e5443feb14375f2a37d6f7d3fb762a0cbf1deb78",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-fetch-status-complete",
+    "version": "proposed-0-1",
+    "caseDigest": "8f5026a3da366ce46990d3eb14cb31b3d015f2fb7f0957c616fc60da67ae6094",
+    "rubricDigest": "901f6237c28ee6fa480b0f5aaa917d8edb9d601a6538abb569c4f032217e5d90",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答覆盖主要边界与验证条件，提出两个维度4分；需独立人工逐锚点复核。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 150,
+          "excerpt": "fetch收到HTTP500通常仍兑现为Response，需要检查ok或status；网络请求失败和读取json失败是不同阶段。界面应分别处理加载、空数据、失败和重试，不能拿到Response就提示业务成功。可以控制返回HTTP错误、无效JSON和网络失败来核对反馈，并检查过期请求不能改变当前状态。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 4,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-fetch-status-misconception",
+    "version": "proposed-0-1",
+    "caseDigest": "b7b850d4f7dcf1ad377f573dac2fc2ed89be249a1e916ee6bd094ae4d05ef781",
+    "rubricDigest": "901f6237c28ee6fa480b0f5aaa917d8edb9d601a6538abb569c4f032217e5d90",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "回答包含明确错误断言，提出两个维度0分；这是工程草案，不是人工金标准。",
+    "assessment": {
+      "evidence": [
+        {
+          "id": "e1",
+          "start": 0,
+          "end": 85,
+          "excerpt": "fetch遇到所有非2xx都会自动进入catch，所以不用检查response.ok。只要拿到Response就是业务成功，空数据、解析失败和未加载都显示同一种成功状态。"
+        }
+      ],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        },
+        {
+          "criterionId": "reasoning",
+          "score": 0,
+          "evidenceIds": [
+            "e1"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "caseId": "web-technical-fetch-status-insufficient",
+    "version": "proposed-0-1",
+    "caseDigest": "6d08798b943ffb367d83ef3ebef3731ec2c0e23e5ddeeff4f9a30babcc8b2127",
+    "rubricDigest": "901f6237c28ee6fa480b0f5aaa917d8edb9d601a6538abb569c4f032217e5d90",
+    "origin": "synthetic-proposed",
+    "reviewStatus": "draft",
+    "rationale": "提出暂不评分以检验缺失处理；没有可支持具体分数的知识说明，仍待人工复核。",
+    "assessment": {
+      "evidence": [],
+      "criterionScores": [
+        {
+          "criterionId": "primary",
+          "score": null,
+          "evidenceIds": []
+        },
+        {
+          "criterionId": "reasoning",
+          "score": null,
+          "evidenceIds": []
+        }
+      ]
+    }
+  }
+]

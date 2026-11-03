@@ -2,7 +2,40 @@ import { writeFile } from 'node:fs/promises';
 import { stringify } from 'yaml';
 import { z } from 'zod';
 import { KnowledgeQuerySchema, ToolReceiptSchema } from '../packages/contracts/src/tools.ts';
+import { ScoringInputSchema, ScoringReceiptSchema } from '../packages/contracts/src/scoring.ts';
+import { TurnInputSchema, EvaluationOutputSchema, TurnProposalSchema } from '../packages/contracts/src/evaluation.ts';
+import { QuestionSelectionInputSchema, QuestionSelectionSchema } from '../packages/contracts/src/question-selection.ts';
+import { ReportInputSchema, ContentReportSchema, ResourceEnrichmentSchema } from '../packages/contracts/src/report.ts';
+import { ResourceQuerySchema, ResourceReceiptSchema } from '../packages/contracts/src/resources.ts';
+import { MemorySnapshotSchema,AppendMemorySchema,StartSessionMemorySchema } from '../packages/contracts/src/memory.ts';
+import{ReflectionInputSchema,ReflectionSchema,PolicyEvaluationInputSchema,PolicyEvaluationSchema}from'../packages/contracts/src/reflection.ts';
+import{ExperimentRegistrySchema,ExperimentOperationSchema,SessionPolicyPinSchema}from'../packages/contracts/src/experiment.ts';
+import{LearningProgressSchema,RecordLearningEventSchema,PredictionSchema,PairRetestSchema,PerformancePairSchema,
+ CalibrationInputSchema,CalibrationSummarySchema}from'../packages/contracts/src/learning.ts';
+import{AsrOutputSchema,AudioFeaturesSchema,SpeechExpressionSchema,SpeechTranscriptSchema,ConfirmSpeechSchema,SpeechAnswerSchema}from'../packages/contracts/src/speech.ts';
+import{PlannerInputSchema,PlannerQuerySchema,PlannerChoiceSchema,PlannerResultSchema}from'../packages/contracts/src/knowledge-planner.ts';
+import{CreateWorkflowSchema,WorkflowSchema,PlanQuestionCommandSchema,SubmitWorkflowAnswerSchema,FinishWorkflowSchema,CloseoutSchema}from'../packages/contracts/src/session-workflow.ts';
+import{WorkflowRsiInputSchema,WorkflowRsiResultSchema}from'../packages/contracts/src/workflow-rsi.ts';
+import{KnowledgeSourceSchema,KnowledgeDossierSchema,KnowledgeReviewSchema,KnowledgeWorkspaceSchema}from'../packages/contracts/src/knowledge-curation.ts';
+import{AnswerBundleSchema,AnswerReportSchema,AnswerRowSchema}from'../packages/contracts/src/answer-benchmark.ts';
+import{ModelAccessProfileSchema,ModelPreflightSchema,ModelBudgetSnapshotSchema,ModelUsageSchema}from'../packages/contracts/src/model-access.ts';
+import{WorkflowCommitTicketSchema,WorkflowCommitCurrentSchema,WorkflowCommitReceiptSchema,WorkflowCommitDecisionSchema}from'../packages/contracts/src/workflow-commit.ts';
 const problemRef = { $ref: '#/components/responses/Problem' };
+await writeFile(new URL('../docs/workflow-commit-schemas.json', import.meta.url), JSON.stringify({ version: 1,
+  ticket: z.toJSONSchema(WorkflowCommitTicketSchema), current: z.toJSONSchema(WorkflowCommitCurrentSchema),
+  receipt: z.toJSONSchema(WorkflowCommitReceiptSchema), decision: z.toJSONSchema(WorkflowCommitDecisionSchema),
+}, null, 2) + '\n');
+await writeFile(new URL('../docs/model-access-schemas.json', import.meta.url), JSON.stringify({ version: 1,
+  profile: z.toJSONSchema(ModelAccessProfileSchema), preflight: z.toJSONSchema(ModelPreflightSchema),
+  snapshot: z.toJSONSchema(ModelBudgetSnapshotSchema), usage: z.toJSONSchema(ModelUsageSchema),
+}, null, 2) + '\n');
+await writeFile(new URL('../docs/answer-benchmark-schemas.json', import.meta.url), JSON.stringify({ version: 1,
+  bundle: z.toJSONSchema(AnswerBundleSchema), row: z.toJSONSchema(AnswerRowSchema), report: z.toJSONSchema(AnswerReportSchema),
+}, null, 2) + '\n');
+await writeFile(new URL('../docs/knowledge-curation-schemas.json', import.meta.url), JSON.stringify({ version: 1,
+  source: z.toJSONSchema(KnowledgeSourceSchema), dossier: z.toJSONSchema(KnowledgeDossierSchema),
+  review: z.toJSONSchema(KnowledgeReviewSchema), workspace: z.toJSONSchema(KnowledgeWorkspaceSchema),
+}, null, 2) + '\n');
 const planned = (operationId: string, summary: string, targetStatus: number, parameters: unknown[] = []) => ({
   operationId, summary, description: '设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。',
   'x-implementation': 'planned', 'x-target-status': targetStatus,
@@ -67,5 +100,42 @@ await writeFile(new URL('../docs/openapi.yaml', import.meta.url), stringify(docu
 await writeFile(new URL('../docs/tool-schemas.json', import.meta.url), JSON.stringify({
   version: 1, query_role_knowledge: { input: z.toJSONSchema(KnowledgeQuerySchema, { io: 'input' }),
     output: z.toJSONSchema(ToolReceiptSchema) },
+  compute_rubric_score: { input: z.toJSONSchema(ScoringInputSchema, { io: 'input' }),
+    output: z.toJSONSchema(ScoringReceiptSchema) },
+  search_learning_resources: { input: z.toJSONSchema(ResourceQuerySchema, { io: 'input' }), output: z.toJSONSchema(ResourceReceiptSchema) },
 }, null, 2) + '\n');
+await import('./generate-agent-openapi.ts');
 console.log('Generated docs/openapi.yaml from explicit API design and public Zod contracts.');
+await writeFile(new URL('../docs/evaluation-schemas.json', import.meta.url), JSON.stringify({
+  version: 1, turnInput: z.toJSONSchema(TurnInputSchema, { io: 'input' }),
+  evaluatorOutput: z.toJSONSchema(EvaluationOutputSchema), turnProposal: z.toJSONSchema(TurnProposalSchema),
+  selectionInput: z.toJSONSchema(QuestionSelectionInputSchema), selectionOutput: z.toJSONSchema(QuestionSelectionSchema),
+  reportInput: z.toJSONSchema(ReportInputSchema), contentReport: z.toJSONSchema(ContentReportSchema),
+  resourceEnrichment: z.toJSONSchema(ResourceEnrichmentSchema),
+  memorySnapshot:z.toJSONSchema(MemorySnapshotSchema),appendMemory:z.toJSONSchema(AppendMemorySchema),
+  startSessionMemory:z.toJSONSchema(StartSessionMemorySchema),
+  reflectionInput:z.toJSONSchema(ReflectionInputSchema),reflection:z.toJSONSchema(ReflectionSchema),
+  policyEvaluationInput:z.toJSONSchema(PolicyEvaluationInputSchema),policyEvaluation:z.toJSONSchema(PolicyEvaluationSchema),
+  experimentRegistry:z.toJSONSchema(ExperimentRegistrySchema),experimentOperation:z.toJSONSchema(ExperimentOperationSchema),
+  sessionPolicyPin:z.toJSONSchema(SessionPolicyPinSchema),
+  learningProgress:z.toJSONSchema(LearningProgressSchema),learningEventRequest:z.toJSONSchema(RecordLearningEventSchema),
+  prediction:z.toJSONSchema(PredictionSchema),pairRetestInput:z.toJSONSchema(PairRetestSchema),performancePair:z.toJSONSchema(PerformancePairSchema),
+  calibrationInput:z.toJSONSchema(CalibrationInputSchema),calibrationSummary:z.toJSONSchema(CalibrationSummarySchema),
+}, null, 2) + '\n');
+await writeFile(new URL('../docs/speech-schemas.json',import.meta.url),JSON.stringify({version:1,
+  asrOutput:z.toJSONSchema(AsrOutputSchema),audioFeatures:z.toJSONSchema(AudioFeaturesSchema),
+  speechExpression:z.toJSONSchema(SpeechExpressionSchema),speechTranscript:z.toJSONSchema(SpeechTranscriptSchema),
+  confirmSpeech:z.toJSONSchema(ConfirmSpeechSchema),speechAnswer:z.toJSONSchema(SpeechAnswerSchema),
+},null,2)+'\n');
+await writeFile(new URL('../docs/planner-schemas.json',import.meta.url),JSON.stringify({version:1,
+ plannerInput:z.toJSONSchema(PlannerInputSchema),plannerQuery:z.toJSONSchema(PlannerQuerySchema,{io:'input'}),
+ plannerChoice:z.toJSONSchema(PlannerChoiceSchema),plannerResult:z.toJSONSchema(PlannerResultSchema),
+},null,2)+'\n');
+await writeFile(new URL('../docs/session-workflow-schemas.json',import.meta.url),JSON.stringify({version:1,
+ createWorkflow:z.toJSONSchema(CreateWorkflowSchema,{io:'input'}),workflow:z.toJSONSchema(WorkflowSchema),
+ planQuestion:z.toJSONSchema(PlanQuestionCommandSchema),submitAnswer:z.toJSONSchema(SubmitWorkflowAnswerSchema),
+ finishWorkflow:z.toJSONSchema(FinishWorkflowSchema,{io:'input'}),closeout:z.toJSONSchema(CloseoutSchema),
+},null,2)+'\n');
+await writeFile(new URL('../docs/workflow-rsi-schemas.json',import.meta.url),JSON.stringify({version:1,
+ input:z.toJSONSchema(WorkflowRsiInputSchema,{io:'input'}),result:z.toJSONSchema(WorkflowRsiResultSchema),
+},null,2)+'\n');

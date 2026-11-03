@@ -1,0 +1,636 @@
+[
+  {
+    "id": "java-technical-atomic-counter",
+    "roleId": "java-backend",
+    "skillId": "java-concurrency",
+    "questionType": "technical",
+    "difficulty": 1,
+    "question": "多个线程累加一个计数器时，volatile int的count++和AtomicInteger.incrementAndGet有什么区别？",
+    "keyPoints": [
+      "复合读改写不因volatile而原子化",
+      "原子计数只保护单变量操作，不自动保护多字段约束"
+    ],
+    "sourceIds": [
+      "java-atomic-integer",
+      "java-specification"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "原子操作边界",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "明确声称volatile使count++原子"
+          },
+          {
+            "score": 1,
+            "description": "只说线程安全但没有说明操作"
+          },
+          {
+            "score": 2,
+            "description": "区分读改写与原子增量"
+          },
+          {
+            "score": 3,
+            "description": "解释并发丢失更新窗口"
+          },
+          {
+            "score": 4,
+            "description": "解释单变量原子性及多字段约束边界"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "验证方法",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "以无关日志证明没有竞争"
+          },
+          {
+            "score": 1,
+            "description": "只说多测几次"
+          },
+          {
+            "score": 2,
+            "description": "说明并发输入与期望总数"
+          },
+          {
+            "score": 3,
+            "description": "说明起跑同步和最终汇总"
+          },
+          {
+            "score": 4,
+            "description": "解释测试只能暴露错误而非证明所有执行正确"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-technical-atomic-side-effects",
+    "roleId": "java-backend",
+    "skillId": "java-concurrency",
+    "questionType": "technical",
+    "difficulty": 3,
+    "question": "把发邮件放进AtomicInteger.updateAndGet的更新函数，为什么可能重复发送？",
+    "keyPoints": [
+      "竞争失败时更新函数可能重试",
+      "更新函数应无副作用，外部副作用需独立设计"
+    ],
+    "sourceIds": [
+      "java-atomic-integer"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "重试语义",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称函数必然只执行一次"
+          },
+          {
+            "score": 1,
+            "description": "只说CAS快但不提重试"
+          },
+          {
+            "score": 2,
+            "description": "指出竞争下可重复执行"
+          },
+          {
+            "score": 3,
+            "description": "说明函数应无副作用"
+          },
+          {
+            "score": 4,
+            "description": "区分函数重试、更新成功和外部效果"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "外部效果设计",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称CAS保证邮件恰好一次"
+          },
+          {
+            "score": 1,
+            "description": "只说加锁"
+          },
+          {
+            "score": 2,
+            "description": "提出分离副作用"
+          },
+          {
+            "score": 3,
+            "description": "说明分离仍有失败窗口"
+          },
+          {
+            "score": 4,
+            "description": "结合业务幂等与失败恢复说明局限"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-technical-rollback-rules",
+    "roleId": "java-backend",
+    "skillId": "spring-transactions",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "未定制回滚规则时，事务方法抛出受检异常与RuntimeException的默认回滚行为如何不同？捕获异常又会影响什么？",
+    "keyPoints": [
+      "默认对RuntimeException/Error回滚，受检异常通常不触发默认回滚",
+      "显式规则或全局配置可改变行为；捕获后需核对事务状态"
+    ],
+    "sourceIds": [
+      "spring-transactions"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "默认与配置",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称所有异常默认同样回滚"
+          },
+          {
+            "score": 1,
+            "description": "只说异常回滚"
+          },
+          {
+            "score": 2,
+            "description": "区分受检与非受检异常"
+          },
+          {
+            "score": 3,
+            "description": "补充Error及显式规则"
+          },
+          {
+            "score": 4,
+            "description": "说明前提、可配置规则和适用边界"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "异常捕获分析",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称捕获后一定提交"
+          },
+          {
+            "score": 1,
+            "description": "只说不要捕获"
+          },
+          {
+            "score": 2,
+            "description": "说明拦截器可能看不到异常"
+          },
+          {
+            "score": 3,
+            "description": "指出rollback-only仍可能存在"
+          },
+          {
+            "score": 4,
+            "description": "结合传播路径解释为何不能承诺提交"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-technical-read-committed",
+    "roleId": "java-backend",
+    "skillId": "database-concurrency",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "PostgreSQL 17的Read Committed事务内，两次相同SELECT为什么可能看到不同结果？",
+    "keyPoints": [
+      "普通SELECT按语句建立可见快照",
+      "另一事务在两语句之间提交可改变后续查询结果"
+    ],
+    "sourceIds": [
+      "postgres-isolation-17"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "快照时机",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称整个事务固定同一RC快照"
+          },
+          {
+            "score": 1,
+            "description": "只提MVCC名词"
+          },
+          {
+            "score": 2,
+            "description": "指出两次查询可以不同"
+          },
+          {
+            "score": 3,
+            "description": "说明语句开始与其他事务提交"
+          },
+          {
+            "score": 4,
+            "description": "在普通SELECT前提下完整解释可见性"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "复现实验",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "只用单事务断言隔离正确"
+          },
+          {
+            "score": 1,
+            "description": "只说开两个连接"
+          },
+          {
+            "score": 2,
+            "description": "给出两个连接交错执行"
+          },
+          {
+            "score": 3,
+            "description": "指出中间提交位置及预期"
+          },
+          {
+            "score": 4,
+            "description": "区分观察现象、锁定查询与其他隔离级别"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-scenario-self-invocation",
+    "roleId": "java-backend",
+    "skillId": "spring-transactions",
+    "questionType": "scenario",
+    "difficulty": 2,
+    "question": "同一个Bean中普通方法直接调用自己的@Transactional方法，为什么可能没有开启预期事务？怎样验证和修正？",
+    "keyPoints": [
+      "默认代理模式只拦截经代理进入的调用",
+      "区分真实经过代理的协作Bean调用与this自调用"
+    ],
+    "sourceIds": [
+      "spring-transactions"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "代理机制",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称注解一写任何调用都生效"
+          },
+          {
+            "score": 1,
+            "description": "只说注解失效"
+          },
+          {
+            "score": 2,
+            "description": "说明this绕过代理"
+          },
+          {
+            "score": 3,
+            "description": "区分代理模式与已有外层事务"
+          },
+          {
+            "score": 4,
+            "description": "完整说明入口、传播及模式前提"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "修复验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "直接new对象测试注解事务"
+          },
+          {
+            "score": 1,
+            "description": "只说换个写法"
+          },
+          {
+            "score": 2,
+            "description": "提出通过协作服务代理调用"
+          },
+          {
+            "score": 3,
+            "description": "说明集成回滚与事务状态检查"
+          },
+          {
+            "score": 4,
+            "description": "给出对照路径及验证局限"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-scenario-stock-update",
+    "roleId": "java-backend",
+    "skillId": "database-concurrency",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "PostgreSQL 17中先SELECT库存再UPDATE扣减为什么可能超卖？单行条件UPDATE怎样改善，业务上还缺什么？",
+    "keyPoints": [
+      "分离读写存在并发窗口",
+      "条件UPDATE并检查影响行数；订单幂等和跨行约束另论"
+    ],
+    "sourceIds": [
+      "postgres-isolation-17",
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "并发不变量",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "把分离读写当原子操作"
+          },
+          {
+            "score": 1,
+            "description": "只说加事务"
+          },
+          {
+            "score": 2,
+            "description": "指出窗口和单条条件更新"
+          },
+          {
+            "score": 3,
+            "description": "说明影响行数及条件重检查"
+          },
+          {
+            "score": 4,
+            "description": "明确隔离/单行前提和不能覆盖的约束"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "业务失败处理",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称影响一行就完成所有一致性"
+          },
+          {
+            "score": 1,
+            "description": "只返回成功"
+          },
+          {
+            "score": 2,
+            "description": "说明库存不足结果"
+          },
+          {
+            "score": 3,
+            "description": "补充重复提交与事务失败处理"
+          },
+          {
+            "score": 4,
+            "description": "区分幂等、事务及跨行约束的证据"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-project-retry-boundary",
+    "roleId": "java-backend",
+    "skillId": "project-design",
+    "questionType": "project",
+    "difficulty": 3,
+    "question": "选一个后端项目中的重试点，解释何时可重试、如何避免重复业务效果，以及怎样验证；可以明确使用假设方案。",
+    "keyPoints": [
+      "区分请求超时与业务是否执行未知",
+      "幂等约束、并发窗口和恢复证据具体"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "幂等边界",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "认为重试天然不会重复"
+          },
+          {
+            "score": 1,
+            "description": "只提幂等名词"
+          },
+          {
+            "score": 2,
+            "description": "说明业务键和重复效果"
+          },
+          {
+            "score": 3,
+            "description": "解释持久唯一约束与结果恢复"
+          },
+          {
+            "score": 4,
+            "description": "说明并发/失败窗口及设计代价"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "verification",
+        "description": "贡献与证据",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "编造未做过的线上效果"
+          },
+          {
+            "score": 1,
+            "description": "泛称团队完成"
+          },
+          {
+            "score": 2,
+            "description": "区分本人动作与假设"
+          },
+          {
+            "score": 3,
+            "description": "描述可复现重复/故障测试"
+          },
+          {
+            "score": 4,
+            "description": "给出观测结果边界与未验证项"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-behavior-release-disagreement",
+    "roleId": "java-backend",
+    "skillId": "collaboration",
+    "questionType": "behavioral",
+    "difficulty": 2,
+    "question": "上线前同伴认为事务修复已验证，你发现只跑了单元测试时，怎样沟通风险与安排验证？可以用假设案例。",
+    "keyPoints": [
+      "把分歧转为可观察证据缺口",
+      "明确责任、验收和升级条件，不评价人格"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "communication",
+        "description": "证据与协作",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "指责同伴人格或捏造结果"
+          },
+          {
+            "score": 1,
+            "description": "只说加强沟通"
+          },
+          {
+            "score": 2,
+            "description": "指出证据缺口及对象"
+          },
+          {
+            "score": 3,
+            "description": "明确行动、责任和确认方式"
+          },
+          {
+            "score": 4,
+            "description": "说明优先级、升级及未测风险"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "logic",
+        "description": "推理与验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "将单元通过等同所有路径正确"
+          },
+          {
+            "score": 1,
+            "description": "只罗列测试名称"
+          },
+          {
+            "score": 2,
+            "description": "联系缺口和最小验证"
+          },
+          {
+            "score": 3,
+            "description": "解释为何选该集成场景"
+          },
+          {
+            "score": 4,
+            "description": "提出可核查标准并保留结果边界"
+          }
+        ]
+      }
+    ]
+  }
+]

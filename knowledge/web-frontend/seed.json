@@ -1,6 +1,332 @@
 [
-  {"id":"web-scenario-autocomplete","roleId":"web-frontend","skillId":"async-state","questionType":"scenario","difficulty":3,"question":"搜索框连续请求时旧请求晚返回，怎样避免旧结果覆盖新结果，并处理加载和错误状态？","keyPoints":["请求序号或取消避免过期响应","考虑组件生命周期与交互状态"],"rubric":[{"criterionId":"race","description":"正确解决响应竞态且交互完整","maxScore":4,"weight":1}],"sourceIds":["mdn-javascript","react-learn"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"web-technical-closure","roleId":"web-frontend","skillId":"javascript","questionType":"technical","difficulty":2,"question":"闭包保存的是变量还是变量在某一时刻的值？请用异步回调解释。","keyPoints":["解释词法环境","辨别回调读取状态的时机"],"rubric":[{"criterionId":"closure","description":"概念正确且能解释异步现象","maxScore":4,"weight":1}],"sourceIds":["mdn-javascript"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"web-project-rendering","roleId":"web-frontend","skillId":"project-design","questionType":"project","difficulty":3,"question":"举一个你定位并减少页面重复渲染的案例，说明测量、修改和验证。","keyPoints":["先测量再优化","说明状态边界和优化代价"],"rubric":[{"criterionId":"measurement","description":"性能证据与具体修改相匹配","maxScore":4,"weight":1}],"sourceIds":["react-learn","team-original"],"version":"seed-0.1","reviewStatus":"draft"},
-  {"id":"web-behavior-requirements","roleId":"web-frontend","skillId":"collaboration","questionType":"behavioral","difficulty":2,"question":"交互需求与接口能力发生冲突时，你如何确认问题、协商方案并验证用户体验？","keyPoints":["将冲突转成具体场景","说明妥协、沟通与验证结果"],"rubric":[{"criterionId":"collaboration","description":"能连接用户场景与可执行协作动作","maxScore":4,"weight":1}],"sourceIds":["team-original"],"version":"seed-0.1","reviewStatus":"draft"}
+  {
+    "id": "web-scenario-autocomplete",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "搜索框连续请求时旧请求晚返回，怎样避免旧结果覆盖新结果，并处理加载和错误状态？",
+    "keyPoints": [
+      "请求序号或取消避免过期响应",
+      "考虑组件生命周期与交互状态"
+    ],
+    "rubric": [
+      {
+        "criterionId": "race",
+        "description": "正确解决响应竞态且交互完整",
+        "maxScore": 4,
+        "weight": 1
+      }
+    ],
+    "sourceIds": [
+      "mdn-javascript",
+      "react-learn"
+    ],
+    "version": "seed-0.1",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "web-technical-closure",
+    "roleId": "web-frontend",
+    "skillId": "javascript",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "闭包保存的是变量还是变量在某一时刻的值？请用异步回调解释。",
+    "keyPoints": [
+      "解释词法环境",
+      "辨别回调读取状态的时机"
+    ],
+    "rubric": [
+      {
+        "criterionId": "closure",
+        "description": "概念正确且能解释异步现象",
+        "maxScore": 4,
+        "weight": 1
+      }
+    ],
+    "sourceIds": [
+      "mdn-javascript"
+    ],
+    "version": "seed-0.1",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "web-project-rendering",
+    "roleId": "web-frontend",
+    "skillId": "project-design",
+    "questionType": "project",
+    "difficulty": 3,
+    "question": "举一个你定位并减少页面重复渲染的案例，说明测量、修改和验证。",
+    "keyPoints": [
+      "先测量再优化",
+      "说明状态边界和优化代价"
+    ],
+    "rubric": [
+      {
+        "criterionId": "measurement",
+        "dimension": "correctness",
+        "description": "渲染测量与优化边界",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中体现“渲染测量与优化边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对渲染测量与优化边界只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只声称页面卡顿"
+          },
+          {
+            "score": 2,
+            "description": "指出渲染测量和一个状态边界"
+          },
+          {
+            "score": 3,
+            "description": "把性能观测对应到组件/依赖或状态变化"
+          },
+          {
+            "score": 4,
+            "description": "解释测量、修改和优化代价，区分开发与真实用户表现"
+          }
+        ]
+      },
+      {
+        "criterionId": "ownership",
+        "dimension": "ownership",
+        "description": "个人修改与结果归属",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“个人修改与结果归属”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对个人修改与结果归属只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说团队优化"
+          },
+          {
+            "score": 2,
+            "description": "指出自己修改的组件或逻辑"
+          },
+          {
+            "score": 3,
+            "description": "说明具体改动、原因和依赖"
+          },
+          {
+            "score": 4,
+            "description": "贡献可定位并交代没有验证的设备/交互条件"
+          }
+        ]
+      },
+      {
+        "criterionId": "logic",
+        "dimension": "logic",
+        "description": "症状到原因再到取舍",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“症状到原因再到取舍”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对症状到原因再到取舍只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "罗列memo等工具"
+          },
+          {
+            "score": 2,
+            "description": "说明症状与一种原因"
+          },
+          {
+            "score": 3,
+            "description": "按测量假设、修改、代价组织"
+          },
+          {
+            "score": 4,
+            "description": "比较替代优化并说明交互正确性不被牺牲"
+          }
+        ]
+      },
+      {
+        "criterionId": "verification",
+        "dimension": "verification",
+        "description": "渲染与交互验证",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“渲染与交互验证”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对渲染与交互验证只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说变快"
+          },
+          {
+            "score": 2,
+            "description": "描述前后相同操作和指标"
+          },
+          {
+            "score": 3,
+            "description": "说明渲染变化并检查交互回归"
+          },
+          {
+            "score": 4,
+            "description": "可复现前后条件与回归边界，不把局部数据外推全站"
+          }
+        ]
+      }
+    ],
+    "sourceIds": [
+      "react-learn",
+      "team-original"
+    ],
+    "version": "seed-0.2",
+    "reviewStatus": "draft"
+  },
+  {
+    "id": "web-behavior-requirements",
+    "roleId": "web-frontend",
+    "skillId": "collaboration",
+    "questionType": "behavioral",
+    "difficulty": 2,
+    "question": "交互需求与接口能力发生冲突时，你如何确认问题、协商方案并验证用户体验？ 可明确使用假设案例，不因缺少实际故障或实习经历扣分。",
+    "keyPoints": [
+      "将冲突转成具体场景",
+      "说明妥协、沟通与验证结果"
+    ],
+    "rubric": [
+      {
+        "criterionId": "user_scenario",
+        "dimension": "relevance",
+        "description": "用户场景与接口约束确认",
+        "maxScore": 4,
+        "weight": 0.3,
+        "evidenceRule": "引用回答中体现“用户场景与接口约束确认”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对用户场景与接口约束确认只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说需求不合理"
+          },
+          {
+            "score": 2,
+            "description": "指出冲突场景和参与方"
+          },
+          {
+            "score": 3,
+            "description": "给出用户动作、接口约束与验收条件"
+          },
+          {
+            "score": 4,
+            "description": "明确影响用户、边界条件与需要确认的未知项"
+          }
+        ]
+      },
+      {
+        "criterionId": "negotiation",
+        "dimension": "communication",
+        "description": "协商选项与确认闭环",
+        "maxScore": 4,
+        "weight": 0.35,
+        "evidenceRule": "引用回答中体现“协商选项与确认闭环”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对协商选项与确认闭环只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说与后端协商"
+          },
+          {
+            "score": 2,
+            "description": "描述一个提议及接收方"
+          },
+          {
+            "score": 3,
+            "description": "比较可执行选项并确认责任和验收"
+          },
+          {
+            "score": 4,
+            "description": "说明反馈确认、变更同步与分歧处理，不推断人格"
+          }
+        ]
+      },
+      {
+        "criterionId": "logic",
+        "dimension": "logic",
+        "description": "场景到妥协方案的推理",
+        "maxScore": 4,
+        "weight": 0.2,
+        "evidenceRule": "引用回答中体现“场景到妥协方案的推理”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对场景到妥协方案的推理只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只罗列技术方案"
+          },
+          {
+            "score": 2,
+            "description": "联系一个场景与方案"
+          },
+          {
+            "score": 3,
+            "description": "说明约束、取舍与影响"
+          },
+          {
+            "score": 4,
+            "description": "用一致条件比较方案并说明不能满足的部分"
+          }
+        ]
+      },
+      {
+        "criterionId": "ux_verification",
+        "dimension": "verification",
+        "description": "交互验收与结果核对",
+        "maxScore": 4,
+        "weight": 0.15,
+        "evidenceRule": "引用回答中体现“交互验收与结果核对”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "引用内容对交互验收与结果核对只有无关口号或明确相反做法"
+          },
+          {
+            "score": 1,
+            "description": "只说用户满意"
+          },
+          {
+            "score": 2,
+            "description": "说明检查的交互流程"
+          },
+          {
+            "score": 3,
+            "description": "列出错误/加载/边界状态及验收动作"
+          },
+          {
+            "score": 4,
+            "description": "给出可复核结果与未测条件；假设经历明确标注"
+          }
+        ]
+      }
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "seed-0.2",
+    "reviewStatus": "draft"
+  }
 ]

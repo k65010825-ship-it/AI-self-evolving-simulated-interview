@@ -1,0 +1,38 @@
+{
+  "id": "answer-reference-draft",
+  "version": "draft-0-1",
+  "authoredAt": "2026-11-03",
+  "origin": "assistant-authored-synthetic",
+  "knowledgePins": [
+    {
+      "questionId": "java-technical-atomic-counter",
+      "contentDigest": "1e22091caeecb9ce5a4829cd28d6645a5f452f5cc4754fbbdc08819b879d7a2d",
+      "sourcesDigest": "edc06463ac18ee37c2b884c8a9218f0df97644fad8fec965ccf7be1fde34768c"
+    },
+    {
+      "questionId": "java-scenario-self-invocation",
+      "contentDigest": "ed5773b27febf324c3ba74a49998d04a8dc9d74a4ceeb377eb6938039ac3506c",
+      "sourcesDigest": "8bda3e3c483743deba20117354d3d23788f57079c290fb8ce47c7fcd9a63959e"
+    },
+    {
+      "questionId": "java-technical-read-committed",
+      "contentDigest": "2d705400cb222f4aacd611b90e5aaf736a60acdcf4ded6235fe7434ad39a1ee7",
+      "sourcesDigest": "f08ab0b4e26c14ad360abe8671ed29a4379fc7da3a053f4d381990320664c76f"
+    },
+    {
+      "questionId": "web-technical-microtask-order",
+      "contentDigest": "fccf3c58158284503441b7fc7683c8aad92e847acab17f9b8f2c064e8f60ca93",
+      "sourcesDigest": "335dfaaa27857a5a84b768757b7411c1fe725ee5fde5a2d0e7aa77ce05ff6ec0"
+    },
+    {
+      "questionId": "web-scenario-search-clear",
+      "contentDigest": "8b61f2ddf340bb861d497a2cab3ea604642f8b7d61e2bf0e7cd72b5a5b28050b",
+      "sourcesDigest": "ab6efa0d1435661e4f7d7bc62197801a12ca7a4057e8617c9f55ac924b4bf1e4"
+    },
+    {
+      "questionId": "web-technical-fetch-status",
+      "contentDigest": "afe08ff0c493ce9531244aba49e7f5f89512d5210a215a413906f7a5ed038969",
+      "sourcesDigest": "bddebeefa1fa7169eeb35f8d220d42d876ad095e55cd5fe1514b545a594af8bc"
+    }
+  ]
+}

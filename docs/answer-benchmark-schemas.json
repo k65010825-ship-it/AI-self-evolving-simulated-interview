@@ -1,0 +1,944 @@
+{
+  "version": 1,
+  "bundle": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "manifest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "authoredAt": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "origin": {
+            "type": "string",
+            "const": "assistant-authored-synthetic"
+          },
+          "knowledgePins": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "questionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "contentDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "sourcesDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "questionId",
+                "contentDigest",
+                "sourcesDigest"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "authoredAt",
+          "origin",
+          "knowledgePins"
+        ],
+        "additionalProperties": false
+      },
+      "cases": {
+        "minItems": 1,
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "groupId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "split": {
+              "type": "string",
+              "enum": [
+                "development",
+                "validation",
+                "reserved-final"
+              ]
+            },
+            "variant": {
+              "type": "string",
+              "enum": [
+                "complete",
+                "misconception",
+                "insufficient"
+              ]
+            },
+            "answer": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "questionId",
+            "groupId",
+            "split",
+            "variant",
+            "answer"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "references": {
+        "minItems": 1,
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "caseId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "caseDigest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "rubricDigest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "origin": {
+              "type": "string",
+              "const": "synthetic-proposed"
+            },
+            "reviewStatus": {
+              "type": "string",
+              "const": "draft"
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "assessment": {
+              "type": "object",
+              "properties": {
+                "evidence": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "start": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "end": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "excerpt": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 10000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "start",
+                      "end",
+                      "excerpt"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "criterionScores": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "criterionId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "score": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "evidenceIds": {
+                        "maxItems": 30,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        }
+                      }
+                    },
+                    "required": [
+                      "criterionId",
+                      "score",
+                      "evidenceIds"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "evidence",
+                "criterionScores"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "caseId",
+            "version",
+            "caseDigest",
+            "rubricDigest",
+            "origin",
+            "reviewStatus",
+            "rationale",
+            "assessment"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "manifest",
+      "cases",
+      "references"
+    ],
+    "additionalProperties": false
+  },
+  "row": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "roleId": {
+            "type": "string",
+            "enum": [
+              "java-backend",
+              "web-frontend"
+            ]
+          },
+          "questionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "rubricVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "status": {
+            "type": "string",
+            "const": "completed"
+          },
+          "scores": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "criterionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "score": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "criterionId",
+                "score"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "assessmentDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "caseId",
+          "roleId",
+          "questionId",
+          "rubricVersion",
+          "status",
+          "scores",
+          "assessmentDigest"
+        ],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "roleId": {
+            "type": "string",
+            "enum": [
+              "java-backend",
+              "web-frontend"
+            ]
+          },
+          "questionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "rubricVersion": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "failed",
+              "cancelled",
+              "timed_out"
+            ]
+          },
+          "error": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "ROLE_FORBIDDEN",
+              "NOT_FOUND",
+              "VERSION_CONFLICT",
+              "RUN_CANCELLED",
+              "TOOL_BUDGET_EXCEEDED",
+              "CONTEXT_BUDGET_EXCEEDED",
+              "RATE_LIMITED",
+              "DEPENDENCY_UNAVAILABLE",
+              "DEADLINE_EXCEEDED",
+              "MODEL_OUTPUT_INVALID",
+              "NOT_IMPLEMENTED",
+              "INTERNAL_ERROR"
+            ]
+          }
+        },
+        "required": [
+          "caseId",
+          "roleId",
+          "questionId",
+          "rubricVersion",
+          "status",
+          "error"
+        ],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "report": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "number",
+        "const": 1
+      },
+      "datasetId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "datasetVersion": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "datasetDigest": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      "split": {
+        "type": "string",
+        "enum": [
+          "development",
+          "validation"
+        ]
+      },
+      "evaluatorId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "evaluatorMode": {
+        "type": "string",
+        "const": "offline-fixture"
+      },
+      "startedAt": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+      },
+      "finishedAt": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+      },
+      "productionPublished": {
+        "type": "boolean",
+        "const": false
+      },
+      "rows": {
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "caseId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "roleId": {
+                  "type": "string",
+                  "enum": [
+                    "java-backend",
+                    "web-frontend"
+                  ]
+                },
+                "questionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "rubricVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "completed"
+                },
+                "scores": {
+                  "minItems": 1,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "criterionId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[A-Za-z0-9_.-]+$"
+                      },
+                      "score": {
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "criterionId",
+                      "score"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assessmentDigest": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "caseId",
+                "roleId",
+                "questionId",
+                "rubricVersion",
+                "status",
+                "scores",
+                "assessmentDigest"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "caseId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "roleId": {
+                  "type": "string",
+                  "enum": [
+                    "java-backend",
+                    "web-frontend"
+                  ]
+                },
+                "questionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "rubricVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100,
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "failed",
+                    "cancelled",
+                    "timed_out"
+                  ]
+                },
+                "error": {
+                  "type": "string",
+                  "enum": [
+                    "VALIDATION_ERROR",
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "ROLE_FORBIDDEN",
+                    "NOT_FOUND",
+                    "VERSION_CONFLICT",
+                    "RUN_CANCELLED",
+                    "TOOL_BUDGET_EXCEEDED",
+                    "CONTEXT_BUDGET_EXCEEDED",
+                    "RATE_LIMITED",
+                    "DEPENDENCY_UNAVAILABLE",
+                    "DEADLINE_EXCEEDED",
+                    "MODEL_OUTPUT_INVALID",
+                    "NOT_IMPLEMENTED",
+                    "INTERNAL_ERROR"
+                  ]
+                }
+              },
+              "required": [
+                "caseId",
+                "roleId",
+                "questionId",
+                "rubricVersion",
+                "status",
+                "error"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "analysis": {
+        "type": "object",
+        "properties": {
+          "comparison": {
+            "type": "string",
+            "const": "draft-reference-descriptive"
+          },
+          "humanReferenceCount": {
+            "type": "number",
+            "const": 0
+          },
+          "qualityClaimEligible": {
+            "type": "boolean",
+            "const": false
+          },
+          "roles": {
+            "minItems": 2,
+            "maxItems": 2,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "roleId": {
+                  "type": "string",
+                  "enum": [
+                    "java-backend",
+                    "web-frontend"
+                  ]
+                },
+                "totalCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "completedCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "failureCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "fullyScoredCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "criterionError": {
+                  "type": "object",
+                  "properties": {
+                    "sumAbsoluteError": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "sumSignedError": {
+                      "type": "number"
+                    },
+                    "pairedCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mae": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bias": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sumAbsoluteError",
+                    "sumSignedError",
+                    "pairedCount",
+                    "mae",
+                    "bias"
+                  ],
+                  "additionalProperties": false
+                },
+                "weightedError": {
+                  "type": "object",
+                  "properties": {
+                    "sumAbsoluteError": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "sumSignedError": {
+                      "type": "number"
+                    },
+                    "pairedCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mae": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bias": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "sumAbsoluteError",
+                    "sumSignedError",
+                    "pairedCount",
+                    "mae",
+                    "bias"
+                  ],
+                  "additionalProperties": false
+                },
+                "dimensions": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "dimension": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "error": {
+                        "type": "object",
+                        "properties": {
+                          "sumAbsoluteError": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "sumSignedError": {
+                            "type": "number"
+                          },
+                          "pairedCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "mae": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "bias": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1,
+                                "maximum": 1
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sumAbsoluteError",
+                          "sumSignedError",
+                          "pairedCount",
+                          "mae",
+                          "bias"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "dimension",
+                      "error"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "nullAgreement": {
+                  "type": "object",
+                  "properties": {
+                    "pairedScored": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "overScored": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "underScored": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "bothMissing": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "pairedScored",
+                    "overScored",
+                    "underScored",
+                    "bothMissing"
+                  ],
+                  "additionalProperties": false
+                },
+                "humanReferenceMae": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "roleId",
+                "totalCount",
+                "completedCount",
+                "failureCount",
+                "fullyScoredCount",
+                "criterionError",
+                "weightedError",
+                "dimensions",
+                "nullAgreement",
+                "humanReferenceMae"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "comparison",
+          "humanReferenceCount",
+          "qualityClaimEligible",
+          "roles"
+        ],
+        "additionalProperties": false
+      },
+      "digest": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "required": [
+      "version",
+      "datasetId",
+      "datasetVersion",
+      "datasetDigest",
+      "split",
+      "evaluatorId",
+      "evaluatorMode",
+      "startedAt",
+      "finishedAt",
+      "productionPublished",
+      "rows",
+      "analysis",
+      "digest"
+    ],
+    "additionalProperties": false
+  }
+}

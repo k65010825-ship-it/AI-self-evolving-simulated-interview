@@ -1,0 +1,637 @@
+[
+  {
+    "id": "web-technical-microtask-order",
+    "roleId": "web-frontend",
+    "skillId": "javascript",
+    "questionType": "technical",
+    "difficulty": 1,
+    "question": "普通浏览器脚本中先安排setTimeout输出C，再安排Promise.then输出B，最后同步输出A，一般为何看到A、B、C？",
+    "keyPoints": [
+      "同步执行先结束，微任务在下一个任务前清空",
+      "不是Promise回调立刻同步执行"
+    ],
+    "sourceIds": [
+      "mdn-microtasks"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "任务顺序",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "认为注册顺序决定C先于B"
+          },
+          {
+            "score": 1,
+            "description": "只记住ABC"
+          },
+          {
+            "score": 2,
+            "description": "区分同步/微任务/任务"
+          },
+          {
+            "score": 3,
+            "description": "说明检查点和队列清空"
+          },
+          {
+            "score": 4,
+            "description": "明确浏览器场景及新微任务影响"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "边界与诊断",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "将浏览器规则直接套所有Node阶段"
+          },
+          {
+            "score": 1,
+            "description": "只重复输出"
+          },
+          {
+            "score": 2,
+            "description": "说明环境前提"
+          },
+          {
+            "score": 3,
+            "description": "提出最小可运行验证"
+          },
+          {
+            "score": 4,
+            "description": "区分事件顺序与渲染/性能结论"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-technical-effect-dependencies",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "Effect读取了组件中的prop，却省略依赖项，可能出现什么问题？为什么不能只为减少执行次数删依赖？",
+    "keyPoints": [
+      "响应式依赖影响重新同步与闭包读取",
+      "用清理和结构调整处理生命周期，不骗过依赖检查"
+    ],
+    "sourceIds": [
+      "react-learn"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "依赖语义",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "认为空数组自动保持所有状态最新"
+          },
+          {
+            "score": 1,
+            "description": "只说加依赖"
+          },
+          {
+            "score": 2,
+            "description": "指出旧值和重新同步关系"
+          },
+          {
+            "score": 3,
+            "description": "说明全部响应式读取与结构调整"
+          },
+          {
+            "score": 4,
+            "description": "结合闭包/依赖比较说明真实边界"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "生命周期处理",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "用全局标志跳过清理"
+          },
+          {
+            "score": 1,
+            "description": "只压制lint"
+          },
+          {
+            "score": 2,
+            "description": "提出配套cleanup"
+          },
+          {
+            "score": 3,
+            "description": "解释重跑前清理及卸载"
+          },
+          {
+            "score": 4,
+            "description": "说明如何验证旧值/重复订阅而非只减次数"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-technical-fetch-status",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "technical",
+    "difficulty": 1,
+    "question": "fetch收到HTTP 500时为什么不一定进入catch？你会怎样区分HTTP失败、网络失败和响应体解析失败？",
+    "keyPoints": [
+      "fetch通常不因HTTP错误状态自动reject",
+      "检查response.ok/status并处理解析阶段错误"
+    ],
+    "sourceIds": [
+      "mdn-fetch"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "错误分类",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称所有非2xx自动reject"
+          },
+          {
+            "score": 1,
+            "description": "只说try/catch"
+          },
+          {
+            "score": 2,
+            "description": "区分HTTP状态与网络错误"
+          },
+          {
+            "score": 3,
+            "description": "补充解析失败阶段"
+          },
+          {
+            "score": 4,
+            "description": "给出阶段明确且不吞错误的流程"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "交互状态",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "收到Response就提示成功"
+          },
+          {
+            "score": 1,
+            "description": "只说错误提示"
+          },
+          {
+            "score": 2,
+            "description": "区分加载/成功/失败"
+          },
+          {
+            "score": 3,
+            "description": "说明何时结束加载及允许重试"
+          },
+          {
+            "score": 4,
+            "description": "指出业务契约校验和用户可理解的反馈"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-technical-abort-scope",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "AbortController.abort后能保证服务器没有执行操作吗？已经取消的signal能直接用于下一次请求吗？",
+    "keyPoints": [
+      "本地取消不等于远端业务回滚",
+      "已中止signal不会恢复，应按新请求生命周期创建控制器"
+    ],
+    "sourceIds": [
+      "mdn-fetch",
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "取消保证",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称取消自动撤销服务端写入"
+          },
+          {
+            "score": 1,
+            "description": "只说停止请求"
+          },
+          {
+            "score": 2,
+            "description": "区分本地拒绝与远端结果"
+          },
+          {
+            "score": 3,
+            "description": "指出signal一次中止及新控制器"
+          },
+          {
+            "score": 4,
+            "description": "完整说明取消不保证回滚和状态确认"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "请求归属",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "复用已取消signal作为正常新请求"
+          },
+          {
+            "score": 1,
+            "description": "只说重新请求"
+          },
+          {
+            "score": 2,
+            "description": "按请求创建控制器"
+          },
+          {
+            "score": 3,
+            "description": "说明旧请求清理与新请求隔离"
+          },
+          {
+            "score": 4,
+            "description": "明确取消时序及幂等/状态查询边界"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-scenario-search-clear",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "搜索A未返回时用户清空输入，旧结果随后到达。如何避免清空后的页面又显示A，并保持加载与错误状态一致？",
+    "keyPoints": [
+      "失效旧请求并绑定结果归属",
+      "清空/加载/错误由同一当前请求口径维护"
+    ],
+    "sourceIds": [
+      "react-learn",
+      "mdn-fetch"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "过期结果治理",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "只在请求开始清空结果"
+          },
+          {
+            "score": 1,
+            "description": "只说防抖"
+          },
+          {
+            "score": 2,
+            "description": "清空时失效旧请求"
+          },
+          {
+            "score": 3,
+            "description": "结果/错误/finally都检查归属"
+          },
+          {
+            "score": 4,
+            "description": "覆盖忽略取消及卸载时序"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "交互验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "只验证成功顺序返回"
+          },
+          {
+            "score": 1,
+            "description": "只说多点几次"
+          },
+          {
+            "score": 2,
+            "description": "描述慢请求后清空测试"
+          },
+          {
+            "score": 3,
+            "description": "覆盖错误与加载竞争"
+          },
+          {
+            "score": 4,
+            "description": "给出可复现乱序/取消失效及边界"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-scenario-effect-subscription",
+    "roleId": "web-frontend",
+    "skillId": "async-state",
+    "questionType": "scenario",
+    "difficulty": 2,
+    "question": "Effect随用户ID变化订阅消息，旧订阅没有清理会怎样？怎样设计setup/cleanup并验证没有重复监听？",
+    "keyPoints": [
+      "依赖变化和卸载需对称清理",
+      "开发期额外setup/cleanup用于暴露不对称"
+    ],
+    "sourceIds": [
+      "react-learn"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "资源生命周期",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "只创建订阅从不清理"
+          },
+          {
+            "score": 1,
+            "description": "只说return函数"
+          },
+          {
+            "score": 2,
+            "description": "说明同次setup资源归属"
+          },
+          {
+            "score": 3,
+            "description": "描述依赖变更和卸载清理"
+          },
+          {
+            "score": 4,
+            "description": "解释额外循环及对称性前提"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "订阅验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "以页面没报错作为无泄漏证明"
+          },
+          {
+            "score": 1,
+            "description": "只看控制台"
+          },
+          {
+            "score": 2,
+            "description": "统计建立/清理次数"
+          },
+          {
+            "score": 3,
+            "description": "验证用户切换与卸载"
+          },
+          {
+            "score": 4,
+            "description": "检查迟到消息归属并说明局限"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-project-error-state",
+    "roleId": "web-frontend",
+    "skillId": "project-design",
+    "questionType": "project",
+    "difficulty": 3,
+    "question": "选一个前端请求页面，解释加载、空数据、HTTP错误和解析失败状态的设计及你的验证；可以用假设页面。",
+    "keyPoints": [
+      "状态区分以真实请求阶段为依据",
+      "说明个人改动、可复现验证和未测范围"
+    ],
+    "sourceIds": [
+      "mdn-fetch",
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "状态与设计",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "将所有无数据显示同一成功状态"
+          },
+          {
+            "score": 1,
+            "description": "只列技术栈"
+          },
+          {
+            "score": 2,
+            "description": "区分加载/空/失败"
+          },
+          {
+            "score": 3,
+            "description": "联系请求阶段与状态转换"
+          },
+          {
+            "score": 4,
+            "description": "结合并发归属解释状态及代价"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "verification",
+        "description": "贡献与验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "编造线上用户效果"
+          },
+          {
+            "score": 1,
+            "description": "只说参与页面"
+          },
+          {
+            "score": 2,
+            "description": "明确本人动作或假设"
+          },
+          {
+            "score": 3,
+            "description": "给出可控制响应的验收流程"
+          },
+          {
+            "score": 4,
+            "description": "区分观测结果与未测条件"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-behavior-loading-conflict",
+    "roleId": "web-frontend",
+    "skillId": "collaboration",
+    "questionType": "behavioral",
+    "difficulty": 2,
+    "question": "产品希望请求立即显示成功，但接口只能异步返回结果时，你怎样解释风险并协商交互？可以用假设案例。",
+    "keyPoints": [
+      "区分请求已发送、已接受与业务成功",
+      "提出可执行反馈/确认方案并约定验收"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "communication",
+        "description": "协商与语义",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "同意把已接受直接标业务成功"
+          },
+          {
+            "score": 1,
+            "description": "只说需求不合理"
+          },
+          {
+            "score": 2,
+            "description": "指出用户反馈与结果差异"
+          },
+          {
+            "score": 3,
+            "description": "提出选项、责任与确认方式"
+          },
+          {
+            "score": 4,
+            "description": "解释取舍并保留未解决风险"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "logic",
+        "description": "验证与叙述",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "虚构用户满意作为证据"
+          },
+          {
+            "score": 1,
+            "description": "只说验收通过"
+          },
+          {
+            "score": 2,
+            "description": "列出一个交互验收动作"
+          },
+          {
+            "score": 3,
+            "description": "覆盖慢/错/重复点击"
+          },
+          {
+            "score": 4,
+            "description": "说明可核查结果与假设边界"
+          }
+        ]
+      }
+    ]
+  }
+]

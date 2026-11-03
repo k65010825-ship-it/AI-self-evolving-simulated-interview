@@ -1,7 +1,92 @@
 [
-  {"id":"spring-transactions","title":"Spring Framework Using @Transactional","url":"https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html","owner":"Spring","licenseNote":"已读取一手页面；仅链接与原创要点，不批量复制，知识草案仍待岗位审核。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
-  {"id":"java-specification","title":"Java SE 21 JLS Chapter 17 Threads and Locks","url":"https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html","owner":"Oracle","licenseNote":"已读取规范页面；仅登记引用与原创要点，未转载全文。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
-  {"id":"mdn-javascript","title":"MDN JavaScript Closures","url":"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures","owner":"MDN contributors","licenseNote":"已读取页面；链接与原创题目，不批量转载。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
-  {"id":"react-learn","title":"React useEffect Reference","url":"https://react.dev/reference/react/useEffect","owner":"React contributors","licenseNote":"已读取竞态与清理相关段落；正式题目仍需岗位审核。","retrievedAt":"2026-11-01","verificationStatus":"content-checked"},
-  {"id":"team-original","title":"团队原创面试场景草案","url":null,"owner":"project-team","licenseNote":"项目内原创示例，需岗位审核。","retrievedAt":null,"verificationStatus":"draft"}
+  {
+    "id": "spring-transactions",
+    "title": "Spring Framework Using @Transactional",
+    "url": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "owner": "Spring",
+    "licenseNote": "已读取一手页面；仅链接与原创要点，不批量复制，知识草案仍待岗位审核。",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "version": "docs-2026-11-03"
+  },
+  {
+    "id": "java-specification",
+    "title": "Java SE 21 JLS Chapter 17 Threads and Locks",
+    "url": "https://docs.oracle.com/javase/specs/jls/se21/html/jls-17.html",
+    "owner": "Oracle",
+    "licenseNote": "已读取规范页面；仅登记引用与原创要点，未转载全文。",
+    "retrievedAt": "2026-11-01",
+    "verificationStatus": "content-checked",
+    "version": "docs-2026-11-01"
+  },
+  {
+    "id": "mdn-javascript",
+    "title": "MDN JavaScript Closures",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures",
+    "owner": "MDN contributors",
+    "licenseNote": "已读取页面；链接与原创题目，不批量转载。",
+    "retrievedAt": "2026-11-01",
+    "verificationStatus": "content-checked",
+    "version": "docs-2026-11-01"
+  },
+  {
+    "id": "react-learn",
+    "title": "React useEffect Reference",
+    "url": "https://react.dev/reference/react/useEffect",
+    "owner": "React contributors",
+    "licenseNote": "已读取竞态与清理相关段落；正式题目仍需岗位审核。",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "version": "docs-2026-11-03"
+  },
+  {
+    "id": "team-original",
+    "title": "团队原创面试场景草案",
+    "url": null,
+    "owner": "project-team",
+    "licenseNote": "项目内原创示例，需岗位审核。",
+    "retrievedAt": null,
+    "verificationStatus": "draft",
+    "version": "original-1"
+  },
+  {
+    "id": "java-atomic-integer",
+    "title": "Java SE 21 AtomicInteger API",
+    "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html",
+    "owner": "Oracle",
+    "version": "docs-2026-11-03",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "licenseNote": "2026-11-03通过MarkItDown读取正文及目标章节；仅链接与团队原创概括，不转载全文；不代表题目人工审核。"
+  },
+  {
+    "id": "postgres-isolation-17",
+    "title": "PostgreSQL 17 Transaction Isolation",
+    "url": "https://www.postgresql.org/docs/17/transaction-iso.html",
+    "owner": "PostgreSQL Global Development Group",
+    "version": "docs-2026-11-03",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "licenseNote": "2026-11-03通过MarkItDown读取正文及目标章节；仅链接与团队原创概括，不转载全文；不代表题目人工审核。"
+  },
+  {
+    "id": "mdn-microtasks",
+    "title": "MDN Using microtasks in JavaScript",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide",
+    "owner": "MDN contributors",
+    "version": "docs-2026-11-03",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "licenseNote": "2026-11-03通过MarkItDown读取正文及目标章节；仅链接与团队原创概括，不转载全文；不代表题目人工审核。"
+  },
+  {
+    "id": "mdn-fetch",
+    "title": "MDN Using the Fetch API",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch",
+    "owner": "MDN contributors",
+    "version": "docs-2026-11-03",
+    "retrievedAt": "2026-11-03",
+    "verificationStatus": "content-checked",
+    "licenseNote": "2026-11-03通过MarkItDown读取正文及目标章节；仅链接与团队原创概括，不转载全文；不代表题目人工审核。"
+  }
 ]
