@@ -105,6 +105,9 @@ master 当前 PostgreSQL/Drizzle 仍是历史 44 表模型；feature/db 已提�
 
 ## 5. 契约、Git 与合并检查
 
+- master 的 docs 仅保留产品/架构/协作、数据库、数据治理、产品验收及前端/后端所需接入契约，清单见[团队入口](README.md)。Pi/Harness、内部工具与算法、开发调试、旧试点和模块/批次验收文档只在feature/agent；不能整目录合回master。
+- 同步master到feature/agent时保留该分支的内部文档；将来实现PR合回master时只带共享文档和必要代码，检查删除/重命名与生成物，避免内部文档重新混入主分支。
+
 - 当前 Agent 实现集中在 `feature/agent`；`master` 先维护共同协作文档与稳定基线。Agent 代码、契约实现、测试和依赖在实现分支提交，`README.md`、`AGENTS.md`、`docs/` 的团队文档在主分支提交后同步到实现分支；不将文档合入视为实现已合入主分支。
 - 推送前先 `git fetch origin`，将对应远程分支的新提交合入本地并解决冲突，检查后再同名推送。禁止用强制推送覆盖队友；共享文档先合 master，再由实现分支正常合入 master。当前 master 的旧桌面骨架不代表要在 Agent 分支恢复桌面源码。
 - 跨端 schema 以 `packages/contracts` 为真值，业务状态规则在 `packages/interview-domain` 共享。新增接口先写清归属、输入/结果、状态、权限、幂等和错误样例，再并行开发。

@@ -22,15 +22,11 @@ Node.js ≥24、Bun 1.4.4，使用 `bun.lock`。没有全局 Bun 时，可使用
 
 ```powershell
 git fetch origin
-git switch feature/agent
-git merge origin/feature/agent
+git switch <负责的分支>
 bun install --frozen-lockfile --ignore-scripts
-bun --no-env-file run agent:local:acceptance
-bun --no-env-file run agent:local:live:acceptance
-bun --no-env-file run agent:local:speech:acceptance
 ```
 
-这些验收使用隔离用户目录、合成凭证和注入 HTTP，不读取真实 Key、不发起真实供应商调用，不是 Electron 安装包验收。主进程指定 `userData` 与安装资源目录，使用 `@interview/local-agent-client` 接入；不启动 localhost HTTP。详见[本地协议](docs/local-runtime-api.md)。
+桌面主进程按[本地接入契约](docs/local-runtime-api.md)使用 `@interview/local-agent-client`，无需了解 Agent 内部实现。管理 HTTP API 的资源与待设计项见[接口导航](docs/api.md)。Agent 专属构建、调试与验收命令只在 feature/agent 文档维护。
 
 共同基线检查：
 
@@ -108,9 +104,10 @@ flowchart LR
 
 ## 文档
 
-- 团队先读：[需求](docs/prd.md) → [架构](docs/architecture.md) → [协作分工](docs/collaboration.md) → [接口导航](docs/api.md)。
-- 客户端接线：[本地协议](docs/local-runtime-api.md)、[本地运行时](docs/client-runtime.md)、[凭证与 live](docs/client-live-runtime.md)、[本地语音](docs/client-speech-runtime.md)。
-- 数据与管理：[数据库边界](docs/database.md)、[知识审核](docs/knowledge-curation.md)、[评测计划](docs/evaluation-plan.md)。
-- Agent 机制：[会话编排](docs/session-workflow.md)、[澄清与弃评](docs/workflow-clarification.md)、[记忆与压缩](docs/memory-context.md)、[恢复](docs/model-recovery.md)、[Harness](docs/agent-harness.md)。
-- 验收：[本地在线验收](docs/local-online-acceptance.md)、[评分质量](docs/scoring-quality.md)、[真人双岗验收](docs/agent-field-acceptance.md)。
-- 历史参考：[原型交接](docs/HANDOFF.md)、[旧试点](docs/pilot.md)、[旧 HTTP OpenAPI](docs/openapi.yaml)。交接包和旧接口不覆盖当前架构；文档中的现有能力须到对应实现分支验证。
+[团队文档入口](docs/README.md)按读者列出master的共享文档：
+
+- [需求](docs/prd.md)、[架构](docs/architecture.md)、[协作分工](docs/collaboration.md)。
+- [接口导航](docs/api.md)、[本地客户端接入](docs/local-runtime-api.md)、[数据库说明](docs/database.md)。
+- [数据与内容治理](docs/data-sources.md)、[产品验收计划](docs/evaluation-plan.md)。
+
+Agent 的 SDK/Harness、规划/评分/记忆/压缩实现、内部工具、调试与模块验收手册仅保留在 [feature/agent 的 docs](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/tree/feature/agent/docs)。共享接入契约留在master，原型和旧试点内部说明不再混在团队入口中。

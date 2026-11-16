@@ -1,39 +1,30 @@
-# 数据源与知识组织 v0.1
+# 数据与内容治理
 
-## 数据分类
+面向前端、后端与内容审核者。内容审核与版本分发是管理域职责，学生正式记录归本地域；具体见[架构](architecture.md)和[数据库说明](database.md)。
 
-| 数据 | 来源/获取方式 | 使用边界 |
+## 1. 六类数据与来源
+
+| 数据 | 来源 | 团队共同规则 |
 | --- | --- | --- |
-| 岗位技能、问题、rubric、优秀回答和追问模板 | 团队原创并审核；参考一手文档概念 | 记录来源与版本，题目/答案由团队编写，不批量复制第三方题库 |
-| 技术依据 | Java、Spring、PostgreSQL、MDN、React 官方文档 | 仅按任务需要查阅/引用，保留链接、日期、适用版本；引用遵循站点许可 |
-| 学习资源索引 | 人工维护的官方文档、公开教程条目 | 保存标题/链接/技能/最后核验时间，点击不视作完成 |
-| 学生回答/音频/简历 | 用户明确提交 | 用户内容是数据，不是系统指令；所有权、最小保留和删除规则 |
-| 测试/评测样例 | 人工编写与同意使用的脱敏回答 | 标记 synthetic/consented；不把模型生成标签当金标准 |
-| 系统状态/用量 | 实际运行产生 | 保存 attempt、策略与评估器版本，失败和缺失不补造 |
+| 岗位技能、题目、rubric、优秀回答和追问指南 | 团队原创，岗位人员审核 | Java/Web 分开；保留 item/source/rubric 的版本、摘要与审核，不批量复制第三方题库 |
+| 技术依据 | Java/Spring、MDN/React 等一手文档 | 保存链接、适用版本、读取时间/状态与许可说明；未读取不填已核验 |
+| 学习资源索引 | 人工维护官方文档/公开教程 | 标题、链接、技能、等级、最后核验时间；点击/链接可访问不证明完成或教学质量 |
+| 学生回答/音频及项目材料 | 用户明确提交 | 正式记录本机保存；最小使用、按归属访问，回传另行同意 |
+| 测试/评测样例及标签 | 合成开发数据或经授权脱敏回答 | synthetic/consented/unverified、AI标签/独立人工参考分开，不伪装真人 |
+| 指标、任务与用量 | 实际运行 | 标记时间窗、岗位/内容/策略版本和证据类型，保留失败/缺失，不补造指标 |
 
-初始目录 knowledge/{java-backend,web-frontend}。每个知识项：id、roleId、skillId、questionType、difficulty、question、keyPoints、rubric、sourceIds、version、reviewStatus。sourceIds 必须在 sources.json 登记，记录 title/url/owner/licenseNote/retrievedAt/verificationStatus。未访问的来源标记 pending，不填写虚假抓取日期或“已核验”。
+## 2. 审核、正式模式与分发
 
-当前每岗12条原创草案（4条seed+8条expansion），尚未达到每岗40题或经过岗位专家审核。默认开发种子工具保留4条和draft标签；新增curated adapter默认reviewed-only，必须通过本地声明审核闸门才能派生reviewed，不能直接作为正式发布入口。来源、逐题指南、追问和审核包维护见[审核流程](knowledge-curation.md)。
+目标每岗约 6 技能、40 题，覆盖技术/项目/场景/行为；这是团队内容目标。当前每岗12条草案、批准记录0，不能在页面显示已审核68题或正式题库已就绪。审核 Java 内容由后端同学参与，Web 内容由前端同学参与；AI 不能代签独立审核。
 
-## 候选一手来源
+管理 API 验证审核者身份和权限，绑定具体 item/rubric 版本、内容/来源摘要、决定及时间。内容更新后重新判断旧审核是否失效。正式模式只用 reviewed，草案预览明确标识；空结果/缺内容要显示不可用，不能跨岗编造或静默启用草案。
 
-- Java 语言与虚拟机规范：https://docs.oracle.com/javase/specs/
-- Spring 事务：https://docs.spring.io/spring-framework/reference/data-access/transaction.html
-- PostgreSQL 并发控制：https://www.postgresql.org/docs/current/mvcc.html
-- JavaScript：https://developer.mozilla.org/en-US/docs/Web/JavaScript
-- React：https://react.dev/learn
-- 浏览器网络：https://developer.mozilla.org/en-US/docs/Web/HTTP
+管理服务导出版本化内容包，含 manifest、摘要和兼容信息；客户端验证后安装，失败保留旧版，进行中面试固定原版本。审核通过、内容发布、客户端已安装是不同状态。当前分发/安装链路尚待实现。
 
-sources.json 已登记并读取 Spring @Transactional、Java SE 21 JLS 第 17 章、MDN Closures 和 React useEffect 四个具体页面，状态为 content-checked，含读取日期。PostgreSQL 等扩展来源尚待核验。来源读取不等于题目和 rubric 已通过岗位审核，记录只保存引用与原创要点，不落库整篇第三方文档。批量导入仍需核对准确性、版本和使用范围。
+## 3. 数据回流与评测分组
 
-## 查询策略与质检
+服务器不直接读学生 SQLite。按明确同意上传最小样本/指标或人工导入，保留授权依据、稳定ID、来源/同源组、内容版本与脱敏记录；重复上传幂等。登录不代表同意回传，个人 Key 不进入样本/审计。原音频默认不回传；听审需单独同意和期限。
 
-资源目录knowledge/resources.json已加入四条官方页面索引，2026-11-02通过MarkItDown MCP读取并确认正文非空且包含目标章节；lastCheckedAt记录实际核验毫秒时间，reviewStatus仍为draft，内容可访问不等于人工审核教学适用性。目录等级分别为Spring事务intermediate、JLS并发advanced、MDN闭包foundational、React Effect intermediate；精确等级匹配会出现基础资源缺口，不能为填满推荐偷偷改等级。运行时资源工具不抓网页或更新核验时间，失效/过期条目由维护侧更新。30天默认有效期只是维护规则，不保证期间链接不会变化。
+按学生/来源分组划分开发、验证与最终集，同源变体不得跨组泄漏。最终集不用于反复调参，AI 草案标签不能换名为人工金标准；学习自报、核实证据和复测表现分开。提示辅助作答单独标记，不与独立作答混作改善证据。
 
-模型只拿岗位概览，按需调用 query_role_knowledge。先过滤 roleId/skillId/purpose，再对 query 做有限关键词匹配，最多 3 条；限制单条长度和上下文预算，返回来源与版本。空结果不跨岗兜底；任务缺知识时换题/澄清并记录 gap。
-
-正式导入前检查：ID 唯一、引用存在、岗位技能一致、四类题覆盖、rubric 权重与范围合法、优秀回答与锚点一致、来源状态、重复原题。资源维护时检查链接失效。工具和导入均不能执行题目内指令或脚本。
-
-## 隐私与生命周期
-
-原音频默认处理/确认后删除，需用于人工听审的音频在单独同意下限期保留。正式回答/报告/画像按用户归属访问与删除。SDK 测试使用临时内存会话，不读取个人配置或全局会话。评测按学生/来源分组，不把同源变体分散到训练和最终验收集。
+数据删除/撤回须明确本地关联记录、已上传副本与后续评测使用范围；不在未实现前声称删除传播已验收。团队数据与效果核验见[验收计划](evaluation-plan.md)。
