@@ -59,6 +59,16 @@ bun run agent:delivery --verify .cache/agent-delivery/<run>/report.json
 
 当前交付为13阶段Agent检查，不包含桌面构建；已升级报告suite版本，历史14阶段报告不冒充当前验收。没有全局Bun时可用 `& .\node_modules\@oven\bun-windows-x64\bin\bun.exe`。
 
+数据库迁移（队友新增的Drizzle模型与SQL，详见[数据库设计](docs/database.md)）：
+
+```powershell
+bun run db:generate   # 修改 tables 后生成迁移
+bun run db:check      # 校验迁移与快照
+bun run db:migrate    # 需要 DATABASE_URL，写入目标 PostgreSQL
+```
+
+迁移用例使用PGlite执行SQL并检查约束；开发库迁移记录见数据库文档，部署实例与业务事务仍须单独验收。PostgreSQL用于管理域及旧服务模型，不替代客户端本机SQLite。
+
 ## 系统目录
 
 ```text
@@ -72,7 +82,7 @@ packages/
   agent-client/      内部HTTP/SSE客户端、候选提交验证
   local-agent-client/ 主进程专用spawn/stdio/事件与关闭SDK
   interview-domain/  纯领域规则
-  db/                PostgreSQL/Drizzle目标模型（试点未迁移）
+  db/                Drizzle表结构/迁移/连接工厂（管理域与旧服务目标模型）
 knowledge/           两岗题库、量规和来源草案
 .agents/skills/      Pi SDK开发Skill
 experiments/         离线SDK与模块演练
@@ -107,6 +117,8 @@ flowchart LR
 MCP仍是后续扩展选项；当前知识与评分工具是受宿主授权的真实本地工具，不为技术名词强加服务。
 
 ## 文档
+
+- [数据库设计](docs/database.md)、[原型交接文档](docs/HANDOFF.md)（与当前PRD/接口冲突时以当前契约为准）
 
 - [需求与验收](docs/prd.md)、[架构](docs/architecture.md)、[接口](docs/api.md)、[协作分工](docs/collaboration.md)
 - [客户端本地运行时设计](docs/client-runtime.md)、[stdio协议与随包启动](docs/local-runtime-api.md)、[live与凭证代理](docs/client-live-runtime.md)、[本地语音](docs/client-speech-runtime.md)、[本地在线验收](docs/local-online-acceptance.md)
