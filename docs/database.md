@@ -1,80 +1,104 @@
-# 数据库设计 v0.2
+# 数据库设计与接入边界
 
-范围：数据按归属拆为两套库。**本地 SQLite**（`packages/local-db`）保存用户面试运行与能力画像数据；**服务端 PostgreSQL**（`packages/db`）只保存管理域正式数据。需求以 [PRD](prd.md) 为准，HTTP 对象见[接口文档](api.md)。表结构真值分别在 `packages/db/src/tables` 与 `packages/local-db/src/tables`，迁移分别位于 `packages/db/drizzle` 与 `packages/local-db/drizzle`，均由 `drizzle-kit generate` 生成，**未在部署实例执行过迁移**。
+版本0.3，2026-11-16。产品架构以[架构文档](architecture.md)为准：学生端由本地宿主提交正式数据，中央管理API只处理账号、团队内容、授权样本和管理实验。本文是前端、后端、Agent共同执行的数据库设计；实现状态与目标设计分开。
 
-## 1. 边界
+## 1. 唯一权威：一个profile数据库，不建设第二套学生状态
 
-- 管理端 PG 不保存学生侧运行数据；`interview_session`、`interview_turn`、`plan_decision`、`agent_run`、`run_attempt`、`run_event`、`idempotency_record`、`evaluation`、`evaluation_dimension`、`interview_report`、`report_dimension`、`learning_progress`、`recommendation`、`audio_asset`、`transcript`、`audio_analysis`、`prediction_snapshot`、`performance_pair`、`reflection`、`xp_event` 与能力画像都在本地 SQLite。
-- 本地 SQLite 不建服务端外键：`user_id`、`role_id`、`skill_id`、`question_id`、`resource_id`、`policy_version` 等只存标识文本；管理端导入样本同样不通过外键引用本机 `interview_id`。
-- `packages/contracts` 的 Zod schema 仍是跨服务真值；`questionType`、`reviewStatus`、Run 事件类型等枚举与契约一致，由 `tests/db-schema.test.ts` 守护。
-- 主键是不透明 `text` 标识（`run_event.id` 例外，用自增整数保证写入顺序）；不使用可被客户端解析的前缀语义。
-- 分数统一 [0,1]；缺少证据时为 `NULL` 而不是 `0`。本地 SQLite 用 `real` 存分数，PG 用 `numeric(5,4)`；repository 负责类型转换。
+学生端链路：`桌面主进程 → stdio RPC → 本地宿主 → 用户目录profile.sqlite`。
 
-## 2. 服务端表分组（PostgreSQL，25 张）
+管理端链路：`管理界面 → 管理API → 中央PostgreSQL/评测执行器`。
 
-| 分组 | 表 | 说明 |
+- 本地宿主是用户正式记录的唯一写入方；模型与工具只产候选，renderer不直接写库。后端的本地业务repository由宿主在同一连接/事务中调用，不能另起进程或库维护第二份权威状态。
+- 用户profile与只读安装资源分开。当前正式运行时使用schema v3和17张`local_*`表，实现在feature/agent；必须保留其围栏、任务、记忆、预算及回执语义。
+- feature/db的24张规范化本地表属于待接入的业务扩展/查询投影设计，**不是现有profile的替换schema**。在空内存库执行DDL成功，不表示旧数据已迁移、repository已接入或可用于客户端。
+- 中央不直接查询本机SQLite。只接收用户单独授权的必要脱敏副本，云端样本不反写本机原答、评分或记忆。首版可人工导出/导入，不建设通用跨设备同步。
+
+## 2. 表和对象的责任划分
+
+| 对象 | 现有权威/设计位置 | 接入要求 |
 | --- | --- | --- |
-| 身份 | `app_user`、`auth_session` | 账号 `account_role`（`student`/`admin`）与账号状态；不再保存 `xp`/`level`/`coins`（本地账本负责）；refresh token 只存哈希、轮换族与吊销时间 |
-| 岗位与知识 | `job_role`、`role_skill`、`knowledge_source`、`rubric`、`rubric_criterion`、`knowledge_item`、`knowledge_item_source`、`knowledge_review` | 岗位表改名 `job_role`，与账号 `account_role` 不再同名同义；版本化 rubric（含 `content_hash`）与题库；`rubric_criterion` 承载 `dimension`/`anchors`/`evidence_rule`/`verification_goal`；审核记录绑定 `target_type`/`version`/`content_hash` |
-| 策略版本 | `policy_version` | 白名单参数库内校验；候选生命周期 `status` 与 `publication_status`（发布）、`adoption_status`（客户端采用）三态分离 |
-| 学习内容 | `learning_resource`、`learning_resource_skill` | 管理端学习资源与技能多对多；学习进度与建议在本地 |
-| 进化 | `eval_dataset`、`eval_case`、`eval_experiment`、`experiment_case_result`、`experiment_execution`、`policy_champion` | 评测集分组隔离、冻结含题答/标签的 `content_hash`；`eval_case` 区分同源组、真人/合成来源、标签来源与授权依据；实验绑定不可变数据集版本/摘要与 `config_digest`，并有独立执行授权与预算 |
-| 分发 | `content_release` | 轻量内容发布包：版本、`manifest`、摘要、状态与资源位置，客户端可下载、校验、固定版本、失败保留旧版 |
-| 运维 | `audit_log`、`feedback_entry`、`alert`、`metric_snapshot`、`metric_measure` | 审计轨迹、反馈回流、告警流；指标快照带分子/分母/时间窗/来源/真实-合成标记/适用版本 |
+| profile身份/所有权 | `local_control`，配合主进程账号绑定 | owner/fence/lease每次写事务检查；远程账号不是本地userId的替身 |
+| 正式会话/工作流 | `local_sessions.workflow`和storage_version | 包含题答、状态和收尾依据；不允许interview_session.state与其分别独立更新 |
+| 跨会话记忆 | `local_memory` | 按profile/岗位持久化，版本与证据兼容规则保留；skill_profile不替代记忆快照 |
+| 任务/事件/幂等/提交回执 | `local_jobs`、`local_events` | operationId、请求摘要、ticket、snapshot、receipt和seq保留；查询投影可重建 |
+| 会话额度/LLM授权及对账 | `local_session_budgets`、`local_live_grants`、`local_model_checkpoints`、`local_live_reconciliations`、`local_budget` | 固定总额度、CAS、reserve/dispatch/unknown及证据回执保留，不用token统计表替换 |
+| ASR/TTS/共享子额度 | `local_resource_budgets`、`local_speech_*` | capability/grant/call/确认/重试关联保留，与LLM共受会话总额约束 |
+| XP/金币、提示领取、学习事件、预测/复测配对 | 同一profile内新增业务表 | 后端定义规则，宿主幂等事务提交；不能只存余额或hints_used计数，须关联操作/回执 |
+| 画像/成长、逐轮评分、报告、反思的展示查询 | 从已提交权威记录生成本地投影 | 记录source revision/digest与投影版本；可重建，不能反向改写原记录 |
+| 内容/策略本地安装记录 | 同一profile增加版本化安装/采用记录 | 包版本、manifest摘要、兼容版本、安装状态和会话pin；更新失败保留旧包 |
+| 账号/权限、团队知识/rubric/资源、审核/发布 | 中央PostgreSQL | 管理API鉴权和事务；内容版本/摘要不可被新内容覆盖 |
+| 授权样本、数据集、实验执行/结果、监控/审计 | 中央PostgreSQL | 只保存授权副本，记录来源、分组、标签性质、执行预算；监控只读 |
 
-## 3. 本地表分组（SQLite，24 张）
+规范化本地表的处理清单：
 
-| 分组 | 表 | 说明 |
+- `interview_session/turn`、`evaluation/dimension`、`interview_report/report_dimension`、`skill_profile/observation`、`reflection`先作为读取投影，保留原始workflow/记忆作为重建依据。
+- `agent_run/run_attempt/run_event/plan_decision/idempotency_record/budget_ledger`只可作为诊断/展示投影，**禁止作为新的执行队列、提交回执或收费账本**。接线前明确到local_jobs/events/checkpoints的映射；不能仅把状态重命名后切换。
+- `learning_progress/recommendation/prediction_snapshot/performance_pair`与`user_gamification/xp_event`可成为新增业务记录，但须保留学习事件、冻结预测/参考依据、操作幂等、辅助作答和版本信息；当前定义仍不足以代表业务协调器已交付。
+- `audio_asset/transcript/audio_analysis`只存实际存在的元数据/确认记录；原始录音默认有界内存，不因storage_key字段要求而伪造文件。只有明确留存需求及同意后才另设计落盘。
+
+## 3. 身份、内容与状态
+
+### 3.1 本机身份与账号
+
+远程app_user/auth_session由中央管理，本机profileId保持稳定。主进程维护profile与账号的显式绑定；账号退出不删本地数据，换号不能静默占用旧profile。本期不共享跨设备钱包。绑定/换号实现前不宣称当前default profile已具备多账号隔离。
+
+本地表不建指向服务器的外键。**本机内部关联仍须保证**：turn→session、dimension→evaluation、report_dimension→report、transcript→audio等使用本地外键或等价的受测事务约束；启用foreign_keys，不把“无跨库外键”误写为“本机所有表都无关联约束”。
+
+### 3.2 三种状态不能混用
+
+- workflow phase是`ready_to_plan/awaiting_answer/ready_to_close/completed`。
+- 本地任务是`queued/running/completed/failed/cancelled/interrupted`，candidate-ready为持久候选事件，不是正式提交。
+- 规范化页面状态及旧HTTP事件仅是投影。必须给出版本化映射，不能按旧run_status CHECK拒绝本地interrupted，也不能以SSE序号替代本地job/seq。
+
+revision/storage_version/业务operationId/通信request.id分别保留。旧attempt、取消或过期票据不能提交；提交事务同时写workflow、必要记忆、回执和完成事件。需要发放奖励时也以业务操作幂等关联，不能靠界面看到completed再任意加币。
+
+### 3.3 内容与策略采用
+
+会话固定岗位、知识包/题目、rubric、策略与其版本/摘要或完整快照。服务器同ID新版本不能改变历史报告。离线缺知识不能临时查云端最新值后把它写成旧版本。
+
+中央policy_version发布状态、客户端安装状态、当前会话采用分别记录。单行adoption_status最多作兼容摘要，不能代表所有设备已采用；正式采用证据需profile/安装实例、版本/摘要、回执时间，并与会话pin关联。现有字段不是完整分发协议。
+
+## 4. 预算、学习与数值不变量
+
+- 额度按真实session固定，区分LLM/ASR/TTS、grant/call/attempt、金额整数单位/币种/费率版本与token。reserve/dispatch先持久化再联网；unknown保留预留，续授权/重启不能清零。budget_ledger统计不足以代替现有账本。
+- 存零分必须同时`score IS NOT NULL AND score=0`；缺证据/弃评为NULL并记录原因，不能利用SQLite CHECK遇NULL的放行语义。
+- 配对分数/误差在[0,1]；合格配对的绝对误差须与`abs(predicted-reference)`一致，具备冻结预测、参考来源/审核、学习暴露、岗位/技能/难度/rubric及时间窗。数据库算术约束不替代完整资格判定。
+- hint_used只扣币，不能同时涨经验；计数不代替提示版本/领取/扣款回执。余额与账本同事务，重放不重复扣奖，复测不叠加普通面试奖励。
+- 反思比率保存分子/分母和来源revision/digest，零分母为NULL；不能只留小数后宣称已可审计。画像投影不增加独立证据，重复题/辅助回答单独处理。
+
+## 5. 授权回传与中央管理库
+
+中央目标25表管理域划分已在feature/db提出；master仍保留历史44表模型，不能根据master旧表给服务器恢复学生主流程。授权样本/反馈至少关联：授权范围及版本、最小化字段与脱敏版本、稳定源ID和摘要、幂等键/接收回执、来源组与真人/合成、AI标签/独立人工参考、删除/撤回范围。authorization_ref文本存在不等于授权已验证。
+
+管理端指标必须有来源/时间窗/版本及分子分母；不足显示未就绪。实验冻结数据集、标签、配置和预算，失败保留；通过不等于发布。首版不自动上传原音频/全部答案，不接收个人模型Key，不由管理端直接写本机记录。
+
+## 6. 迁移：保留历史，不能直接覆盖
+
+### 6.1 本地profile
+
+现有v3及其备份升级由本地宿主管理。24表初始DDL只允许在隔离空库验证，不能对profile.sqlite直接执行。接入计划必须做到：
+
+1. 宿主持有profile租约，用同一连接备份并校验版本/摘要与完整性。
+2. 显式新增profile版本与扩展迁移；旧local_*权威、unknown费用、记忆、任务/事件和幂等回执不变。
+3. 以已提交源记录填充投影，保存源revision/digest；不把缺失值变0或把draft/合成升级为正式真人记录。
+4. 验证行数/摘要、foreign_key_check和业务不变量后提交；失败回滚DDL/版本并拒绝启动，不覆盖用户库或自动重跑模型。
+5. 重启读取、完成/中断任务、回执重放、旧围栏、LLM/ASR/TTS未知消耗、同岗记忆和重复扣奖均通过回归后，才能称接入完成。
+
+当前这条迁移与repository接线**尚未实现**；不能把Drizzle生成、空库DDL或本地schema行类型当作已完成迁移。
+
+### 6.2 中央PostgreSQL
+
+旧44表baseline曾用于开发库，新25表baseline不是其增量升级。不能替换0000后对旧库直接运行migrate，否则会重建同名表或丢失迁移来源。旧baseline保留归档；新管理baseline仅用于经核验的空库，已有旧表/旧journal须拒绝并提示先备份/制定数据转换。
+
+已应用的新迁移也不改写，修正约束生成追加迁移。旧44表库若需升级，另交付数据导出/映射、账号/审核保留和授权数据处理方案；不能自动drop学生表，也不能默认把全部历史学生数据上传或复制到中央管理库。
+
+## 7. 实现与验收责任
+
+| 工作 | 负责人 | 验收产物 |
 | --- | --- | --- |
-| 能力画像 | `skill_profile`、`skill_observation` | 本机技能画像与逐条观察证据；`mastery` 缺证据为 `NULL`、`confidence` 缺证据为 `0` |
-| 游戏化 | `user_gamification`、`xp_event` | XP/金币余额与按 `dedupe_key` 幂等的账本；`level` 由 XP 推导，不另存 |
-| 面试 | `interview_session`、`interview_turn`、`audio_asset`、`transcript`、`audio_analysis` | 会话状态机与 `session_version`、逐轮题目快照与回答、音频原件、ASR 原文/确认文、声学与情感特征 |
-| 任务与预算 | `agent_run`、`run_attempt`、`run_event`、`plan_decision`、`idempotency_record`、`budget_ledger` | 任务/租约/尝试/事件序号；选题动作与简短依据；提交幂等；预留/派发/结算/unknown 与对账的预算闭环 |
-| 评估与报告 | `evaluation`、`evaluation_dimension`、`interview_report`、`report_dimension` | 每轮一评；`scoring_status` 与分维 `status` 区分计分、缺证据、弃评、零分；`answer_digest`/`answer_version` 固定被评回答版本 |
-| 学习 | `learning_progress`、`recommendation` | 学习进度与建议绑定岗位技能 |
-| 反思与配对 | `reflection`、`prediction_snapshot`、`performance_pair` | 复盘指标、预测快照（看到复测前固定）、合格/不合格配对及 MAE |
+| 本地扩展/投影schema与repository、中央管理模型 | 后端 | 与既有local_*映射清单；约束/迁移实际执行测试 |
+| profile升级、事务围栏、任务/记忆/预算兼容 | Agent＋后端 | 旧v3备份升级、重启/幂等/unknown不丢失的集成测试 |
+| 主进程账号/profile绑定、显示与设备 | 前端＋后端 | 换号隔离、受限RPC、真实状态与错误处理；不直写SQLite |
+| 内容采用与授权导入 | 三人 | 版本校验、失败保留旧包、最小授权样本和回执 |
 
-## 4. 关键不变量
-
-1. **幂等提交**：本地 `interview_turn` 的 `(interview_id, idempotency_key)` 部分唯一索引保证同一会话不落两次正式回答；`idempotency_record` 按 `(user_id, route, key)` 记录请求哈希，用于「同键同内容返回既有任务、同键异内容 409」。
-2. **状态机与版本**：`interview_status`、`run_status`、`run_event_type` 与[接口文档](api.md)的状态清单逐字一致；`completed` 必须有 `completed_at`，`cancelled` 必须有 `cancelled_at`，`session_version` 非负。
-3. **事件重放**：本地 `run_event` 的 `(run_id, seq)` 唯一，`agent_run.last_event_seq` 保存最后序号，支撑 SSE `Last-Event-ID` 补齐。
-4. **任务预算闭环**：本地 `agent_run.budget` 记录限额，`budget_ledger` 按 `reserve/dispatch/settle/unknown` 记录预留、派发、结算与无法确认的用量并支持对账；`run_attempt.usage` 只记录调用后的用量，不替代预算闭环。管理端 `eval_experiment.execution_budget` 与 `experiment_execution` 为评测任务提供独立执行授权与预算。
-5. **知识与审核**：`knowledge_item`/`rubric` 以 `version` 独立成行，`content_hash` 固定内容；`review_status = reviewed` 必须同时具备 `content_hash`（与 `reviewed_at`）；修改内容即新版本新行，引用仍指向旧版本，避免历史面试指向被改动的正文。`knowledge_review` 绑定 `target_type`（`knowledge_item`/`rubric`）、`version` 与 `content_hash`。
-6. **评分未知与零分**：本地 `evaluation.scoring_status`（`scored/partial/skipped`）与 `evaluation_dimension.status`（`scored/zero/missing_evidence/abstained`）区分计分、零分、缺证据与弃评；分数可为 `NULL`，不默认补 0；`answer_digest`/`answer_version` 确保引文不指向修改后的回答。
-7. **进化红线**：`eval_dataset` 冻结覆盖题答与标签（`content_hash`）；`eval_case` 记录 `source_group`、`label_source`（AI 标签不冒充专家参考）、`review_status` 与授权依据；`eval_experiment` 绑定 `dataset_version`/`dataset_digest`/`config_digest`，运行后不能改 `expected` 或门槛使其通过；`deployment_status` 默认 `not_published`，标 `published` 必须有批准人与批准时间；同一实验范围只能有一条未回退 champion。
-8. **发布与采用三态**：`policy_version` 分开记录 `status`（候选生命周期）、`publication_status`（管理端发布）与 `adoption_status`（客户端已采用）；管理端发布不改变正在进行的本地面试。`content_release` 让客户端下载、校验、固定版本、失败保留旧版。
-9. **指标口径**：`metric_snapshot` 记录 `data_source`、`evidence_kind`（真实/合成/混合）与 `applicable_version`；每个比率在 `metric_measure` 存分子、分母、时间窗与来源，不只存 `skill_coverage=0.82`。
-10. **游戏化**：余额只在本机 `user_gamification`，`xp_event` 是带 `dedupe_key` 唯一约束的账本；奖励事件与业务操作幂等关联；`level` 由 XP 推导，避免 PG 与 SQLite 各自增减余额造成漂移。
-11. **音频生命周期**：本地 `audio_asset` 默认客户端处理，不上传全部音频与转写；保留期必须来自听审同意；`audio_analysis.clarity_score`/`emotion_confidence` 未验证或缺失时为 `NULL` 且 `clarity_verified`/`emotion_verified` 为假，不默认记 0 展示成可信评估。
-
-## 5. 迁移工作流
-
-```powershell
-bun run db:generate          # 服务端 PG：改 packages/db/src/tables 后生成迁移
-bun run db:generate:local    # 本地 SQLite：改 packages/local-db/src/tables 后生成迁移
-bun run db:check             # 校验 PG 迁移与快照一致
-bun run db:check:local       # 校验本地迁移与快照一致
-bun run db:migrate           # 需要 DATABASE_URL，应用到目标 PG
-```
-
-- 表结构真值只在 `packages/db/src/tables/*.ts` 与 `packages/local-db/src/tables/*.ts`；两个 `drizzle/**` 目录由 `drizzle-kit generate` 生成，不手改。
-- 本地 SQLite 迁移用 `bun:sqlite` 在测试中离线执行；桌面端持久化运行时（Electron 主进程 Node 环境）仍待接入，schema 不依赖任何 Node 专属驱动。
-- `drizzle.config.ts` 不内置口令：PG 配置先读 `DATABASE_URL`，没有则自动加载仓库根目录被 git 忽略的 `.env`（模板见 [.env.example](../.env.example)）。
-
-## 6. 当前验证状态
-
-已验证（离线，`bun test`）：
-
-- `tests/db-schema.test.ts`：服务端 25 张、本地 24 张表齐备；`role`→`job_role`、`app_user.role`→`account_role`；契约枚举一致；服务端不再含学生侧表；本地含幂等、预算账本、评分状态与画像表；两份迁移 SQL 覆盖各自全部表。
-- `tests/db-migration.test.ts`：在 PGlite（PostgreSQL 17 WASM）中实际执行 PG 迁移，断言账号角色、知识审核绑定版本/hash、champion 回退、参数白名单、实验授权与预算等约束真实生效。
-- `tests/local-db-migration.test.ts`：在 `bun:sqlite` 中实际执行本地迁移，断言状态机、幂等、事件序号、预算闭环、游戏化账本、评分零分/缺证据区分等约束真实生效。
-
-未验证：在部署用 PostgreSQL 上执行迁移、种子知识导入、repository/事务实现、桌面端本地持久化运行时、备份恢复、并发与负载。构建或迁移生成通过不代表这些已完成。
-
-## 7. 待定
-
-- 题库/rubric 从 `knowledge/*.json` 导入数据库的脚本与幂等策略（当前仅校验结构，未入库）。
-- `run_event`、`metric_snapshot`、`audio_asset` 的留存与分区策略。
-- 桌面端画像文件的格式、备份与清除策略，以及删除请求如何同步清理本地画像和云端报告。
-- 行级安全（RLS）是否需要，以及管理端导出与脱敏规则。
+本次修正覆盖设计、约束反例和迁移准入保护；不代表已在部署PG或用户profile执行迁移。实际命令和测试以feature/db的package.json及对应记录为准。产品验收见[验收计划](evaluation-plan.md)，本地接入见[协议](local-runtime-api.md)。

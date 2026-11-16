@@ -1,75 +1,84 @@
-# 架构基线 v0.1
+# 架构与职责
 
-部署：Windows Electron 客户端 → HTTPS API → 内部 Agent 服务；PostgreSQL 与私有文件/对象存储由服务端维护。首版单 API、单 Agent 实例，数据库任务/租约方案在正式问答迭代实现。本文描述目标设计，当前状态见 [PRD](prd.md#8-当前实现状态与待定项)。
+版本 0.3，2026-11-16。目标是 **Windows 学生客户端＋管理 Web＋管理服务**；学生面试由随包本地 Agent 执行，统一服务器服务于账号和管理域。本文件定义协作边界，不表示待建设功能已经实现。源码分支见[协作](collaboration.md)，产品验收见[PRD](prd.md)。
 
-## 责任与依赖
+## 1. 部署单元与通信
 
-| 单元 | 拥有的职责 | 不应承担的职责 |
+```mermaid
+flowchart LR
+  subgraph Client[Windows 用户设备]
+    UI[学生 renderer] --> Preload[白名单 preload]
+    Preload --> Main[Electron 主进程]
+    Main <-->|私有 stdio JSONL| Host[随包本地宿主]
+    Host --> SQLite[(profile SQLite)]
+    Host --> Core[Pi 面试核心]
+    Main --> Vault[系统凭证库 / 按需凭证代理]
+  end
+  Core -->|显式授权 HTTPS| Vendor[LLM / ASR / TTS]
+  Web[管理 Web] -->|admin 鉴权 HTTPS| API[管理 API]
+  Main <-->|账号 / 内容 / 授权回传| API
+  API --> PG[(管理 PostgreSQL)]
+  API --> Worker[受控实验执行器 / 复用评测核心]
+```
+
+- 学生端采用独立子进程＋stdio，不启动 localhost HTTP，不把服务端套桌面壳。Electron Node 主进程启动包内固定 Bun；安装资源只读，用户数据写入主进程指定的 `userData`。
+- 管理端三中台是同一应用的监控、数据、评测模块，首版不拆为三个服务。服务器不能主动读取学生 SQLite。
+- 本地运行时可联网调用模型；完全离线模型不是首版目标。断网仍能查询本机已存数据，真实模型/语音任务明确失败或等待用户处理，不冒充生成成功。
+- stdio、私有凭证帧与 Electron IPC 是不同边界。renderer 不获得任意 RPC、SQL、路径、spawn、模型 Key 或完整 rubric/source。
+
+## 2. 唯一写入方与团队职责
+
+| 对象 | 权威位置 / 写入方 | 团队责任 |
 | --- | --- | --- |
-| desktop/renderer | React 界面、录音与交互 | 任意 Node/file/shell 或模型凭证 |
-| desktop/preload | 白名单 bridge、参数边界 | 通用 IPC、任意 endpoint 转发 |
-| desktop/main | 窗口、客户端凭证、远程 API 连接、文件导出、仅本机能力画像持久化 | Agent 推理/模型 key、云端正式业务数据库 |
-| api | 身份/归属、面试/回答/报告、任务、正式提交、事件 | 持久化能力画像、暴露 Pi 事件、任由模型写业务表 |
-| agent | 累计状态规划、知识工具、评估、Pi 适配、反思/实验 | 用户鉴权真值、绕过 attempt 正式提交 |
-| contracts | Zod schema、DTO、错误码、归一事件 | 数据库/SDK/Electron 运行时依赖 |
-| interview-domain | 岗位规则、纯状态与评分计算 | 网络、凭证、GUI |
-| db | 服务端 PostgreSQL Drizzle schema/迁移与 repository（身份、岗位知识、审核、资源、评测、实验、审计） | 学生侧会话/评分/画像等本地数据 |
-| local-db | 桌面本地 SQLite Drizzle schema/迁移（会话、任务、评分、学习、反思、画像、预算账本） | 供 renderer 或 Agent 直接访问 |
+| 会话、答案、报告、画像、记忆、学习/复测、任务/事件、预算、回执 | 本机 SQLite / 本地宿主命令与提交协调器 | Agent 维护运行时；后端接管本地业务规则与数据适配，变更共同评审 |
+| XP/金币与提示领取 | 首版本机账本 / 本地业务协调器 | 后端负责规则和幂等；Agent 提供受控提示，前端显示 |
+| 账号、student/admin scope、登录凭证状态 | 中央账号 API / 管理数据库 | 后端鉴权；前端接线；本地 profile 不能自称远程身份 |
+| 团队知识、rubric、资源与审核决定 | 管理 API / PostgreSQL | 授权审核、绑定版本和摘要；客户端采用校验后的版本副本 |
+| 管理数据集、实验、审计与发布记录 | 管理 API / PostgreSQL | 后端编排；Agent 核心只计算候选与评测结果 |
+| 回传反馈、指标与样本 | 用户明确授权的上传副本 | 先人工导入或有界快照；保留授权、来源、同源组和真人/合成标记 |
 
-Pi Skill 与固定源码索引在 .agents/skills/pi-agent-development。SDK 最小示例不可直接作为业务会话工厂；资源、工具、状态和环境都需受控。Pi 1.4.0/Bun 1.4.4 已离线试跑，模型供应商无默认选择。
+模型/工具只产候选，不能写正式数据或授予权限。“Agent 不直写正式表”指模型与计算核心；**本地宿主本身就是正式写入协调器**，不必再回调云端 API 提交。
 
-## 请求与提交链路
+现有17张local_*表继续作为权威；新增业务表和可重建投影接入同一profile。已有 profile 不能被新 `packages/local-db` schema 直接替换。接入前核对字段/状态、unknown、租约、幂等与回执，提供备份迁移和重启验收，避免形成两套学生权威库。master 仍保留旧 PG 模型；`feature/db` 已有本地/管理拆分，待 PR 集成和宿主适配，见[数据库说明](database.md)。
 
-POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 AgentRun，提交后才返回 202。任务执行器领取租约与 attemptId，Agent 消费输入快照并返回归一结果。API 检查 lease、attemptId、取消状态和 sessionVersion 后事务提交正式评分/下一题；桌面端从正式结果更新本地能力画像，不将画像上传 API。租约过期的旧结果拒绝，即使 SDK 已生成完整回答。
+## 3. 一次面试的提交链路
 
-断流只是连接状态变化；任务继续，重连查询快照并补持久事件。取消先撤销提交资格，再尽力 abort；不能保证供应商已停止计费。事件有 runId、attemptId、seq、schemaVersion，临时 token 不保证全量重放。
+1. 主进程初始化 sidecar、指定用户/资源目录；线上配置和固定额度显式授权，Key 按需经私有通道提供。
+2. `session.create` 创建本地任务；目标设计在会话开始固定岗位、策略和知识版本。Pi 按累计掌握度、置信度、覆盖和时间规划，按需查询真实知识工具。可更新知识包与策略分发尚待接线。
+3. 主进程调用下一题/答题命令；宿主注入身份、当前题、revision 和预算。自然承接不能替换宿主验证后的题目。
+4. 评分上下文隔离历史画像；引用、量规、算分和完成门控通过后，宿主同库事务提交 workflow、必要的记忆和唯一回执，再发送完成事件。
+5. 缺证据走澄清，明确不会可弃评；弃评不写 0 分。公开视图须区分澄清、弃评、技术零分和运行失败，此投影尚待补齐。
+6. 收尾生成报告、记忆和反思，符合条件才产受限策略候选；后续实验是独立受控任务，收尾不等于评测/发布完成。
 
-## 基础与扩展
+写命令受理只返回 job，不等于提交成功。以 completed 和正式快照为准；事件先落库，丢通知后按 job/seq 补读。operationId 用于业务幂等，request.id 只关联单次通信。详见[本地协议](local-runtime-api.md)。
 
-知识先用版本化双岗 JSON 导入数据库，工具按岗位/技能过滤和 Top-K 查询；无结果说明不足，不动态抓任意 URL。向量数据库、Redis/MQ、MCP 不作为基础依赖。
+## 4. 客户端接入与失败处理
 
-语音先录音后转写：ASR 原文与确认文字均保留关联，原音频另做声学/情感；TTS 只播报问题。客户端不装 Bun、SDK 或数据库。Electron 主进程是自带 Node.js；Bun 用于工程与服务端，两种运行环境分开检查。
+本地运行时以固定版本的子进程和 SDK 交付；前端只需对接[本地协议](local-runtime-api.md)，不需要实现模型规划、评分或压缩算法。后端复用已有正式提交/恢复，不另开第二套学生权威库。
 
-当前骨架只实现 /health、双岗种子知识执行器及工具适配、公共校验/错误、纯规划优先级示例、初始 schema、桌面安全桥接和静态启动界面。业务未实现入口返回 501；/health 返回 scaffold 状态，不代表面试服务已就绪。
+界面区分受理、运行、提交完成、失败和中断；通知丢失先查任务与正式快照，不盲目重发收费命令。unknown保留预算，重启/续授权不能清零。取消不保证供应商退款；原音频/TTS不保证跨重启可用。费用估算与实际账单分开。
 
-## 数据概览
+主进程只通过私有凭证代理按需提供Key，renderer、普通事件和数据库不得存秘密。录音/播放、系统凭证库、账号/profile切换和安装由前端/后端接线，物理设备与真实供应商单独验收。文字无语音维度，声音观察不冒充心理自信或情感诊断。
 
-数据按归属拆为两套库，不连成一套中心化数据库。**本地 SQLite**（`packages/local-db`）保存用户面试运行数据：InterviewSession → InterviewTurn → Evaluation/Report → Reflection → PredictionSnapshot/PerformancePair，以及 AgentRun → RunAttempt/RunEvent/BudgetLedger、AudioAsset/Transcript/AudioAnalysis、LearningProgress/Recommendation 和 SkillProfile/SkillObservation/XP 账本；`user_id` 是服务端账号 id，但本地不建外键依赖服务端。**服务端 PostgreSQL**（`packages/db`）只保存管理域：账号与 `auth_session`、`job_role`/`role_skill`、版本化 `knowledge_item`/`rubric` 与 `knowledge_review`、`policy_version`、`learning_resource`、评测集/实验/结果、`content_release`、审计/反馈/告警/指标。管理端导入样本不通过外键引用本机 `interview_id`。
+## 5. 内容、数据回流与策略采用
 
-服务端 schema 与本地 schema 的表分组与不变量见[数据库设计](database.md)；迁移都由 drizzle-kit 生成并有离线执行用例（PG 用 PGlite、本地用 bun:sqlite）。但部署实例执行迁移、repository/事务实现、并发与恢复验证属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与本地长期画像不能用同一份 JSONL 替代。
+团队审核绑定知识/rubric 的具体版本及内容/来源摘要。正式模式只选 reviewed；当前本地开发模式允许草案，不表示正式闸门已接好。目标是校验内容包 manifest/摘要和来源后安装，更新失败保留旧版，进行中面试固定原版本；分发/安装链路待接入。
 
-## 面试状态与规划
+反馈、用量与评测样本明确授权、最小回传，不上传 Key 或默认同步全部答案/简历/音频。账号登录不等于授权回传；服务器保存授权副本，不覆盖本地正式面试。需保留删除/撤回与后续导入使用范围的契约。
 
-InterviewState 保存已测/待测技能、各技能 mastery/confidence、薄弱点、已练题、剩余时间、难度、当前追问深度；如用户允许并存在本机历史画像，则可用于初始化，每轮按新证据更新。不是仅靠聊天摘要或上一句关键词。
+监控全程只读。开发/验证/最终集隔离，同源变体不能跨组；AI 标签、人工审核和合成样本分别标记。现有校准就绪需至少 8 个合格配对、至少 2 名学生及岗位/技能/难度/量规/来源规则；不能按同岗总条数凑数，也不能把此门槛当作所有实验的统一通过标准。
 
-初始规则：mastery 是固定 rubric 下归一技能分的证据加权均值；confidence 综合有效独立题数、题型覆盖、一致性与时效，范围 [0,1]，表示证据可信程度，不是已校准正确概率。缺证据时 mastery=null、confidence=0；重复原题不增加独立证据数，冲突触发诊断追问。候选排序综合岗位相关度、低置信、薄弱与覆盖缺口；领域模块目前只实现基础排序，不等于完整规划器。
+离线实验范围激活/回退不等于全局正式发布。正式发布协调器需权限、CAS、幂等、事务审计与回退；分开记录候选结果、发布状态、客户端下载/安装及新会话采用状态。未验收继续 `not_published`，按钮不能伪造成功。反思/评测核心尚未完整接入本地管理查询与实验任务。
 
-动作限定 deepen / switch_skill / adjust_difficulty / finish。模型依据累计状态选择知识和动作，程序约束时间、重复题、覆盖、追问深度与合法输出。保存简短依据与证据引用，不保存内部推理链。
+## 6. 当前状态与接手点
 
-目标会话状态：planning → awaiting_answer → processing_answer → awaiting_answer / completed；非终态可进入 cancelled 或 failed。目标任务状态：queued → running → completed / failed / cancelled。各轮和状态迁移在 API 内检查 sessionVersion；已完成会话不接受新答案。HTTP 数据对象见 [接口文档](api.md)。
+| 部分 | 当前边界 | 后续交付 |
+| --- | --- | --- |
+| 本地宿主/Pi | feature/agent 已有文字/语音协议、提交/恢复、预算与凭证代理 | 主进程接线、账号/profile 隔离、真实设备和安装验收 |
+| 页面数据 | 已有会话/报告/记忆视图 | 澄清、逐轮反馈、原文证据、画像趋势、统一六技能目录 |
+| 提示/奖励 | 原型需求，未完整接入 | 受控提示、辅助状态、本地幂等扣奖，金币与模型预算分离 |
+| 学习/复测/RSI | 核心规则/CLI 和离线实验已有 | 本地 RPC/保存、管理导入/实验任务、指标投影 |
+| 管理端 | 共享设计与部分数据模型 | 认证/权限、审核、数据查询、监控与评测编排；发布另行验收 |
+| 质量 | 技术链路不等于人工质量 | 岗位审核、独立评分、真实后续表现及可量化 RSI 对照 |
 
-## 语音与评估
-
-原音频一条分支做 ASR，原始转写与学生确认文同时关联；内容评估使用确认文。另一条分支从原音频取得有声时长、停顿等特征和中文情感推断，支撑表达反馈。音频清晰度是待人工样例验证的可懂度估计，不能直接使用 ASR confidence 代替自信或发音评分。
-
-报告区分技术正确性、深度、逻辑、岗位匹配、表达结构/沟通；语音才追加声学/情感维度。文字输入的音频维度为 null；噪声、过短、口音等情况标不足。TTS 播报问题与模型推理接口分别适配，不要求经 Pi 代理所有语音请求。
-
-原音频默认处理/确认后删除；用于听审时单独告知并同意保留至交付后 7 天。删除后时间片段和统计仍可说明依据，但必须标不可回放。云端报告按用户归属处理；能力画像仅保存在本机，清除本机画像与云端数据删除分开执行。日志不记录完整音频、简历或密钥。
-
-## 反思与策略版本
-
-每场反思先记录追问目标、新增证据、重复/漏测、时间与不确定性；无复测时等待后续数据。当前能力估计、学习增益和带学习条件/期限的未来成绩预测分开存储。PredictionSnapshot 在看到复测题/答案前固定，符合期限、难度、学习暴露和 rubric 的样本才进入 PerformancePair。
-
-首版固定评分 rubric，候选只调整 uncertaintyPriorityBoost、maxFollowupDepth、coverageReserveRatio 等白名单参数，预设范围和单次上限，模型不能改发布门槛或权限。保留基线 v0；会话启动固定策略，正在进行的会话不随新版本变动。
-
-自动门槛使用预标注分支场景和内部验证参考评分；通过后事务更新实验范围 champion，失败保留旧版。真人命中率独立盲审，不能把场景代理当真人效果。支持人工审计与回退，普通正式发布可另有管理员控制，但不能替代自动实验链路。数据门槛、预测字段和指标见 [评测计划](evaluation-plan.md)。
-
-## 工程与交付约束
-
-共享契约位于 packages/contracts；跨服务事件转换留在 Pi 适配层，前端不接 SDK 原始事件。Electron contextIsolation/sandbox 开启、nodeIntegration 关闭，preload 仅命名白名单方法，主进程验证发送来源。当前桥接只有版本与健康查询，语音权限仍默认拒绝。
-
-创建/恢复 Pi 会话显式指定资源、工具、settings、session 和 runtime；不读取个人全局资源。凭证留在服务器，SDK 恢复不代表业务任务或外部副作用可恰好一次恢复。工具契约、预算与错误由 [tool-contracts.md](tool-contracts.md) 和 [error-handling.md](error-handling.md) 定义。
-
-三人模块所有权、分周目标和 PR 流程见 [collaboration.md](collaboration.md)。签名安装包、非开发机测试、HTTPS、数据库备份/恢复须独立验证，不能用桌面构建通过替代。
-
-不为了像 Craft 增加桌面内置服务器、双 SDK 或通用 SessionManager 巨类。
+三人职责与每周里程碑见[协作](collaboration.md)。旧服务保留回归，不作为新桌面面试必经服务；实现状态以对应分支代码与验收记录为准。

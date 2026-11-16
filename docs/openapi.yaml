@@ -1,392 +1,1022 @@
 openapi: 3.1.0
 info:
-  title: Interview Agent Workbench API
-  version: 0.1.0
-  description: 仅 /health 已实现。其余为规划契约，当前返回 501；错误码详见 error-handling.md。
+  title: Interview Workbench Pilot API
+  version: 0.2.0
+  description: pilot:start
+    的可运行SQLite试点接口。dev:api仍为scaffold；未列出的学习/实验发布等接口返回501。时间为epoch毫秒；命令使用body
+    operationId和expectedRevision。
   license:
     name: Private project; licensing not yet declared
 servers:
   - url: http://127.0.0.1:3100
-    description: 本地开发 API，生产必须 HTTPS
+    description: 本地试点；远程部署需要HTTPS反向代理
 paths:
   /health:
     get:
-      operationId: getHealth
-      summary: 读取骨架健康状态
+      operationId: health
+      summary: 入口能力状态
       security: []
+      parameters: []
       responses:
         "200":
-          description: 当前仅 scaffold，模型未配置。
+          description: 已实现的试点响应。
+        "400": &a1
+          description: 结构化公开错误；不会返回供应商原文或凭证。
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/auth/login:
+    post:
+      operationId: login
+      summary: 运营者配置的学生账号登录
+      security: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotLogin"
+      responses:
+        "200":
+          description: 已实现的试点响应。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      summary: 撤销当前令牌
+      security:
+        - BearerAuth: []
+      parameters: []
+      responses:
+        "200":
+          description: 已实现的试点响应。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/roles:
+    get:
+      operationId: roles
+      summary: 两个岗位清单
+      security:
+        - BearerAuth: []
+      parameters: []
+      responses:
+        "200":
+          description: 已实现的试点响应。
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Health"
-        "500": &a1
-          $ref: "#/components/responses/Problem"
-  /v1/roles:
+                $ref: "#/components/schemas/PilotRoles"
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/interviews:
     get:
-      operationId: listRoles
-      summary: 岗位清单
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
+      operationId: sessions
+      summary: 当前学生最近100场记录
+      security:
+        - BearerAuth: []
+      parameters: []
+      responses:
+        "200":
+          description: 已实现的试点响应。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+    post:
+      operationId: create
+      summary: 幂等创建面试
+      security:
+        - BearerAuth: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotSessionCreate"
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/interviews/{id}:
+    get:
+      operationId: session
+      summary: 读取本人会话与报告
       security:
         - BearerAuth: []
       parameters: &a2
-        - name: cursor
-          in: query
+        - &a3
+          name: id
+          in: path
+          required: true
           schema:
             type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+            minLength: 1
       responses:
         "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
+          description: 已实现的试点响应。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotSessionView"
+        "400": *a1
         "401": *a1
         "403": *a1
-        "422": *a1
+        "409": *a1
         "429": *a1
-        "501": *a1
-  /v1/interviews:
+        "503": *a1
+  /v1/interviews/{id}/question:
+    post:
+      operationId: question
+      summary: 规划并生成下一题
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotCommand"
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/interviews/{id}/answers:
+    post:
+      operationId: answer
+      summary: 提交文字或确认后的语音答案
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotAnswer"
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/interviews/{id}/completion:
+    post:
+      operationId: complete
+      summary: 收尾报告并提交跨会话记忆
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotCommand"
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/operations/{id}:
     get:
-      operationId: listInterviews
-      summary: 当前用户面试记录
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
+      operationId: operation
+      summary: 查询正式操作结果
       security:
         - BearerAuth: []
       parameters: *a2
       responses:
         "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
+          description: 已实现的试点响应。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotOperationView"
+        "400": *a1
         "401": *a1
         "403": *a1
-        "422": *a1
+        "409": *a1
         "429": *a1
-        "501": *a1
+        "503": *a1
+  /v1/interviews/{id}/speech:
     post:
-      operationId: createInterview
-      summary: 创建面试
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 201
+      operationId: speechCreate
+      summary: 登记WAV哈希与题目版本
       security:
         - BearerAuth: []
-      parameters: []
+      parameters: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotSpeechCreate"
       responses:
         "201":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
+          description: 已实现的试点响应。
+        "400": *a1
         "401": *a1
         "403": *a1
-        "422": *a1
+        "409": *a1
         "429": *a1
-        "501": *a1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required:
-                - roleId
-                - goal
-                - durationMinutes
-              properties:
-                roleId:
-                  type: string
-                  enum:
-                    - java-backend
-                    - web-frontend
-                goal:
-                  type: string
-                  minLength: 1
-                  maxLength: 500
-                durationMinutes:
-                  type: integer
-                  minimum: 15
-                  maximum: 25
-  /v1/interviews/{interviewId}:
+        "503": *a1
+  /v1/speech/{id}:
     get:
-      operationId: getInterview
-      summary: 查询本人面试状态
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-  /v1/interviews/{interviewId}/answers:
-    post:
-      operationId: submitAnswer
-      summary: 幂等提交回答
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 202
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-        - name: Idempotency-Key
-          in: header
-          required: true
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 128
-      responses:
-        "202":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required:
-                - sessionVersion
-                - answer
-              properties:
-                sessionVersion:
-                  type: integer
-                  minimum: 0
-                answer:
-                  type: string
-                  minLength: 1
-                  maxLength: 10000
-  /v1/interviews/{interviewId}/report:
-    get:
-      operationId: getReport
-      summary: 读取本人报告
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-  /v1/runs/{runId}:
-    get:
-      operationId: getRun
-      summary: 查询运行快照
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: runId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-  /v1/runs/{runId}/events:
-    get:
-      operationId: subscribeRun
-      summary: 订阅归一 SSE 事件
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: runId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-        - name: Last-Event-ID
-          in: header
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-  /v1/runs/{runId}/cancellation:
-    post:
-      operationId: cancelRun
-      summary: 取消运行并撤销提交资格
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 202
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: runId
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-      responses:
-        "202":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-  /v1/experiments:
-    post:
-      operationId: createExperiment
-      summary: 管理员创建评测任务
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 202
-      security:
-        - BearerAuth: []
-      parameters: []
-      responses:
-        "202":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
-    get:
-      operationId: listExperiments
-      summary: 管理员评测记录
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
+      operationId: speechGet
+      summary: 查询转写与表达观察
       security:
         - BearerAuth: []
       parameters: *a2
       responses:
         "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
+          description: 已实现的试点响应。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotSpeechView"
+        "400": *a1
         "401": *a1
         "403": *a1
-        "422": *a1
+        "409": *a1
         "429": *a1
-        "501": *a1
+        "503": *a1
+  /v1/speech/{id}/audio:
+    put:
+      operationId: speechUpload
+      summary: 上传16kHz单声道PCM16 WAV
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotSpeechView"
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+      requestBody:
+        required: true
+        content:
+          audio/wav:
+            schema:
+              type: string
+              format: binary
+              maxLength: 4194304
+  /v1/speech/{id}/confirmation:
+    post:
+      operationId: speechConfirm
+      summary: 确认转写，仅修改文本
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotSpeechConfirm"
+      responses:
+        "200":
+          description: 已实现的试点响应。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotSpeechView"
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/speech/{id}/cancellation:
+    post:
+      operationId: speechCancel
+      summary: 取消语音候选，保留费用不明记录
+      security:
+        - BearerAuth: []
+      parameters: *a2
+      responses:
+        "202":
+          description: 已受理；须轮询operation，不表示正式完成。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PilotSpeechView"
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/interviews/{id}/question-audio:
+    get:
+      operationId: questionAudio
+      summary: 播报当前正式题目
+      security:
+        - BearerAuth: []
+      parameters:
+        - *a3
+        - name: questionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 24kHz单声道PCM16 WAV；离线模式为提示音。
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
+  /v1/evidence/status:
+    get:
+      operationId: evidenceStatus
+      summary: 独立审核与真实队列的初始待验证状态
+      security:
+        - BearerAuth: []
+      parameters: []
+      responses:
+        "200":
+          description: 已实现的试点响应。
+        "400": *a1
+        "401": *a1
+        "403": *a1
+        "409": *a1
+        "429": *a1
+        "503": *a1
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
-      description: 正式认证尚未实现；会话撤销与归属检查由 API 负责。
+      description: 登录得到的随机不透明令牌，1小时有效，仅主进程内存保存。
   schemas:
-    Health:
+    PilotAnswer:
+      $schema: https://json-schema.org/draft/2020-12/schema
       type: object
-      additionalProperties: false
-      required:
-        - service
-        - stage
-        - liveModelConfigured
-        - capabilities
       properties:
-        service:
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        expectedRevision:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        speechId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+      required:
+        - operationId
+        - expectedRevision
+        - text
+      additionalProperties: false
+    PilotCommand:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        expectedRevision:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+      required:
+        - operationId
+        - expectedRevision
+      additionalProperties: false
+    PilotLogin:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        userId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+        - userId
+        - password
+      additionalProperties: false
+    PilotOperationView:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        status:
           type: string
           enum:
-            - api
-            - agent
-        stage:
-          const: scaffold
-        liveModelConfigured:
-          const: false
-        capabilities:
+            - running
+            - completed
+            - failed
+            - interrupted
+        errorCode:
+          type:
+            - string
+            - "null"
+      required:
+        - operationId
+        - sessionId
+        - status
+        - errorCode
+      additionalProperties: false
+    PilotReport:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        evidenceMode:
+          type: string
+        coverage:
+          type: object
+          properties:
+            totalAnswers:
+              type: number
+            scoredAnswers:
+              type: number
+            unscoredAnswers:
+              type: number
+          required:
+            - totalAnswers
+            - scoredAnswers
+            - unscoredAnswers
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              skillId:
+                type: string
+              label:
+                type: string
+              mastery:
+                type:
+                  - number
+                  - "null"
+              confidence:
+                type: number
+            required:
+              - skillId
+              - label
+              - mastery
+              - confidence
+        answers:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              questionText:
+                type: string
+              strengths:
+                type: array
+                items:
+                  type: string
+              improvements:
+                type: array
+                items:
+                  type: string
+              criteria:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    label:
+                      type: string
+                    score:
+                      type:
+                        - number
+                        - "null"
+                    maxScore:
+                      type: number
+                    action:
+                      type:
+                        - string
+                        - "null"
+                  required:
+                    - id
+                    - label
+                    - score
+                    - maxScore
+                    - action
+            required:
+              - questionId
+              - questionText
+              - strengths
+              - improvements
+              - criteria
+        studyPlan:
+          type: array
+          items:
+            type: object
+            properties:
+              skillId:
+                type: string
+              label:
+                type: string
+              minutes:
+                type: number
+              actions:
+                type: array
+                items:
+                  type: string
+            required:
+              - skillId
+              - label
+              - minutes
+              - actions
+        unscoredAnswers:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              reason:
+                type: string
+            required:
+              - questionId
+              - reason
+        warnings:
           type: array
           items:
             type: string
+        expression:
+          type: object
+          properties:
+            status:
+              type: string
+            summary:
+              type: array
+              items:
+                type: string
+          required:
+            - status
+            - summary
+      required:
+        - evidenceMode
+        - coverage
+        - skills
+        - answers
+        - studyPlan
+        - unscoredAnswers
+        - warnings
+        - expression
+      additionalProperties: false
+    PilotRoles:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            enum:
+              - java-backend
+              - web-frontend
+          label:
+            type: string
+          skills:
+            type: array
+            items:
+              type: string
+        required:
+          - id
+          - label
+          - skills
+    PilotSessionCreate:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        operationId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        roleId:
+          type: string
+          enum:
+            - java-backend
+            - web-frontend
+        goal:
+          type: string
+          minLength: 1
+          maxLength: 500
+        durationMinutes:
+          type: integer
+          minimum: 15
+          maximum: 25
+        pressure:
+          default: false
+          type: boolean
+      required:
+        - operationId
+        - roleId
+        - goal
+        - durationMinutes
+      additionalProperties: false
+    PilotSessionView:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        roleId:
+          type: string
+          enum:
+            - java-backend
+            - web-frontend
+        revision:
+          type: integer
+          minimum: -9007199254740991
+          maximum: 9007199254740991
+        phase:
+          type: string
+        startedAt:
+          type: number
+        deadlineAt:
+          type: number
+        question:
+          anyOf:
+            - type: object
+              properties:
+                id:
+                  type: string
+                text:
+                  type: string
+              required:
+                - id
+                - text
+              additionalProperties: false
+            - type: "null"
+        clarification:
+          anyOf:
+            - type: object
+              properties:
+                prompt:
+                  type: string
+                previousText:
+                  type: string
+              required:
+                - prompt
+                - previousText
+              additionalProperties: false
+            - type: "null"
+        answeredCount:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        scoredCount:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        unscoredCount:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        report:
+          anyOf:
+            - type: object
+              properties:
+                evidenceMode:
+                  type: string
+                coverage:
+                  type: object
+                  properties:
+                    totalAnswers:
+                      type: number
+                    scoredAnswers:
+                      type: number
+                    unscoredAnswers:
+                      type: number
+                  required:
+                    - totalAnswers
+                    - scoredAnswers
+                    - unscoredAnswers
+                skills:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      skillId:
+                        type: string
+                      label:
+                        type: string
+                      mastery:
+                        type:
+                          - number
+                          - "null"
+                      confidence:
+                        type: number
+                    required:
+                      - skillId
+                      - label
+                      - mastery
+                      - confidence
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId:
+                        type: string
+                      questionText:
+                        type: string
+                      strengths:
+                        type: array
+                        items:
+                          type: string
+                      improvements:
+                        type: array
+                        items:
+                          type: string
+                      criteria:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            label:
+                              type: string
+                            score:
+                              type:
+                                - number
+                                - "null"
+                            maxScore:
+                              type: number
+                            action:
+                              type:
+                                - string
+                                - "null"
+                          required:
+                            - id
+                            - label
+                            - score
+                            - maxScore
+                            - action
+                    required:
+                      - questionId
+                      - questionText
+                      - strengths
+                      - improvements
+                      - criteria
+                studyPlan:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      skillId:
+                        type: string
+                      label:
+                        type: string
+                      minutes:
+                        type: number
+                      actions:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - skillId
+                      - label
+                      - minutes
+                      - actions
+                unscoredAnswers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId:
+                        type: string
+                      reason:
+                        type: string
+                    required:
+                      - questionId
+                      - reason
+                warnings:
+                  type: array
+                  items:
+                    type: string
+                expression:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    summary:
+                      type: array
+                      items:
+                        type: string
+                  required:
+                    - status
+                    - summary
+              required:
+                - evidenceMode
+                - coverage
+                - skills
+                - answers
+                - studyPlan
+                - unscoredAnswers
+                - warnings
+                - expression
+              additionalProperties: false
+            - type: "null"
+        evidenceMode:
+          type: string
+          enum:
+            - offline-fixture
+            - live-model
+        knowledgeStatus:
+          type: string
+          enum:
+            - draft-pilot
+            - reviewed-only
+      required:
+        - sessionId
+        - roleId
+        - revision
+        - phase
+        - startedAt
+        - deadlineAt
+        - question
+        - clarification
+        - answeredCount
+        - scoredCount
+        - unscoredCount
+        - report
+        - evidenceMode
+        - knowledgeStatus
+      additionalProperties: false
+    PilotSpeechConfirm:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        text:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      required:
+        - expectedVersion
+        - text
+      additionalProperties: false
+    PilotSpeechCreate:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        byteLength:
+          type: integer
+          minimum: 44
+          maximum: 4194304
+      required:
+        - expectedRevision
+        - sha256
+        - byteLength
+      additionalProperties: false
+    PilotSpeechView:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      properties:
+        speechId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: ^[A-Za-z0-9_.-]+$
+        status:
+          type: string
+        version:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+        originalText:
+          type:
+            - string
+            - "null"
+        confirmedText:
+          type:
+            - string
+            - "null"
+        errorCode:
+          type:
+            - string
+            - "null"
+        expression:
+          type: array
+          items:
+            type: string
+        prefixText:
+          type:
+            - string
+            - "null"
+      required:
+        - speechId
+        - status
+        - version
+        - originalText
+        - confirmedText
+        - errorCode
+        - expression
+        - prefixText
+      additionalProperties: false
     Problem:
       type: object
       required:
-        - type
-        - title
-        - status
         - code
+        - status
         - detail
-        - requestId
-        - retryable
       properties:
-        type:
-          type: string
-          format: uri
-        title:
+        code:
           type: string
         status:
           type: integer
-        code:
-          type: string
         detail:
           type: string
-        requestId:
-          type: string
-        retryable:
-          type: boolean
-  responses:
-    Problem:
-      description: 结构化公开错误，未实现能力为 NOT_IMPLEMENTED。
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problem"
-          example:
-            type: urn:interview:error:not-implemented
-            title: NOT_IMPLEMENTED
-            status: 501
-            code: NOT_IMPLEMENTED
-            detail: 该能力尚未实现，当前为开发骨架。
-            requestId: request-example
-            retryable: false
