@@ -39,7 +39,7 @@ flowchart LR
 
 模型/工具只产候选，不能写正式数据或授予权限。“Agent 不直写正式表”指模型与计算核心；**本地宿主本身就是正式写入协调器**，不必再回调云端 API 提交。
 
-已有 profile 不能被新 `packages/local-db` schema 直接替换。接入前核对字段/状态、unknown、租约、幂等与回执，提供备份迁移和重启验收，避免形成两套学生权威库。master 仍保留旧 PG 模型；`feature/db` 已有本地/管理拆分，待 PR 集成和宿主适配，见[数据库说明](database.md)。
+现有17张local_*表继续作为权威；新增业务表和可重建投影接入同一profile。已有 profile 不能被新 `packages/local-db` schema 直接替换。接入前核对字段/状态、unknown、租约、幂等与回执，提供备份迁移和重启验收，避免形成两套学生权威库。master 仍保留旧 PG 模型；`feature/db` 已有本地/管理拆分，待 PR 集成和宿主适配，见[数据库说明](database.md)。
 
 ## 3. 一次面试的提交链路
 

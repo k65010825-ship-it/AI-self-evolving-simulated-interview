@@ -51,7 +51,7 @@ Electron 界面随包启动独立本地 Agent 子进程，通过 stdio RPC 通�
 - **学生面试链路**：桌面渲染层 → 受限 preload → 主进程 → stdio → 本地宿主 → Agent 核心 → 网络供应商；本地宿主负责提交与恢复。
 - **内容与管理链路**：网页管理端 → 管理 HTTP API → 管理数据库/实验执行器；桌面只通过明确的账号、内容版本查询/下载、授权回传等接口访问管理服务。
 
-master 当前 PostgreSQL/Drizzle 仍是历史 44 表模型；feature/db 已提交管理 PG / 本地 SQLite 拆分，待 PR 集成。后端先核对新模型与既有本地宿主的字段、迁移和事务边界，不把 packages/local-db 存在视为用户旧 profile 已迁移。不为了保留旧表让本地 Agent 改回远程执行；旧学生面试 HTTP 仅作回归，不能作为新桌面面试必经入口。
+master 当前 PostgreSQL/Drizzle 仍是历史 44 表模型；feature/db 已提交管理 PG / 本地 SQLite 拆分，待 PR 集成。后端先核对新模型与既有本地宿主的字段、迁移和事务边界，新业务表/查询投影接入同一profile，local_*继续为权威；不把 packages/local-db 存在视为用户旧 profile 已迁移。不为了保留旧表让本地 Agent 改回远程执行；旧学生面试 HTTP 仅作回归，不能作为新桌面面试必经入口。
 
 ## 3. 三人分工与接手顺序
 
