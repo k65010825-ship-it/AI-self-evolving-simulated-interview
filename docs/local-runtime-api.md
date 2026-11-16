@@ -29,8 +29,10 @@ UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显�
 | runtime.initialize/status/shutdown | 初始化能力、运行状态、受控关闭；初始化不读取 Key |
 | roles.list | 双岗 id/label；六技能展示目录尚待补齐 |
 | session.create | operationId、roleId、goal、durationMinutes（15—25）、pressure?、mode?、liveConfig?、sessionBudget?、speech? → jobId/sessionId |
-| session.list | offset? / limit?（1—100）→ 会话视图数组 |
-| session.get | sessionId → revision、phase、deadlineAt、当前题、answeredCount、priorEvidenceCount、report、lastOperation、mode、authorizationStatus |
+| session.list | offset? / limit?（1—100）→ viewKind=summary 的会话数组；详情字段为空，hasReport/needsClarification与计数保留 |
+| session.get | sessionId → viewKind=full、presentationVersion=1、startedAt/deadlineAt、revision/phase、当前题、澄清/逐轮反馈与计数、默认首屏report、lastOperation、mode、authorizationStatus |
+| session.answers | sessionId、offset?、limit?（1—5，默认5）、expectedRevision? → 版本固定的逐题作答页，含评分/澄清/弃评 |
+| session.report | 同上 → 已完成报告页；未收尾返回null，未知会话仍报错 |
 | session.nextQuestion | sessionId、operationId、expectedRevision → jobId/sessionId |
 | session.answer | 同上＋text；身份/当前题由宿主绑定 |
 | session.complete | 同 nextQuestion；正常收尾并保存报告/记忆 |
@@ -38,7 +40,17 @@ UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显�
 | job.get/cancel | jobId → 任务视图；取消不表示供应商退款 |
 | job.events | jobId、afterSeq? → 有序公开事件 |
 
-当前会话视图尚缺独立澄清提示、逐轮反馈和完整报告证据投影，前端不能凭 phase 或回答长度自行判断分数。新增能力见[接口导航](api.md)。提示目标为每题2次有效提示、不扣金币；尚无提示RPC，前端不能自行拼接未知方法。同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
+初始化能力新增session-presentation-v1。会话视图已提供clarification（中性prompt与原回答previousText）、lastAnswer、submittedCount/scoredCount/unscoredCount及needsClarification；同题多次澄清只算一题，answeredCount仍沿用已评分题数。三种答案状态为scored/needs_clarification/abstained；数值0与null分开，不把任务失败当技术零分。新增能力见[接口导航](api.md)。提示目标为每题2次有效提示、不扣金币；尚无提示RPC，前端不能自行拼接未知方法。同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
+
+### 3.1 SDK读取、分页与安全展示
+
+主进程SDK新增getSession(sessionId)、listSessions(options?)、getAnswerPage(sessionId,options?)和getReport(sessionId,options?)，严格校验返回schema，畸形响应只报LOCAL_RESPONSE_INVALID，不抛原始内容。旧request方法继续保留，但preload只暴露具体业务调用。
+
+session.get的report是默认5条的已评分答案首屏，不是全量报告。按answerPage.nextOffset继续调用session.report；session.answers按发题顺序返回已提交作答，合并同题澄清过程，nextOffset为null才表示读完。跨页携带首屏revision，状态变化返回VERSION_CONFLICT，应重新查询并重新分页，不能拼接不同revision。报告仅逐题评分，aggregation=per-answer-only，带sessionId/revision/generatedAt/policyVersion与逐题rubricVersion/scope，不跨量规伪造统一总分。
+
+证据仅包含当前原回答中被评分引用的片段，UTF-16 start/end与answerId绑定，每题最多3条、每条240字符，truncated和evidenceOmitted明确展示裁剪。坐标可定位不等于语义正确，semanticSupport仍not_verified。只显示既有反馈发布门控允许的内容；withheldFeedbackCount提示有条目暂缓，空数组不代表没有问题。criteria.label是固定展示名，不透出评分锚点/正确答案/量规全文、内部工具回执或模型推理。criterion action保留null，学习建议从报告studyPlan读取。
+
+列表只用于导航，不能把report=null解读为没有报告，使用hasReport再读取详情。读取不创建任务、写表或发起供应商调用，旧profile保持v3。以上为feature/agent的接入能力，桌面/真人质量仍需独立验收。
 
 ## 4. 真实模型与凭证接线
 
