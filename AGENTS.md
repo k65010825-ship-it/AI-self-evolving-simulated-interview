@@ -6,6 +6,8 @@
 
 ## 本项目
 
+- 当前提示规则：每道已发题最多2次有效提示，不扣金币；同题澄清/重启不重置，幂等/并发/辅助状态需持久化，模型费用/unknown独立管理。Agent负责人负责全部Agent/宿主/RPC/恢复实现；数据库负责人负责schema/DDL迁移/repository，联合回归边界见docs/database.md第8节。
+
 - master 的 docs 只收团队共享需求/架构/协作/数据与对外接入契约，入口docs/README.md；Agent内部实现、调试与模块验收文档只留feature/agent。合并/生成时按范围选择，不整目录带回master。
 
 - 产品边界以 docs/prd.md 为准，设计见 docs/architecture.md，HTTP 联调先看 docs/api.md，协作规则见 docs/collaboration.md。Agent开发为当前范围；未实现业务接口返回501，不能用mock成功冒充交付。
