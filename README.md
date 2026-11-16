@@ -1,10 +1,6 @@
 # AI 自进化模拟面试工作台
 
-
-
 ## 项目简介
-
-
 
 面向计算机相关专业学生的 AI 模拟面试平台，首批支持 **Java 后端**和 **Web 前端**岗位。通过多轮语音/文字面试、状态感知追问、多维评估和个性化复测，帮助学生发现并改善能力短板；系统根据历史评估与后续表现迭代追问策略，形成学生成长与系统自校准两个闭环。
 
@@ -14,13 +10,11 @@
 
 ## 开发入口
 
-
-
 需要 Node.js ≥24、Bun 1.4.4。依赖以 `bun.lock` 为准。
 
 安装依赖并启动服务（API 与 Agent 分别在两个终端启动）：
 
-```
+```powershell
 bun install --frozen-lockfile --ignore-scripts
 bun run dev:api
 bun run dev:agent
@@ -30,7 +24,7 @@ API：`http://127.0.0.1:3100/health`；Agent：`http://127.0.0.1:3200/health`。
 
 构建和启动桌面客户端：
 
-```
+```powershell
 bun run desktop:runtime
 bun run desktop:build
 bun run desktop:start
@@ -40,7 +34,7 @@ bun run desktop:start
 
 开发检查：
 
-```
+```powershell
 bun run typecheck
 bun test
 bun run pi:offline
@@ -49,16 +43,25 @@ bun run openapi:generate
 bun run openapi:lint
 ```
 
-`pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/.env.example)。
+`pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](.env.example)。
 
-<details style="box-sizing: border-box; display: block; margin-top: 0px; margin-bottom: 16px; color: rgb(31, 35, 40); font-family: &quot;Mona Sans VF&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;Noto Sans Backtick Fix&quot;, &quot;Noto Sans&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 16px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><summary style="box-sizing: border-box; display: list-item; cursor: pointer;">Windows 没有全局 Bun 时的引导方式</summary><p dir="auto" style="box-sizing: border-box; margin-top: 0px; margin-bottom: 16px;">在项目根目录执行，不用 npm 安装带 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">workspace:*</code> 的项目本身：</p><div class="highlight highlight-source-powershell notranslate position-relative overflow-auto" dir="auto" style="box-sizing: border-box; overflow: auto !important; position: relative !important; margin-bottom: 16px; background-color: rgb(246, 248, 250); justify-content: space-between; display: flex;"><pre style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; margin-top: 0px; margin-bottom: 0px; overflow-wrap: normal; padding: 16px; color: rgb(31, 35, 40); background-color: rgb(246, 248, 250); border-radius: 6px; line-height: 1.45; overflow: auto; word-break: normal;">npm install <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>prefix .tools<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">/</span>bun <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>ignore<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>scripts <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>no<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>audit <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>no<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>fund <span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@oven</span><span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">/</span>bun<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>windows<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>x64<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@1<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">.4.4</span></span>
-<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">&amp;</span> .\.tools\bun\node_modules\<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@oven</span>\bun<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>windows<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>x64\bin\<span class="pl-c1" style="box-sizing: border-box; color: rgb(5, 80, 174);">bun.exe</span> install <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>frozen<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>lockfile <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>ignore<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>scripts</pre><div style="box-sizing: border-box;"></div></div><p dir="auto" style="box-sizing: border-box; margin-top: 0px; margin-bottom: 16px;">随后可将上文的 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">bun</code> 替换为 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">&amp; .\node_modules\@oven\bun-windows-x64\bin\bun.exe</code>。Linux 服务端使用预装 Bun。</p></details>
+<details>
+<summary>Windows 没有全局 Bun 时的引导方式</summary>
+
+在项目根目录执行，不用 npm 安装带 `workspace:*` 的项目本身：
+
+```powershell
+npm install --prefix .tools/bun --ignore-scripts --no-audit --no-fund @oven/bun-windows-x64@1.4.4
+& .\.tools\bun\node_modules\@oven\bun-windows-x64\bin\bun.exe install --frozen-lockfile --ignore-scripts
+```
+
+随后可将上文的 `bun` 替换为 `& .\node_modules\@oven\bun-windows-x64\bin\bun.exe`。Linux 服务端使用预装 Bun。
+
+</details>
 
 ## 系统目录
 
-
-
-```
+```text
 .agents/skills/              Pi SDK 开发与 Craft 架构参考 Skill
 apps/
   desktop/                   Electron main / preload / React renderer
@@ -79,31 +82,37 @@ docs/                        需求、接口与团队开发文档
 
 ## 项目架构
 
-
-
 下面是目标架构；当前已实现的基础能力见需求文档中的状态表。
 
-<iframe title="File display" role="presentation" class="render-viewer" src="https://viewscreen.githubusercontent.com/markdown/mermaid?docs_host=https%3A%2F%2Fdocs.github.com&amp;color_mode=light#a1af4b1b-ca64-408d-a556-65141ab58739" name="a1af4b1b-ca64-408d-a556-65141ab58739" data-content="{&quot;data&quot;:&quot;flowchart LR\n  subgraph Windows客户端\n    UI[React 界面] --> Bridge[Preload 白名单桥接]\n    Bridge --> Main[Electron 主进程]\n  end\n  Main -->|HTTPS / SSE| API[业务 API]\n  API -->|内部 HTTP| Agent[独立 Agent 服务]\n  API --> DB[(PostgreSQL)]\n  API --> Files[私有文件存储]\n  Agent --> Pi[Pi SDK 适配层]\n  Agent --> Tools[授权知识与评分工具]\n  Pi --> Models[大语言模型]\n  Agent --> Speech[语音服务]\n&quot;}" sandbox="allow-scripts allow-same-origin allow-top-navigation allow-popups" x_video_el_visible="false" style="box-sizing: border-box; border: 0px; width: 838.906px; height: 194.783px; display: block;"></iframe>
+```mermaid
+flowchart LR
+  subgraph Windows客户端
+    UI[React 界面] --> Bridge[Preload 白名单桥接]
+    Bridge --> Main[Electron 主进程]
+  end
+  Main -->|HTTPS / SSE| API[业务 API]
+  API -->|内部 HTTP| Agent[独立 Agent 服务]
+  API --> DB[(PostgreSQL)]
+  API --> Files[私有文件存储]
+  Agent --> Pi[Pi SDK 适配层]
+  Agent --> Tools[授权知识与评分工具]
+  Pi --> Models[大语言模型]
+  Agent --> Speech[语音服务]
+```
 
 业务 API 管理身份、会话、画像和正式结果；Agent 负责规划、评估、工具调用与反思。模型和语音凭证保留在服务端。Electron 的主进程使用自带 Node.js，Bun 用于工程和服务端。
 
 ## 技术栈
 
-
-
-层级技术用途工程Bun Workspaces、TypeScript strict、ESM单仓库与共享契约桌面Electron、Vite、esbuild桌面宿主、界面与主进程构建界面React、Tailwind CSS、Radix UI页面与交互；Jotai / TanStack Query 为状态与请求管理依赖API / AgentHono、Zod、Pi Agent SDK业务接口、运行时校验、Agent 运行数据PostgreSQL、Drizzle ORM业务数据；当前只有初始 schema 和开发配置通信Electron IPC、HTTP、SSE进程桥接与服务事件；业务流待接入质量Bun Test、TypeScript、Redocly行为测试、类型检查与 OpenAPI 校验
-
-
-
-## 文档
-
-
-
-文档主要内容[需求文档（PRD）](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/prd.md)产品范围、用户流程、需求编号、验收与当前状态[接口文档](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/api.md)服务地址、鉴权约定、HTTP 请求示例、状态与事件、联调边界[项目架构](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/architecture.md)模块责任、数据模型、运行与恢复、Agent 和 RSI 设计[协作与里程碑](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/collaboration.md)三人分工、接口变更流程、PR 与每周交付[数据源](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/data-sources.md)知识来源、数据组织、审核与生命周期[Agent 工具契约](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/tool-contracts.md)工具输入、回执、岗位授权与调用预算[错误处理](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/error-handling.md)错误码、重试与取消规则[评测计划](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/evaluation-plan.md)数据划分、指标、对照实验与验收方法[OpenAPI](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/openapi.yaml) / [工具 JSON Schema](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/tool-schemas.json)由生成脚本维护的机器可读契约
-
-
-
-参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md
+| 层级        | 技术                                   | 用途                                                    |
+| ----------- | -------------------------------------- | ------------------------------------------------------- |
+| 工程        | Bun Workspaces、TypeScript strict、ESM | 单仓库与共享契约                                        |
+| 桌面        | Electron、Vite、esbuild                | 桌面宿主、界面与主进程构建                              |
+| 界面        | React、Tailwind CSS、Radix UI          | 页面与交互；Jotai / TanStack Query 为状态与请求管理依赖 |
+| API / Agent | Hono、Zod、Pi Agent SDK                | 业务接口、运行时校验、Agent 运行                        |
+| 数据        | PostgreSQL、Drizzle ORM                | 业务数据；当前只有初始 schema 和开发配置                |
+| 通信        | Electron IPC、HTTP、SSE                | 进程桥接与服务事件；业务流待接入                        |
+| 质量        | Bun Test、TypeScript、Redocly          | 行为测试、类型检查与 OpenAPI 校验                       |
 
 ## 文档
 
