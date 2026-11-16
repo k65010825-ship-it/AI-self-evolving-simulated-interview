@@ -1,82 +1,59 @@
-# 接口文档
+# 双端接口导航
 
-**迁移提示（2026-11-10）**：本文HTTP接口属于旧服务试点，继续用于回归。新客户端文字宿主已采用独立本地运行时＋stdio RPC，schema在`packages/contracts/src/local-runtime.ts`，已实现方法见[本地接口](local-runtime-api.md)。它不需要网页登录、内部服务token或自请求HTTP；本地live文字已采用显式授权/私有凭证代理，完成注入HTTP离线验证；本地ASR确认/TTS已有独立stdio实现并离线注入验证，旧语音HTTP保留回归。
+版本 0.3。本文面向前端和后端联调；内部 Agent 工具、模型输出、调试与旧试点详情只在 feature/agent 维护。
 
-版本0.2。**下述业务接口由 `bun run pilot:start` 启动的SQLite试点实现**；旧 `dev:api` 的业务路径继续返回501。跨服务schema真值为 `packages/contracts`，运行 `bun run openapi:generate` 生成 [OpenAPI](openapi.yaml) 与 workbench-schemas.json。不要使用旧目标接口字段联调新试点。
+## 1. 两条业务链路
 
-## 1. 服务与认证
+| 链路 | 契约 / 状态 | 负责人 |
+| --- | --- | --- |
+| 学生桌面面试、报告、记忆、任务与预算 | [本地 stdio RPC](local-runtime-api.md)，实现和源 schema 在 feature/agent；主进程用 `@interview/local-agent-client` | 前端接主进程，Agent 提供运行时，后端接本地业务规则 |
+| 学生录音、转写确认与题目播报 | 同一本地协议及[语音 schema](local-speech-schemas.json)；物理设备/安装需单独验收 | 前端采集/播放，Agent 校验/供应商适配 |
+| 账号、管理查询/审核、知识分发、授权回传、评测任务 | 管理 HTTPS API；下方是待定义资源，尚无完整可用契约 | 后端定义共享 contracts，前端据此接管理 Web |
+| 旧 HTTP 面试/Agent 服务 | master 保留[历史 OpenAPI](openapi.yaml)，旧试点实现在 feature/agent | 仅回归，不继续作为新客户端主流程 |
 
-API默认 `http://127.0.0.1:3100`，Agent默认3200；远程API必须HTTPS。学生使用运营者配置账号登录，获得1小时有效的随机不透明Bearer令牌。令牌的客户端保存与界面接线由前端同学负责；当前Agent工作不包含桌面实现。供应商凭证只在Agent进程。内部服务使用独立服务token，不能用学生token调用。
+管理 API 不承担新客户端正式会话的创建/答题/提交。服务器不能直接读取用户 SQLite；本地持久事件也不通过云端 SSE 续订。账号登录、供应商凭证授权、数据回传同意是三个独立动作。
 
-JSON时间为epoch毫秒，正文UTF-8。普通错误统一 `application/problem+json`，包含 code/status/detail/requestId/retryable 等；不透出供应商原始响应或堆栈。JSON32KiB、WAV4MiB，HTTP入口并发8，Agent语音执行并发4；不是多实例全局限流保证。正式会话数据仅允许本人访问。
+## 2. 页面能力与本地接线
 
-## 2. 可用业务接口
+| 学生页面 | 当前可用入口（feature/agent） | 尚待补充 |
+| --- | --- | --- |
+| 关卡 | roles.list、session.create | 六技能目录、结构化弱点/全面练习模式 |
+| 试炼 | session.get/nextQuestion/answer/complete、job.get/cancel/events、speech.* | 澄清与逐轮反馈投影、每题2次有效提示及持久幂等回执 |
+| 战报 | session.get 的已提交 report | 原文证据、稳定的维度汇总及辅助作答状态 |
+| 修炼 | 既有核心规则，尚无完整本地 RPC | 资源/学习记录、不同题复测与配对保存 |
+| 进化/面板 | session.list、memory.get 提供基础记录 | 画像趋势、成长查询、反思与策略/实验状态投影 |
 
-| 方法与路径 | 请求/响应与行为 |
+不能按原型假数据推断字段已开放。新增方法先确定输入/结果、状态、权限、幂等和错误，再改 contracts 和实现；renderer 不接收内部 workflow、rubric、来源全文或任意文件路径。
+
+## 3. 管理 API 待定义资源
+
+以下为设计清单，**没有冻结路径或字段，不是已实现路由**：
+
+| 资源 | 必须说明的契约 |
 | --- | --- |
-| GET /health | stage=pilot表示试点入口；不是模型/设备可用性探测 |
-| POST /v1/auth/login | `{userId,password}` → `{token,expiresAt,user}`；没有学生注册或任意userId授权 |
-| POST /v1/auth/logout | 撤销当前令牌 |
-| GET /v1/roles | Java后端、Web前端和技能清单 |
-| GET /v1/interviews | 本人最近100场 PilotSessionView 数组；尚无分页 |
-| POST /v1/interviews | PilotSessionCreate → 202 `{sessionId,operationId}` |
-| GET /v1/interviews/{id} | PilotSessionView，包含revision/phase/question/clarification/report |
-| POST /v1/interviews/{id}/question | PilotCommand → 202操作ID；按状态选下一题 |
-| POST /v1/interviews/{id}/answers | PilotAnswer → 202操作ID；语音需附已确认speechId |
-| POST /v1/interviews/{id}/completion | PilotCommand → 202操作ID；生成报告、记忆和反思候选 |
-| GET /v1/operations/{id} | running/completed/failed/interrupted与公开errorCode |
-| POST /v1/interviews/{id}/speech | PilotSpeechCreate → 201 `{speechId}`；仅登记源，不表示ASR成功 |
-| PUT /v1/speech/{id}/audio | audio/wav 原始规范WAV → 202任务视图 |
-| GET /v1/speech/{id} | 原转写/确认文/版本/错误/未验证表达观察 |
-| POST /v1/speech/{id}/confirmation | `{expectedVersion,text}` → 确认候选；不等于答题提交 |
-| POST /v1/speech/{id}/cancellation | 撤销候选资格，不保证供应商停止计费 |
-| GET /v1/interviews/{id}/question-audio?questionId=... | 当前正式题目24kHz PCM16 WAV；缓存幂等；离线为提示音 |
-| GET /v1/evidence/status | 独立审核和真实队列的初始待验证状态；不是持续更新的审核数据库 |
+| 账号登录/续期/退出 | student/admin scope、令牌失效、撤销；账号/profile 切换不串本机数据 |
+| 团队知识/rubric/资源与审核 | 分页/版本、审核者身份、内容和来源摘要、重复审核/旧版本冲突 |
+| 内容包查询/下载 | manifest/摘要、发布状态、版本兼容、失败保留旧版、进行中面试固定版本 |
+| 反馈/指标/样本导入 | 单独授权、最小字段、幂等键、来源/同源组、真人/合成、删除/撤回范围 |
+| 监控查询 | 时间窗、岗位/策略、分子分母；只读，不触发模型、评测或策略变更 |
+| 实验创建/运行/取消/查询/逐例结果 | 管理权限、冻结数据集/配置、单独预算、任务终态、失败与审计 |
+| 将来正式发布/回退 | 权限、版本 CAS、幂等、事务审计、客户端安装/采用分别记录；未验收保持 not_published |
 
-### 创建与回答示例
+具体接口须由后端提交版本化 schema 和错误/鉴权示例。未实现明确返回未实现，不能用 mock 成功冒充交付。管理鉴权只在受信 API，网页隐藏按钮不能代替服务端检查。
 
-```json
-{"operationId":"create-001","roleId":"java-backend","goal":"练习事务与项目设计","durationMinutes":20,"pressure":false}
-```
+## 4. 提示接口待定义约束
 
-创建成功受理后轮询 `/v1/operations/create-001`，完成后读取会话revision，再提交：
+提示是本地Agent能力，不新增云端钱包或扣币API。初版每题2次有效提示；这里“题”指当前会话中的一次发题绑定，不能只按全局questionId计数，也不能因澄清、刷新、重启或再次确认转写重置。
 
-```json
-{"operationId":"plan-001","expectedRevision":0}
-```
+新增契约至少覆盖：operationId、会话/当前题绑定与expectedRevision、提示状态/内容/版本、已用和剩余次数、任务与幂等回执、辅助作答状态。成功、运行中预占、失败释放、重复请求和超限要有明确状态及错误，具体方法名/字段由Agent提交contracts后生效，本文不声称已实现。
 
-回答使用新操作ID和当前revision：
+宿主在调用模型前校验当前题和原子预占，提交有效提示后计次。失败不返回伪提示；已提交但ACK丢失应查询/重放原结果。次数回退不清除供应商消耗，unknown继续阻断新派发。不得直接返回优秀答案或rubric全文；前端只展示提示及剩余次数，不自行改计数。
 
-```json
-{"operationId":"answer-001","expectedRevision":1,"text":"我会先说明事务边界和异常回滚条件。"}
-```
+数据库负责人提供同一profile连接内的计数/预占/回执repository；Agent负责人实现RPC、提示生成/校验、任务生命周期与恢复，双方按[交接清单](database.md#8-数据库负责人交接清单)联调。
 
-operationId在所有动作间唯一；同ID同内容回放结果，改内容/动作/用户冲突拒绝。并发旧revision不覆盖新状态。完整command字段见 workbench-schemas.json。202只是受理，只有operation completed后，API才已通过提交验证并以SQLite事务原子写正式会话、记忆及唯一回执。Agent结果是未提交候选。
+## 5. 共同约定
 
-## 3. 语音与澄清
-
-客户端把麦克风重采样为16kHz单声道PCM16 WAV，先登记 `{expectedRevision,sha256,byteLength}`，保存speechId后上传。同ID同字节重传不再次ASR，改字节拒绝；任何查询/确认均校验用户、岗位、当前题目与绑定。录音不自动上传，必须点击确认上传。
-
-转写完成后保留originalText，学生只能编辑确认文本与expectedVersion；提交回答时text须与确认文一致。原始WAV不落业务库，任务与转写候选持久化。确认与正式提交是两个动作。
-
-needs_clarification保留同题，客户端提供原回答前缀和补充；服务端避免重复拼接。abstained记录未评分原因，不写0分或掌握度观测；报告显示覆盖分母、记忆不伪造分数。详见 [完整会话澄清](workflow-clarification.md)。
-
-## 4. Agent内部契约
-
-工作流通过已鉴权 `/internal/v1/runs` 与归一SSE执行；实际JSON定义见 [Agent OpenAPI](agent-openapi.yaml)、[HTTP/SSE说明](workflow-http.md) 与 [客户端SDK](agent-client.md)。内部语音接口见 [speech-tasks.md](speech-tasks.md)。
-
-另有 `POST /internal/v1/speech/synthesis`，请求 QuestionVoiceRequest，API宿主提供canonical当前题目绑定；返回audio/wav。Agent用内部token回调API的 `/internal/v1/voice/authorization` 与 `/internal/v1/speech/authorization`，由正式记录决定授权，模型不能提供或覆盖身份。
-
-预算结算、账单导入只开放给运营者本地CLI，不开放学生HTTP。恢复中的unknown保留预留与并发，不能简单刷新即收费重跑。详见 [统一额度](session-accounting.md)、[持久恢复](durable-runtime.md)。
-
-## 5. 尚未开放的业务能力
-
-Agent内部runs支持 `job.type=closeout-preview` 的只读修订预览与版本选择，具体见[预览契约](closeout-preview.md)；它不能走正式提交，也不意味着下列业务发布接口已开放。
-
-反馈修订目前提供共享宿主函数与离线JSON回放，不提供正式版本选择、审批落库或重新发布路由。必须保留原始turns，通过受检版本链获得 `revisionContext` 再复核，不能把修订候选覆盖正式原答/评分或把旧回执移到新版本。见[反馈修订与回放](feedback-revision.md)。
-
-报告展示读取 `assessments[].feedback` 与 `feedbackPublication`，不要直接显示内部 `turns[].proposal.feedback` 或 SSE 中的完整候选。新建报告会暂缓明确事实冲突和指定待审疑点，业务提交校验重算相同投影；全部暂缓时反馈数组可为空。复核回执目前是宿主函数生成的未提交候选，没有 reviewer 登录、正式回执存储或重新发布 HTTP 路由，详见[反馈发布隔离与回执](feedback-publication.md)。
-
-学习事件核验、复测配对、实验发布/回退、reviewer登录、独立审核存储、数据删除传播、管理员界面等仍是宿主函数或CLI，没有正式HTTP成功路由；未实现 `/v1/*` 返回501。已有[真实队列采集](field-evidence.md)支持导入和缺失校验，不能伪造人工批准或真人效果。
-
-数据库表结构、迁移和约束见[数据库设计](database.md)，原型需求见[交接文档](HANDOFF.md)。schema合入不表示管理HTTP接口或本地账号归属已实现；新增preload桥接必须按当前契约单独实现。
+- 本地 operationId 标识业务幂等，jobId 标识异步任务，request.id 只关联一次 RPC；HTTP requestId 和幂等键另行定义，不能混用。
+- 受理不是完成，以任务终态和正式快照判断；完成不等于策略已发布或客户端已采用。
+- 过期 revision、取消/旧任务、同 ID 异内容应拒绝，不覆盖新状态。错误不返回 Key、供应商原文、堆栈或原始用户数据。
+- 新管理 HTTP 统一错误格式、分页/时间格式及 OpenAPI 生成由后端设计；不能直接沿用旧学生试点字段。所有权见[架构](architecture.md)，分工见[协作](collaboration.md)。
