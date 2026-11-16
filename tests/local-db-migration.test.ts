@@ -8,6 +8,7 @@ const migrationFiles = readdirSync(migrationsDirectory)
   .sort();
 
 const db = new Database(':memory:');
+db.exec('PRAGMA foreign_keys=ON');
 
 for (const file of migrationFiles) {
   const statements = readFileSync(new URL(file, migrationsDirectory), 'utf8')
@@ -72,7 +73,7 @@ describe('local sqlite migration on the Bun SQLite engine', () => {
       values ('r1', 'a1', 1, 'run.stage', '{}')`);
   });
 
-  test('keeps the budget closed-loop honest', () => {
+  test('bounds diagnostic budget operation labels without claiming runtime accounting', () => {
     db.exec(`insert into budget_ledger (id, run_id, operation) values ('b1', 'r1', 'reserve')`);
     rejected(`insert into budget_ledger (id, run_id, operation) values ('b2', 'r1', 'refund')`);
   });
@@ -89,9 +90,45 @@ describe('local sqlite migration on the Bun SQLite engine', () => {
   test('distinguishes zero from missing evidence in scoring', () => {
     db.exec(`insert into evaluation_dimension (evaluation_id, dimension, status)
       values ('ev1', 'depth', 'missing_evidence')`);
-    rejected(`insert into evaluation_dimension (evaluation_id, dimension, status)
+    rejected(`insert into evaluation_dimension (evaluation_id, dimension, status, score)
       values ('ev1', 'logic', 'missing_evidence', 0)`);
     rejected(`insert into evaluation_dimension (evaluation_id, dimension, status)
       values ('ev1', 'role_fit', 'scored')`);
+  });
+});
+
+describe('local projection integrity regressions', () => {
+  test('rejects orphan answers and dimensions even with remote identifiers left as text', () => {
+    rejected(`insert into interview_turn(id,interview_id,seq,question_text,question_type,skill_id,difficulty)
+      values('orphan','missing',0,'test','technical','s',1)`);
+    rejected(`insert into evaluation_dimension(evaluation_id,dimension,status,score)
+      values('missing','correctness','scored',0.5)`);
+  });
+  test('zero explicitly requires a numeric score', () => {
+    rejected(`insert into evaluation_dimension(evaluation_id,dimension,status,score)
+      values('ev1','communication','zero',NULL)`);
+  });
+  test('hint use cannot mint XP', () => {
+    rejected(`insert into xp_event(id,user_id,reason,xp_delta,coin_delta,balance_xp,balance_coins,source_type,source_id,dedupe_key)
+      values('xp-bug','u1','hint_used',100,-1,100,0,'turn','t1','xp-bug')`);
+  });
+  test('eligible pair error is bounded and matches the scores', () => {
+    db.exec(`insert into prediction_snapshot(id,user_id,role_id,skill_id,expected_learning_exposure,valid_until,rubric_version,predicted_target_score,predictor_version)
+      values('pred-regression','u1','java-backend','s','verified practice',9999999999999,'v1',0.2,'p1')`);
+    const pair = (id: string, mae: number) => `insert into performance_pair(id,prediction_id,user_id,role_id,skill_id,retest_interview_id,predicted_score,reference_score,mae,eligibility,rubric_version,learning_exposure_matched)
+      values('${id}','pred-regression','u1','java-backend','s','i1',0.2,0.2,${mae},'eligible','v1',1)`;
+    rejected(pair('impossible', 7));
+    rejected(pair('wrong-arithmetic', 0.3));
+    db.exec(pair('valid-arithmetic', 0));
+  });
+  test('local task projection accepts interrupted without claiming completion', () => {
+    db.exec(`insert into agent_run(id,interview_id,user_id,kind,status,policy_version,input_snapshot)
+      values('interrupted-regression','i1','u1','answer_processing','interrupted','p','{}')`);
+    expect(db.query("select status from agent_run where id='interrupted-regression'").get()).toEqual({status:'interrupted'});
+  });
+  test('memory-only audio does not invent a persisted file', () => {
+    db.exec(`insert into audio_asset(id,user_id,interview_id,mime_type,byte_size)
+      values('memory-audio','u1','i1','audio/wav',100)`);
+    expect(db.query("select storage_key from audio_asset where id='memory-audio'").get()).toEqual({storage_key:null});
   });
 });

@@ -20,7 +20,7 @@ export const xpEvents = sqliteTable(
   'xp_event',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
+    userId: text('user_id').notNull().references(() => userGamification.userId, { onDelete: 'restrict' }),
     reason: text('reason').notNull(),
     xpDelta: integer('xp_delta').notNull().default(0),
     coinDelta: integer('coin_delta').notNull().default(0),
@@ -42,7 +42,7 @@ export const xpEvents = sqliteTable(
     check('xp_event_has_change', sql`${table.xpDelta} <> 0 or ${table.coinDelta} <> 0`),
     check(
       'xp_event_reason_direction',
-      sql`(${table.reason} = 'hint_used' and ${table.coinDelta} < 0) or (${table.reason} <> 'hint_used' and ${table.xpDelta} >= 0 and ${table.coinDelta} >= 0)`,
+      sql`(${table.reason} = 'hint_used' and ${table.xpDelta} = 0 and ${table.coinDelta} < 0) or (${table.reason} <> 'hint_used' and ${table.xpDelta} >= 0 and ${table.coinDelta} >= 0)`,
     ),
     check('xp_event_balances_non_negative', sql`${table.balanceXp} >= 0 and ${table.balanceCoins} >= 0`),
   ],

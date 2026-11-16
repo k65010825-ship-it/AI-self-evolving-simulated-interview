@@ -1,19 +1,23 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 
+import { interviewSessions, interviewTurns } from './interviews.ts';
+
+// Rebuildable diagnostics only; local_jobs/events and live/speech ledgers remain authoritative.
 const nowMs = sql`(unixepoch() * 1000)`;
 
 export const agentRuns = sqliteTable(
   'agent_run',
   {
     id: text('id').primaryKey(),
-    interviewId: text('interview_id').notNull(),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
     userId: text('user_id').notNull(),
-    turnId: text('turn_id'),
+    turnId: text('turn_id').references(() => interviewTurns.id, { onDelete: 'restrict' }),
     kind: text('kind').notNull(),
     status: text('status').notNull().default('queued'),
     stage: text('stage'),
-    attemptId: text('attempt_id'),
+    attemptId: text('attempt_id').references((): AnySQLiteColumn => runAttempts.id, { onDelete: 'restrict' }),
     attemptCount: integer('attempt_count').notNull().default(0),
     inputSnapshot: text('input_snapshot', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
     output: text('output', { mode: 'json' }).$type<Record<string, unknown>>(),
@@ -36,7 +40,7 @@ export const agentRuns = sqliteTable(
   (table) => [
     index('agent_run_interview_idx').on(table.interviewId, table.createdAt),
     index('agent_run_status_idx').on(table.status, table.createdAt),
-    check('agent_run_status_values', sql`${table.status} in ('queued', 'running', 'completed', 'failed', 'cancelled')`),
+    check('agent_run_status_values', sql`${table.status} in ('queued', 'running', 'completed', 'failed', 'cancelled', 'interrupted')`),
     check(
       'agent_run_kind_values',
       sql`${table.kind} in ('initial_plan', 'answer_processing', 'finish', 'reflection', 'experiment_evaluation', 'learning_recommendation')`,
@@ -52,7 +56,7 @@ export const runAttempts = sqliteTable(
   'run_attempt',
   {
     id: text('id').primaryKey(),
-    runId: text('run_id').notNull(),
+    runId: text('run_id').notNull().references(() => agentRuns.id, { onDelete: 'restrict' }),
     attemptNo: integer('attempt_no').notNull(),
     status: text('status').notNull().default('running'),
     leaseUntil: integer('lease_until', { mode: 'timestamp_ms' }),
@@ -77,8 +81,8 @@ export const runEvents = sqliteTable(
   'run_event',
   {
     id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
-    runId: text('run_id').notNull(),
-    attemptId: text('attempt_id'),
+    runId: text('run_id').notNull().references(() => agentRuns.id, { onDelete: 'restrict' }),
+    attemptId: text('attempt_id').references(() => runAttempts.id, { onDelete: 'restrict' }),
     seq: integer('seq').notNull(),
     type: text('type').notNull(),
     schemaVersion: integer('schema_version').notNull().default(1),
@@ -91,7 +95,7 @@ export const runEvents = sqliteTable(
     index('run_event_replay_idx').on(table.runId, table.seq),
     check(
       'run_event_type_values',
-      sql`${table.type} in ('run.accepted', 'run.stage', 'question.delta', 'question.completed', 'run.completed', 'run.failed', 'run.cancelled')`,
+      sql`${table.type} in ('run.accepted', 'run.stage', 'question.delta', 'question.completed', 'run.completed', 'run.failed', 'run.cancelled', 'local.event')`,
     ),
     check('run_event_seq_non_negative', sql`${table.seq} >= 0`),
     check('run_event_schema_version_positive', sql`${table.schemaVersion} >= 1`),
@@ -102,9 +106,9 @@ export const planDecisions = sqliteTable(
   'plan_decision',
   {
     id: text('id').primaryKey(),
-    interviewId: text('interview_id').notNull(),
-    runId: text('run_id'),
-    turnId: text('turn_id'),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
+    runId: text('run_id').references(() => agentRuns.id, { onDelete: 'restrict' }),
+    turnId: text('turn_id').references(() => interviewTurns.id, { onDelete: 'restrict' }),
     action: text('action').notNull(),
     skillId: text('skill_id').notNull(),
     questionId: text('question_id'),
@@ -129,8 +133,8 @@ export const idempotencyRecords = sqliteTable(
     route: text('route').notNull(),
     idempotencyKey: text('idempotency_key').notNull(),
     requestHash: text('request_hash').notNull(),
-    interviewId: text('interview_id'),
-    runId: text('run_id'),
+    interviewId: text('interview_id').references(() => interviewSessions.id, { onDelete: 'restrict' }),
+    runId: text('run_id').references(() => agentRuns.id, { onDelete: 'restrict' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().default(nowMs),
   },
   (table) => [
@@ -143,8 +147,8 @@ export const budgetLedger = sqliteTable(
   'budget_ledger',
   {
     id: text('id').primaryKey(),
-    runId: text('run_id').notNull(),
-    attemptId: text('attempt_id'),
+    runId: text('run_id').notNull().references(() => agentRuns.id, { onDelete: 'restrict' }),
+    attemptId: text('attempt_id').references(() => runAttempts.id, { onDelete: 'restrict' }),
     operation: text('operation').notNull(),
     status: text('status').notNull().default('open'),
     llmCalls: integer('llm_calls').notNull().default(0),

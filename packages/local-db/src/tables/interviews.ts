@@ -58,7 +58,7 @@ export const interviewTurns = sqliteTable(
   'interview_turn',
   {
     id: text('id').primaryKey(),
-    interviewId: text('interview_id').notNull(),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
     seq: integer('seq').notNull(),
     questionId: text('question_id'),
     questionText: text('question_text').notNull(),
@@ -106,9 +106,9 @@ export const audioAssets = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
-    interviewId: text('interview_id').notNull(),
-    turnId: text('turn_id'),
-    storageKey: text('storage_key').notNull(),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
+    turnId: text('turn_id').references(() => interviewTurns.id, { onDelete: 'restrict' }),
+    storageKey: text('storage_key'),
     mimeType: text('mime_type').notNull(),
     byteSize: integer('byte_size').notNull(),
     durationMs: integer('duration_ms'),
@@ -138,7 +138,7 @@ export const transcripts = sqliteTable(
   'transcript',
   {
     id: text('id').primaryKey(),
-    audioAssetId: text('audio_asset_id').notNull(),
+    audioAssetId: text('audio_asset_id').notNull().references(() => audioAssets.id, { onDelete: 'restrict' }),
     rawText: text('raw_text').notNull(),
     confirmedText: text('confirmed_text'),
     status: text('status').notNull().default('pending'),
@@ -165,7 +165,7 @@ export const audioAnalyses = sqliteTable(
   'audio_analysis',
   {
     id: text('id').primaryKey(),
-    audioAssetId: text('audio_asset_id').notNull(),
+    audioAssetId: text('audio_asset_id').notNull().references(() => audioAssets.id, { onDelete: 'restrict' }),
     voicedDurationMs: integer('voiced_duration_ms'),
     pauseRatio: real('pause_ratio'),
     speechRateCharsPerMin: integer('speech_rate_chars_per_min'),

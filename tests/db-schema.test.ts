@@ -158,7 +158,7 @@ describe('data ownership split between server and local schemas', () => {
     );
   });
 
-  test('keeps the local budget closed-loop records', () => {
+  test('defines diagnostic budget counters without replacing the runtime ledger', () => {
     const budgetColumns = getSqliteTableConfig(localSchema.budgetLedger).columns.map((column) => column.name);
     expect(budgetColumns).toEqual(
       expect.arrayContaining(['operation', 'status', 'llm_calls', 'tool_calls', 'input_tokens', 'output_tokens']),

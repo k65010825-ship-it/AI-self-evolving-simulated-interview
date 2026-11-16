@@ -6,7 +6,7 @@ import type { agentRuns, runAttempts, runEvents, budgetLedger } from './tables/r
 import type { evaluations, reports } from './tables/evaluations.ts';
 import type { reflections, predictionSnapshots, performancePairs } from './tables/reflection.ts';
 
-/** Row shapes for the desktop-local repositories. */
+/** Proposed business extensions and rebuildable projections. Not a replacement for profile v3 local_* authority. */
 export type SkillProfileRow = typeof skillProfiles.$inferSelect;
 export type SkillObservationRow = typeof skillObservations.$inferSelect;
 export type InterviewSessionRow = typeof interviewSessions.$inferSelect;

@@ -1,6 +1,9 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
+import { interviewSessions } from './interviews.ts';
+import { reports } from './evaluations.ts';
+
 const nowMs = sql`(unixepoch() * 1000)`;
 
 export const learningProgress = sqliteTable(
@@ -39,8 +42,8 @@ export const recommendations = sqliteTable(
     userId: text('user_id').notNull(),
     roleId: text('role_id').notNull(),
     skillId: text('skill_id').notNull(),
-    interviewId: text('interview_id'),
-    reportId: text('report_id'),
+    interviewId: text('interview_id').references(() => interviewSessions.id, { onDelete: 'restrict' }),
+    reportId: text('report_id').references(() => reports.id, { onDelete: 'restrict' }),
     resourceId: text('resource_id'),
     action: text('action').notNull(),
     rationale: text('rationale').notNull(),

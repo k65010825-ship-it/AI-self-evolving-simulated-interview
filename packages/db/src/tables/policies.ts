@@ -19,6 +19,7 @@ export const policyVersions = pgTable(
     skillId: text('skill_id'),
     status: policyStatus('status').notNull().default('candidate'),
     publicationStatus: publicationStatus('publication_status').notNull().default('not_published'),
+    // Compatibility summary only; never evidence that every client/session adopted this policy.
     adoptionStatus: adoptionStatus('adoption_status').notNull().default('not_adopted'),
     parentVersion: text('parent_version').references((): AnyPgColumn => policyVersions.version, {
       onDelete: 'set null',

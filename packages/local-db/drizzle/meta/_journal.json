@@ -8,6 +8,13 @@
       "when": 1794832919158,
       "tag": "0000_oval_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794838447147,
+      "tag": "0001_local_integrity_and_projection_compatibility",
+      "breakpoints": true
     }
   ]
 }

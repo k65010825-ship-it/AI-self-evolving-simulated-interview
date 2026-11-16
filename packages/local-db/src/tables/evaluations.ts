@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
+import { interviewSessions, interviewTurns } from './interviews.ts';
+
 const nowMs = sql`(unixepoch() * 1000)`;
 
 const dimensionValues = sql`in ('correctness', 'depth', 'logic', 'role_fit', 'communication', 'speech_acoustics', 'speech_emotion')`;
@@ -9,8 +11,8 @@ export const evaluations = sqliteTable(
   'evaluation',
   {
     id: text('id').primaryKey(),
-    interviewId: text('interview_id').notNull(),
-    turnId: text('turn_id').notNull(),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
+    turnId: text('turn_id').notNull().references(() => interviewTurns.id, { onDelete: 'restrict' }),
     userId: text('user_id').notNull(),
     roleId: text('role_id').notNull(),
     skillId: text('skill_id').notNull(),
@@ -42,7 +44,7 @@ export const evaluations = sqliteTable(
 export const evaluationDimensions = sqliteTable(
   'evaluation_dimension',
   {
-    evaluationId: text('evaluation_id').notNull(),
+    evaluationId: text('evaluation_id').notNull().references(() => evaluations.id, { onDelete: 'restrict' }),
     dimension: text('dimension').notNull(),
     status: text('status').notNull().default('scored'),
     score: real('score'),
@@ -55,7 +57,7 @@ export const evaluationDimensions = sqliteTable(
     check('evaluation_dimension_status_values', sql`${table.status} in ('scored', 'zero', 'missing_evidence', 'abstained')`),
     check('evaluation_dimension_score_range', sql`${table.score} is null or ${table.score} between 0 and 1`),
     check('evaluation_dimension_scored_has_score', sql`${table.status} <> 'scored' or ${table.score} is not null`),
-    check('evaluation_dimension_zero_score', sql`${table.status} <> 'zero' or ${table.score} = 0`),
+    check('evaluation_dimension_zero_score', sql`${table.status} <> 'zero' or (${table.score} is not null and ${table.score} = 0)`),
     check(
       'evaluation_dimension_unscored_null',
       sql`${table.status} not in ('missing_evidence', 'abstained') or (${table.score} is null and ${table.evidenceRefs} = '[]')`,
@@ -67,7 +69,7 @@ export const reports = sqliteTable(
   'interview_report',
   {
     id: text('id').primaryKey(),
-    interviewId: text('interview_id').notNull(),
+    interviewId: text('interview_id').notNull().references(() => interviewSessions.id, { onDelete: 'restrict' }),
     userId: text('user_id').notNull(),
     roleId: text('role_id').notNull(),
     policyVersion: text('policy_version').notNull(),
@@ -91,7 +93,7 @@ export const reports = sqliteTable(
 export const reportDimensions = sqliteTable(
   'report_dimension',
   {
-    reportId: text('report_id').notNull(),
+    reportId: text('report_id').notNull().references(() => reports.id, { onDelete: 'restrict' }),
     dimension: text('dimension').notNull(),
     score: real('score'),
     evidenceRefs: text('evidence_refs', { mode: 'json' }).$type<string[]>().notNull().default([]),
