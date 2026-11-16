@@ -35,7 +35,7 @@ POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 A
 
 User → InterviewSession → InterviewTurn → Evaluation；Session → AgentRun → RunAttempt/RunEvent。RoleProfile → KnowledgeItem/Question/Rubric。User+Role+Skill → SkillObservation/Profile。Recommendation → LearningProgress → PredictionSnapshot/PerformancePair → Reflection → PolicyVersion/EvalExperiment。
 
-骨架 schema 仅放基础表，完整状态机、迁移、事务和持久化属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与长期画像不能用同一份 JSONL 替代。
+骨架 schema 已覆盖上述实体（表分组与不变量见[数据库设计](database.md)），迁移由 drizzle-kit 生成并有离线执行用例；但在部署实例执行迁移、repository/事务实现、并发与恢复验证属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与长期画像不能用同一份 JSONL 替代。
 
 ## 面试状态与规划
 

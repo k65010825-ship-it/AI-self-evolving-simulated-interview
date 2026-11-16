@@ -45,6 +45,16 @@ bun run openapi:lint
 
 `pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](.env.example)。
 
+数据库迁移（表结构真值与不变量见 [数据库设计](docs/database.md)）：
+
+```powershell
+bun run db:generate   # 修改 packages/db/src/tables 后生成迁移
+bun run db:check      # 校验迁移与快照一致
+bun run db:migrate    # 需要 DATABASE_URL，应用到目标 PostgreSQL
+```
+
+`bun test` 中的迁移用例会在 PGlite（PostgreSQL 17 WASM）实际执行迁移并校验约束；本机开发库已用 `bun run db:migrate` 建表成功，部署库仍需单独迁移。
+
 <details>
 <summary>Windows 没有全局 Bun 时的引导方式</summary>
 
@@ -70,7 +80,7 @@ apps/
 packages/
   contracts/                 跨服务 Zod 契约、错误与事件
   interview-domain/          纯领域规则
-  db/                        Drizzle 数据模型
+  db/                        Drizzle 表结构、迁移与连接工厂
 knowledge/                   两岗知识、题目草案与来源登记
 experiments/pi-sdk/          可复现的离线 SDK 示例
 evals/                       评测数据清单与说明
@@ -126,6 +136,8 @@ flowchart LR
 | [Agent 工具契约](docs/tool-contracts.md) | 工具输入、回执、岗位授权与调用预算 |
 | [错误处理](docs/error-handling.md) | 错误码、重试与取消规则 |
 | [评测计划](docs/evaluation-plan.md) | 数据划分、指标、对照实验与验收方法 |
+| [数据库设计](docs/database.md) | 表分组、关键不变量、迁移流程与验证状态 |
+| [原型交接文档](docs/HANDOFF.md) | 原型阶段提出的分端改动与接口需求；与 PRD、接口文档冲突时以后两者为准 |
 | [OpenAPI](docs/openapi.yaml) / [工具 JSON Schema](docs/tool-schemas.json) | 由生成脚本维护的机器可读契约 |
 
 参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md
