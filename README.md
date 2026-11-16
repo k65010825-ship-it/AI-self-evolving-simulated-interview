@@ -1,120 +1,109 @@
 # AI 自进化模拟面试工作台
 
+
+
 ## 项目简介
 
-面向计算机相关专业学生的 AI 模拟面试平台，首批支持 **Java 后端、Web 前端**。产品方向已调整为 **客户端随包启动的本地 Agent 运行时**：独立子进程＋stdio RPC，会话、记忆和任务保存在用户本机；界面仍由前端同学负责，目标日期为 **2026-12-19**。
 
-**本地文字宿主与live接入机制已实现**：本地宿主管理正式会话/记忆、任务/事件、CAS回执和恢复，客户端主进程通过stdio通信。真实模型适配已接入本地宿主并以注入HTTP验证；本地语音已接入并用合成音频/注入HTTP验证；系统凭证库、物理音频设备和桌面接线尚未验收；本地运行时不等于本地模型或完整安装版已验收。详见[设计](docs/client-runtime.md)与[本地接口](docs/local-runtime-api.md)。
 
-现已有可运行的 SQLite 试点：学生登录、多轮文字/语音面试、规划驱动选题、转写确认、内容报告、跨会话记忆、持久任务与统一会话预算。默认离线；真实 LLM、千问 Omni ASR、TTS 和表达观察通过显式在线配置启用。知识仍为两岗各12条草案，真实教学效果、独立评分质量和表达可靠性尚未验证，不能称正式产品已验收。
+面向计算机相关专业学生的 AI 模拟面试平台，首批支持 **Java 后端**和 **Web 前端**岗位。通过多轮语音/文字面试、状态感知追问、多维评估和个性化复测，帮助学生发现并改善能力短板；系统根据历史评估与后续表现迭代追问策略，形成学生成长与系统自校准两个闭环。
+
+交付形式为 **Windows Electron 客户端＋统一服务器**，目标交付日期为 **2026 年 12 月 19 日**。
+
+当前仓库处于开发骨架阶段：已有 Pi SDK 离线工具循环、岗位知识草案、共享契约、健康接口及桌面构建入口；正式面试、登录、语音评估、数据库任务和 RSI 业务流程待实现。
 
 ## 开发入口
 
-分支分工：`master` 维护团队共享文档与稳定基线，当前 Agent 实现在 `feature/agent`。运行以下开发命令前请切换到 `feature/agent`；主分支文档描述的实现状态以该分支代码和对应验收记录为准。
 
-需要 Node.js ≥24、Bun 1.4.4，依赖以 bun.lock 为准。在项目根目录执行：
 
-```powershell
+需要 Node.js ≥24、Bun 1.4.4。依赖以 `bun.lock` 为准。
+
+安装依赖并启动服务（API 与 Agent 分别在两个终端启动）：
+
+```
 bun install --frozen-lockfile --ignore-scripts
-bun run agent:local:acceptance
-# 单独构建仅供测试的注入HTTP产物，真实模型请求为0
-bun run agent:local:live:acceptance
-bun run agent:local:speech:acceptance
+bun run dev:api
+bun run dev:agent
 ```
 
-此命令构建包内Bun＋runtime.js，实际spawn产物，从不同cwd完成双岗面试、关闭/重启、记忆召回与幂等重放。产物与报告在`.cache/local-agent-build`、`.cache/local-runtime-acceptance`，不读Key、不调用真实模型。桌面主进程使用`@interview/local-agent-client`和自己的userData路径接入；不启动API或本地HTTP端口。
+API：`http://127.0.0.1:3100/health`；Agent：`http://127.0.0.1:3200/health`。当前仅健康接口可用，业务接口返回 `501 NOT_IMPLEMENTED`。
 
-单独构建用`bun run agent:local:build`；直接运行源码stdio入口用`bun run agent:local --data-dir <绝对用户目录> --assets-root <绝对资源目录>`。入口读取JSONL，不是交互式聊天。
+构建和启动桌面客户端：
 
-本地在线验收工具默认只prepare，不读取Key。使用以下离线命令验证其批次门控、双岗流程和五类故障：
-
-```powershell
-bun --no-env-file run agent:local:online prepare
-bun --no-env-file run agent:local:online demo
-bun --no-env-file run agent:local:online drills
+```
+bun run desktop:runtime
+bun run desktop:build
+bun run desktop:start
 ```
 
-真实execute须新的批次授权；恢复只观察旧profile，不自动重发或重置额度。详见[本地在线验收与故障演练](docs/local-online-acceptance.md)。
+`desktop:runtime` 下载 Electron 运行时。依赖安装默认禁用安装脚本，因此首次启动桌面前需要执行；桌面 GUI、麦克风与安装包仍需单独验收。
 
-评分质量草案验收：`bun --no-env-file run agent:scoring:quality prepare`冻结双岗八例，`demo`运行合成HTTP演练；覆盖正常回答、证据不足/弃评和验证目标题。运行通过与评分语义质量分开，详见[评分质量验收](docs/scoring-quality.md)。
+开发检查：
 
-旧服务试点保留`pilot:setup`/`pilot:start`供回归，仍使用3100/3200及`.cache/pilot`。本地迁移以独立stdio验收为准，旧HTTP验收不代替本地链路。
-
-当前开发范围仅为Agent；桌面端源码、专属依赖、打包与验收入口已按用户要求删除。业务API现有实现保留供后端同学接线，不继续扩展客户端。
-
-真实用户与双岗位质量验收直接使用CLI：
-
-```powershell
-bun run agent:field prepare .cache/field/self-01 self-01
-bun run agent:field collect .cache/field/self-01
-bun run agent:field status .cache/field/self-01
+```
+bun run typecheck
+bun test
+bun run pi:offline
+bun run check:knowledge
+bun run openapi:generate
+bun run openapi:lint
 ```
 
-每岗8题，覆盖技术、场景、项目、行为；先本机采集并保存回答，默认不读Key、不发模型请求。完成16题后显式运行score --execute，才会将答案发送到项目已配置的千问平台，最多16次/2元声明额度、无自动重试。随后导出两位队友分别填写的盲审包，见[真人双岗验收手册](docs/agent-field-acceptance.md)。不得把自动测试或空标签当真人验收通过。
+`pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/.env.example)。
 
-```powershell
-bun run agent:delivery
-bun run agent:delivery --verify .cache/agent-delivery/<run>/report.json
-```
-
-当前交付为13阶段Agent检查，不包含桌面构建；已升级报告suite版本，历史14阶段报告不冒充当前验收。没有全局Bun时可用 `& .\node_modules\@oven\bun-windows-x64\bin\bun.exe`。
-
-数据库迁移（队友新增的Drizzle模型与SQL，详见[数据库设计](docs/database.md)）：
-
-```powershell
-bun run db:generate   # 修改 tables 后生成迁移
-bun run db:check      # 校验迁移与快照
-bun run db:migrate    # 需要 DATABASE_URL，写入目标 PostgreSQL
-```
-
-迁移用例使用PGlite执行SQL并检查约束；开发库迁移记录见数据库文档，部署实例与业务事务仍须单独验收。PostgreSQL用于管理域及旧服务模型，不替代客户端本机SQLite。
+<details style="box-sizing: border-box; display: block; margin-top: 0px; margin-bottom: 16px; color: rgb(31, 35, 40); font-family: &quot;Mona Sans VF&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;Noto Sans Backtick Fix&quot;, &quot;Noto Sans&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 16px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><summary style="box-sizing: border-box; display: list-item; cursor: pointer;">Windows 没有全局 Bun 时的引导方式</summary><p dir="auto" style="box-sizing: border-box; margin-top: 0px; margin-bottom: 16px;">在项目根目录执行，不用 npm 安装带 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">workspace:*</code> 的项目本身：</p><div class="highlight highlight-source-powershell notranslate position-relative overflow-auto" dir="auto" style="box-sizing: border-box; overflow: auto !important; position: relative !important; margin-bottom: 16px; background-color: rgb(246, 248, 250); justify-content: space-between; display: flex;"><pre style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; margin-top: 0px; margin-bottom: 0px; overflow-wrap: normal; padding: 16px; color: rgb(31, 35, 40); background-color: rgb(246, 248, 250); border-radius: 6px; line-height: 1.45; overflow: auto; word-break: normal;">npm install <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>prefix .tools<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">/</span>bun <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>ignore<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>scripts <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>no<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>audit <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>no<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>fund <span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@oven</span><span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">/</span>bun<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>windows<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>x64<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@1<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">.4.4</span></span>
+<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">&amp;</span> .\.tools\bun\node_modules\<span class="pl-smi" style="box-sizing: border-box; color: rgb(31, 35, 40);">@oven</span>\bun<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>windows<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>x64\bin\<span class="pl-c1" style="box-sizing: border-box; color: rgb(5, 80, 174);">bun.exe</span> install <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>frozen<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>lockfile <span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">--</span>ignore<span class="pl-k" style="box-sizing: border-box; color: rgb(207, 34, 46);">-</span>scripts</pre><div style="box-sizing: border-box;"></div></div><p dir="auto" style="box-sizing: border-box; margin-top: 0px; margin-bottom: 16px;">随后可将上文的 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">bun</code> 替换为 <code style="box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;, monospace; font-size: 13.6px; white-space: break-spaces; background-color: rgba(129, 139, 152, 0.12); border-radius: 6px; margin: 0px; padding: 0.2em 0.4em;">&amp; .\node_modules\@oven\bun-windows-x64\bin\bun.exe</code>。Linux 服务端使用预装 Bun。</p></details>
 
 ## 系统目录
 
-```text
+
+
+```
+.agents/skills/              Pi SDK 开发与 Craft 架构参考 Skill
 apps/
-  api/src/pilot/     登录、正式会话/记忆/回执CAS、语音授权与代理
-  agent/src/local/   本地宿主、单库租约/提交、stdio子进程入口
-  agent/src/         可复用Pi规划/评分/记忆/压缩/恢复与供应商适配
-  pilot/             API/Agent可运行装配与配置
+  desktop/                   Electron main / preload / React renderer
+  api/                       业务 API、会话与正式数据的服务入口
+  agent/                     Pi 适配、面试编排与工具执行
 packages/
-  contracts/         跨服务Zod schema真值
-  agent-client/      内部HTTP/SSE客户端、候选提交验证
-  local-agent-client/ 主进程专用spawn/stdio/事件与关闭SDK
-  interview-domain/  纯领域规则
-  db/                Drizzle表结构/迁移/连接工厂（管理域与旧服务目标模型）
-knowledge/           两岗题库、量规和来源草案
-.agents/skills/      Pi SDK开发Skill
-experiments/         离线SDK与模块演练
-evals/              合成评测、独立审核与真实队列导入工具
-scripts/             运行、构建、评测、对账与文档生成
-tests/              回归、TCP、SQLite及崩溃恢复测试
-docs/               稳定需求、接口、架构与操作手册
+  contracts/                 跨服务 Zod 契约、错误与事件
+  interview-domain/          纯领域规则
+  db/                        Drizzle 数据模型
+knowledge/                   两岗知识、题目草案与来源登记
+experiments/pi-sdk/          可复现的离线 SDK 示例
+evals/                       评测数据清单与说明
+infra/                       开发基础设施配置
+scripts/                     构建、数据检查与接口文档生成
+tests/                       行为与 SDK 集成测试
+docs/                        需求、接口与团队开发文档
 ```
 
 ## 项目架构
 
-```mermaid
-flowchart LR
-  C[客户端主进程 队友接线] <-->|stdio RPC| L[本地宿主 sidecar]
-  L --> DB[(用户目录 profile.sqlite 会话/记忆/任务/事件/回执)]
-  L --> PI[复用隔离Pi核心 默认offline 显式live]
-  PI --> V[显式授权的模型供应商 语音待迁移]
-```
 
-本地宿主拥有正式状态，模型只产候选；会话/记忆与提交回执在同库事务写入，owner/fence与期限随事务检查。评分与规划分上下文；跨会话召回、压缩与恢复继续复用。重启不自动重跑未知消耗；同岗限制一场未结束会话，防止记忆收尾冲突。旧HTTP入口仅为回归。详见[架构](docs/architecture.md)。
+
+下面是目标架构；当前已实现的基础能力见需求文档中的状态表。
+
+<iframe title="File display" role="presentation" class="render-viewer" src="https://viewscreen.githubusercontent.com/markdown/mermaid?docs_host=https%3A%2F%2Fdocs.github.com&amp;color_mode=light#a1af4b1b-ca64-408d-a556-65141ab58739" name="a1af4b1b-ca64-408d-a556-65141ab58739" data-content="{&quot;data&quot;:&quot;flowchart LR\n  subgraph Windows客户端\n    UI[React 界面] --> Bridge[Preload 白名单桥接]\n    Bridge --> Main[Electron 主进程]\n  end\n  Main -->|HTTPS / SSE| API[业务 API]\n  API -->|内部 HTTP| Agent[独立 Agent 服务]\n  API --> DB[(PostgreSQL)]\n  API --> Files[私有文件存储]\n  Agent --> Pi[Pi SDK 适配层]\n  Agent --> Tools[授权知识与评分工具]\n  Pi --> Models[大语言模型]\n  Agent --> Speech[语音服务]\n&quot;}" sandbox="allow-scripts allow-same-origin allow-top-navigation allow-popups" x_video_el_visible="false" style="box-sizing: border-box; border: 0px; width: 838.906px; height: 194.783px; display: block;"></iframe>
+
+业务 API 管理身份、会话、画像和正式结果；Agent 负责规划、评估、工具调用与反思。模型和语音凭证保留在服务端。Electron 的主进程使用自带 Node.js，Bun 用于工程和服务端。
 
 ## 技术栈
 
-| 层 | 技术 |
-| --- | --- |
-| 工程 | Bun 1.4.4、TypeScript strict、ESM、bun.lock |
-| 本地运行时 | Bun子进程、stdio JSONL、Zod、Pi SDK1.4.0；旧Hono HTTP/SSE保留回归 |
-| 存储 | SQLite WAL试点；PostgreSQL/Drizzle保留目标模型 |
-| 供应商适配 | 千问AI平台 OpenAI兼容LLM、Omni音频理解、原生TTS SSE |
-| 验证 | bun:test、Redocly、真实SDK的离线回归与人工盲审采集 |
 
-MCP仍是后续扩展选项；当前知识与评分工具是受宿主授权的真实本地工具，不为技术名词强加服务。
+
+层级技术用途工程Bun Workspaces、TypeScript strict、ESM单仓库与共享契约桌面Electron、Vite、esbuild桌面宿主、界面与主进程构建界面React、Tailwind CSS、Radix UI页面与交互；Jotai / TanStack Query 为状态与请求管理依赖API / AgentHono、Zod、Pi Agent SDK业务接口、运行时校验、Agent 运行数据PostgreSQL、Drizzle ORM业务数据；当前只有初始 schema 和开发配置通信Electron IPC、HTTP、SSE进程桥接与服务事件；业务流待接入质量Bun Test、TypeScript、Redocly行为测试、类型检查与 OpenAPI 校验
+
+
+
+## 文档
+
+
+
+文档主要内容[需求文档（PRD）](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/prd.md)产品范围、用户流程、需求编号、验收与当前状态[接口文档](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/api.md)服务地址、鉴权约定、HTTP 请求示例、状态与事件、联调边界[项目架构](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/architecture.md)模块责任、数据模型、运行与恢复、Agent 和 RSI 设计[协作与里程碑](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/collaboration.md)三人分工、接口变更流程、PR 与每周交付[数据源](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/data-sources.md)知识来源、数据组织、审核与生命周期[Agent 工具契约](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/tool-contracts.md)工具输入、回执、岗位授权与调用预算[错误处理](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/error-handling.md)错误码、重试与取消规则[评测计划](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/evaluation-plan.md)数据划分、指标、对照实验与验收方法[OpenAPI](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/openapi.yaml) / [工具 JSON Schema](https://github.com/k65010825-ship-it/AI-self-evolving-simulated-interview/blob/feature/api/docs/tool-schemas.json)由生成脚本维护的机器可读契约
+
+
+
+参与开发先读需求与接口文档，再按分工阅读架构和工具契约。自动化编码约定见 [AGENTS.md
 
 ## 文档
 
@@ -133,3 +122,4 @@ MCP仍是后续扩展选项；当前知识与评分工具是受宿主授权的�
 - [会话收尾修订预览](docs/closeout-preview.md)
 - [结构化输出失败诊断与引用冲突边界](docs/output-diagnostics.md)
 - [Agent主流程演示与联调验收](docs/agent-journey.md)
+
