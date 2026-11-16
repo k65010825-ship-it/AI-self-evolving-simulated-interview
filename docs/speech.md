@@ -2,7 +2,7 @@
 
 ## 当前能力与调用边界
 
-已实现独立宿主函数：内存 WAV → 注入 ASR provider → 原始转写与能量特征 → 学生确认文候选。Pi 评估仍使用文本，不为语音扩大工具权限。无真实 ASR 供应商、凭证、收费调用、上传 HTTP、Electron 麦克风或压缩音频转换。
+已实现独立宿主函数：内存 WAV → 注入 ASR provider → 原始转写与能量特征 → 学生确认文候选；新增可选[内部上传/确认任务HTTP](speech-tasks.md)及SQLite幂等/检查点，后续pilot入口现已接入正式API授权，见[pilot运行](pilot.md)。Pi评估仍使用文本。当前选择[千问Omni流式转写](asr-service.md)，保留百炼兼容；2026-11-06完成1次4.22秒本机合成英文语音真实HTTP200转写，94 token，不代表真人/中文质量。Electron虚拟麦克风与正式业务上传已通过本机试点验证；实体麦克风、真人质量、压缩音频转换和真实账单尚未验收。
 
 `bun run agent:speech:demo` 演示 Java 后端与 Web 前端。音频是程序生成的正弦波/静音，转写是手工 fixture；不是语音识别效果测试。真实字节解析、时长/能量计算、契约校验与取消逻辑可运行，`liveModelCalls=0`。确认候选已能通过 TurnInput.speech 接入内部 turn/report 任务与报告。无语音的报告保留 not_evaluated；有语音则输出 audio_descriptions，具体约定见下文“运行入口与报告联动”。
 
@@ -19,7 +19,7 @@
 
 context 沿用 ToolContext，包括 userId/runId/attemptId/roleId/deadlineAt；ASR 元数据另限制 userId 等标识最多100字符。API 应分配 transcriptionId/audioId、核对音频所有权、保存不可变源记录，并从身份态注入 context。哈希关联内容，不是身份签名。函数不读环境密钥或全局 SDK 配置。
 
-provider 是宿主依赖：`{id,version,mode,transcribe({wavBytes,durationMs,sampleRate},signal)}`；mode 为 offline-fixture 或预留 live-asr。仓库只提供 offline-fixture。接真实供应商前仍需明确授权、凭证来源和预算，不因存在接口类型就认为已接入。SDK 返回先按 AsrOutputSchema 校验：text≤10000字符，language为zh-CN/en-US/mixed/unknown，segments≤500，每段startMs/endMs/text，可选ASR confidence。时间段须顺序不重叠、正长且不越过音频；段落置信度保留为供应商元数据，绝不当学生自信。
+provider 是宿主依赖：`{id,version,mode,transcribe({wavBytes,durationMs,sampleRate},signal)}`；mode 为 offline-fixture 或 live-asr。已有本地fixture与千问/百炼适配器，启用/独立凭证/预算及小样本边界见[ASR接入](asr-service.md)。真实调用需明确授权、凭证来源和预算。返回先按 AsrOutputSchema 校验：text≤10000字符，language为zh-CN/en-US/mixed/unknown，segments≤500，每段startMs/endMs/text，可选ASR confidence。Omni没有可靠对齐/语种元数据时输出空segments和unknown；时间段须顺序不重叠、正长且不越过音频；段落置信度绝不当学生自信。
 
 ## 音频与计算口径
 

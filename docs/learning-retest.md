@@ -4,6 +4,29 @@
 
 契约：packages/contracts/src/learning.ts。实现：learning/progress.ts、learning/retest-pair.ts。机器定义在evaluation-schemas.json中。所有输入均为已授权宿主数据，不是模型可自报身份或完成状态的工具。
 
+## 从记忆到复练目标与发题前规划
+
+这部分完善现有记忆/规划/学习模块，不新增默认自动执行链。新契约learning-planning.ts，宿主函数learning/practice-plan.ts与learning/plan-retest.ts；类型/schema留共享包，业务规则留宿主，模型不持有确认完成或覆盖预测的权限。
+
+`buildPracticeGoals(memory,{userId,roleId,session,now,maxGoals})`先按已有规则恢复下一场状态，使用完整证据派生掌握/置信并复用rankSkills优先级。排除岗位相关性0的技能；掌握未知标no_evidence，掌握<0.6标weak_evidence，其余置信<0.5标uncertain_evidence；都是启发式练习候选，不是确定的学生能力诊断。最多默认3项/上限5项，附记忆版本、下一场sessionId、原时间/量规/模式证据及完整历史排题ID。附带证据复用有界召回，老证据可不在投影中但仍影响原估计/排题。函数不创建学习任务、不改变原记忆或普通面试策略。
+
+宿主应从目标建立学习任务，使用原createPrediction在学习/复测题暴露之前正式保存预测。target是独立的预期复测难度/完整量规，可与源题量规不同；不得在看到答案后修改。题目候选必须由授权知识适配层提供question/rubric/source：题目ID绑定source.knowledgeId，岗位/内容scope一致，source版本与量规版本分别追踪。新函数不自动替候选重写量规，不证明来源真实性或人工审核。
+
+`planRetestQuestion({userId,roleId,assignmentId,prediction,progress,state,now,askedQuestionIds,candidates,allowDraftKnowledge})`在发题前核对：
+
+- 身份/岗位/任务一致，练习集与冻结预测一致；时钟和输入结构有效。
+- 学习已核验完成，学习事件/核验时间不早于预测，完成时间严格早于plannedAt；预测严格早于plannedAt且未过期。
+- 新场次配置目标技能，剩余时间大于30秒；dataMode一致，unverified不发复测，consented要求源证据live-model。
+- 排除预测源题、显式已发题、当前场priorEvidence/observations的所有已见ID；目标技能、难度、完整量规精确匹配。
+- 同技能既有历史的行为内容/技术内容构念必须兼容；不能发出随后必被内容范围校验拒绝的混合构念题。
+- 默认只接受reviewed来源；draft仅在synthetic且allowDraftKnowledge显式开启时用于演练。不能用此标记认证真实审核。
+
+输出是uncommitted-retest-plan：ready含候选，blocked含发题前条件原因，unavailable表示无匹配未见题。没有最近难度/其他量规/重复题兜底。ID不同仍可能是语义近重复，当前未实现语义去重。多个合法候选按题目ID稳定排序；候选选择是确定性宿主规则，不冒称新模型自主规划。
+
+basedOn记录sessionId/stateVersion/progressVersion/plannedAt以及predictionId，但不是签名或提交凭证。API发题时必须重查可信身份、冻结预测、记忆/任务状态、版本与真实发题时间；若学习完成后有新暴露、任务取消/过期或版本变化，旧计划不能直接复用。ready不表示题目已发出，更不表示配对已合格；回答后仍走原pairRetest，核对实际时间、完整报告和参考评分。当前没有把该候选自动接进workflow HTTP，也没有实现持久发题/事务。
+
+运行`bun run agent:practice:demo`展示双岗合成链路：原报告→记忆目标→冻结预测→未学习时blocked→核验后选不同题→实际evaluateTurn与报告重验→pairRetest合格。参考/学习/时间均为固定合成fixture、非Pi或真实模型调用；仍无法证明学习提升或真实审核效果。原`agent:learning:demo`继续验证配对/统计。
+
 ## 学习任务与事件
 
 createLearningProgress接收userId/roleId/assignmentId/skillId、resourceIds、requiredExerciseIds、dataMode、now。dataMode=synthetic/consented/unverified，不把同意使用的真实记录和合成fixture混同。输出uncommitted-learning-progress，最多100事件，超限拒绝。

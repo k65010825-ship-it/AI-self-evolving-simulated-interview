@@ -1,6 +1,10 @@
 # Agent候选提交适配与CAS联调
 
-业务API可从@interview/agent-client导入createWorkflowCommitTicket、prepareWorkflowCommit、workflowCommitDigest与WorkflowCommitError。它们仅依赖共享contracts、Zod和Node crypto，不导入Pi、Agent服务或数据库。当前只处理workflow的create/plan/answer/finish/restore；turn/report/rsi明确拒绝，不自动发布策略。
+发题提交后的展示确认由独立sidecar处理，见[确认与恢复](question-ack.md)。API须把初次登记与plan提交关联，在确认事务中再次核对workflow/storage与sidecar CAS；helper不会替业务后端写入数据库。
+
+业务API可从@interview/agent-client导入createWorkflowCommitTicket、prepareWorkflowCommit、workflowCommitDigest与WorkflowCommitError。它们依赖共享contracts、interview-domain的确定性反馈投影、Zod和Node crypto，不导入Pi、Agent服务或数据库。当前只处理workflow的create/plan/answer/finish/restore；turn/report/rsi明确拒绝，不自动发布策略。
+
+新增criterionFeedback由Agent报告和客户端共用同一纯业务规则重建，继续与可信原轮次精确比较；未通过丢弃字段或允许任意新字段来兼容。引用自洽但共同改写卡片/学习动作仍拒绝，不代表完整报告或反馈语义被客户端重新评测。旧纯结构报告可读取，不代表旧已完成候选无需重新生成即可提交。
 
 prepare只返回未提交事务计划或已保存回执的精确重放，committed=false。正式API路由依然按现有边界返回501；本模块没有数据库连接、迁移、事务提交或学生鉴权。实验store的applied-in-memory不是生产提交。
 
@@ -82,3 +86,5 @@ bun run agent:commit:demo
 默认本机TCP，随机服务令牌和端口，真实SDK HTTP/SSE调用离线Agent。两岗演示8主操作与额外同快照竞争：revision=0/1/2/3/4/5/5/5，storageVersion=0/1/2/3/4/5/6/7；两个计算成功的plan只接受一份；旧create回执精确重放，画像仅追加一次。工具SSE仍committed=false，演练输出scope=offline-cas-fixture/formalCommitted=false/liveModelCalls=0。
 
 runWorkflowCommitDemo(role,'in-process')用于无端口教程，不能称为TCP验证。tests还覆盖取消/fence/过期、篡改、画像冲突及提交前故障零部分内存写。后者只是同步状态交换演练，不证明PostgreSQL事务回滚、跨实例锁、生产租约时钟或正式业务已交付。
+
+发题提交校验要求新plan追加完整issuedQuestions[].content，并与原题、量规、来源、策略、状态和命令run/attempt绑定；旧日志前缀必须逐项不变。answer/finish不能将旧文本联合改写，或删除content和presentedText降级成旧格式。回答的presentedText必须来自提交前的发题记录，报告按该输入重建。旧快照内容缺失仍兼容，但不能为历史补造展示文本。这些校验依赖API提供权威旧快照和事务CAS；schema/摘要不提供认证，prepare不执行正式数据库提交。

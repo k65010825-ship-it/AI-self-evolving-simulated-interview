@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "ExpressionAssessmentConfig": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "number",
+        "const": 1
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "providerId": {
+        "type": "string",
+        "const": "qianwen"
+      },
+      "modelId": {
+        "type": "string",
+        "const": "qwen3.8-omni-flash"
+      },
+      "endpoint": {
+        "type": "string",
+        "const": "https://cn-beijing.maas.qianwenaiapi.com/compatible-mode/v1"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 30000
+      },
+      "maxOutputTokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1500
+      },
+      "authorization": {
+        "type": "object",
+        "properties": {
+          "allowLive": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "allowLive",
+          "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "budget": {
+        "type": "object",
+        "properties": {
+          "maxCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "maxTotalAudioMs": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 12000000
+          },
+          "maxCostMicros": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000000
+          },
+          "reserveCostMicrosPerCall": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000000
+          }
+        },
+        "required": [
+          "maxCalls",
+          "maxTotalAudioMs",
+          "maxCostMicros",
+          "reserveCostMicrosPerCall"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "version",
+      "enabled",
+      "providerId",
+      "modelId",
+      "endpoint",
+      "timeoutMs",
+      "maxOutputTokens",
+      "authorization",
+      "budget"
+    ],
+    "additionalProperties": false
+  },
+  "ExpressionAssessment": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "clarity": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      },
+      "confidentDelivery": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      },
+      "vocalValence": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      },
+      "version": {
+        "type": "number",
+        "const": 1
+      },
+      "status": {
+        "type": "string",
+        "const": "unvalidated-model-estimate"
+      },
+      "dataStatus": {
+        "type": "string",
+        "enum": [
+          "sufficient_data",
+          "insufficient_data"
+        ]
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "audioSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "modelId": {
+            "type": "string",
+            "const": "qwen3.8-omni-flash"
+          },
+          "durationMs": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 120000
+          }
+        },
+        "required": [
+          "audioSha256",
+          "modelId",
+          "durationMs"
+        ],
+        "additionalProperties": false
+      },
+      "reliabilityValidated": {
+        "type": "boolean",
+        "const": false
+      },
+      "usedInFormalScore": {
+        "type": "boolean",
+        "const": false
+      },
+      "warnings": {
+        "maxItems": 12,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "required": [
+      "clarity",
+      "confidentDelivery",
+      "vocalValence",
+      "version",
+      "status",
+      "dataStatus",
+      "source",
+      "reliabilityValidated",
+      "usedInFormalScore",
+      "warnings"
+    ],
+    "additionalProperties": false
+  },
+  "ExpressionEvidence": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "startMs": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 120000
+      },
+      "endMs": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 120000
+      },
+      "quote": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 1000
+      }
+    },
+    "required": [
+      "startMs",
+      "endMs",
+      "quote"
+    ],
+    "additionalProperties": false
+  },
+  "ExpressionMetric": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "score": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "evidenceIntervals": {
+        "maxItems": 8,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "startMs": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "endMs": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 120000
+            },
+            "quote": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "startMs",
+            "endMs",
+            "quote"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "observation": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "required": [
+      "score",
+      "evidenceIntervals",
+      "observation"
+    ],
+    "additionalProperties": false
+  },
+  "ExpressionModelOutput": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "clarity": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      },
+      "confidentDelivery": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      },
+      "vocalValence": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidenceIntervals": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "startMs": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 120000
+                },
+                "endMs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 120000
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "startMs",
+                "endMs",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "score",
+          "evidenceIntervals",
+          "observation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "clarity",
+      "confidentDelivery",
+      "vocalValence"
+    ],
+    "additionalProperties": false
+  }
+}

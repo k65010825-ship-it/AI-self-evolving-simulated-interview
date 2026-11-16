@@ -30,6 +30,8 @@ try {
 
 上例的配置、signal和trustedRunRequest均由宿主提供；可运行示例见scripts/demo-agent-client.ts、demo-workflow-http.ts。baseUrl仅支持http/https根origin，不允许userinfo/path/query/hash；真实部署的TLS/私网由部署方负责。SDK固定redirect:error，避免把内部token跟随到其他地址；不能替代代理和网络策略。
 
+显式turn.clarification任务可返回uncommitted-unscored-turn-result，executeRun校验它的basedOn与请求run/attempt/session/version/answer/question/observation一致。needs_clarification/abstained是正常完成的未评分结果，调用方必须分支处理，不能把run completed当作已评分或正式提交；没有显式启用该选项却收到新结果类型会拒绝。events可接收answer.resolution，补充原文与最新receipt保存、次数防重置和API CAS仍由业务后端负责。完整workflow仍严格，细节见[运行契约](agent-runtime.md#显式澄清与弃评)。
+
 ## 方法
 
 | 方法 | 返回与约定 |
@@ -48,6 +50,8 @@ SDK另导出createWorkflowCommitTicket和prepareWorkflowCommit，供API以可信
 run/attempt路径标识限制1—1000字符，拒绝控制字符与`.`/`..`，按URL组件编码，不解释ID内容。JSON请求最多2MiB UTF-8，与服务保持一致；响应实际读取最多16MiB（可配置，最高32MiB）。响应体不是可执行对象，必须通过schema及关联校验。
 
 ## SSE与重连
+
+显式自然呈现模式的turn结果可含delivery，question.completed也可含同名候选，并出现presenting阶段。客户端核对run/attempt/session/下一状态版本/原answerId及逐字唯一摘录；原题仍由共享schema与selection绑定。delivery.status=canonical代表跳过或回退，不能当生成成功；generated仍semanticReview=pending。实际发题文本、租约/CAS与学生归属由API保存/校验，见[自然提问呈现](question-delivery.md)。
 
 支持UTF-8跨chunk、LF/CRLF/CR、注释心跳及多行data，单帧默认64KiB（最高1MiB）。必须有合法id/event/data，JSON类型、信封seq、run/attempt与事件名一致；seq必须连续。重放重复不重复yield，同seq内容冲突或缺号直接PROTOCOL_ERROR，不猜测缺失事件。
 
@@ -69,9 +73,13 @@ AgentClientError.code是服务ErrorCode或CLIENT_VALIDATION/PROTOCOL_ERROR/NETWO
 
 SDK测试含分片/重放/断线/空闲/连续重复流、错误静态化、请求体/响应预算、身份关联、取消和启动总预算。进程内Hono验证与真实本机TCP验证分开，教程选择进程内以适应沙箱；两岗命令和集成测试另运行本机TCP。
 
-真实供应商、数据库事务、多实例恢复、GUI/麦克风/Windows安装、生产代理和真实教学质量仍未验证。服务当前32条内存记录/4活跃、2MiB请求限制不因客户端SDK而消失。
+SDK自身不证明真实供应商、数据库事务或GUI成功。后续[pilot入口](pilot.md)已接正式SQLite CAS、持久Agent及Electron虚拟麦克风链路；实体麦克风、Windows安装卸载、多实例恢复、生产代理和真实教学质量仍未验证。原内存入口32记录/4活跃和2MiB限制不因SDK而消失。
 
 
 ## 会话收尾后的 RSI 实验
 
+SDK `executeRun` 也支持 `job.type=closeout-preview`，返回独立的 `uncommitted-closeout-preview`，并校验原报告摘要与选中版本绑定。正式提交函数明确拒绝预览任务。请求/权限/结果说明见[修订预览](closeout-preview.md)，不要把预览report覆盖原closeout。
+
 内部 runs 新增 `job.type=rsi`，输入完整已收尾 Workflow 和实验快照，返回 `kind=uncommitted-workflow-rsi`。SDK 支持执行与安全事件订阅；SSE 只输出合成聚合指标。离线实验可激活、拒绝或重放，原会话策略不变；下一场 pin 仅预览、未写正式库。来源校验、隔离规则、回滚重放及接口字段见 [会话收尾与 RSI 离线实验](workflow-rsi.md)。
+
+发题提交校验要求新plan追加完整issuedQuestions[].content，并与原题、量规、来源、策略、状态和命令run/attempt绑定；旧日志前缀必须逐项不变。answer/finish不能将旧文本联合改写，或删除content和presentedText降级成旧格式。回答的presentedText必须来自提交前的发题记录，报告按该输入重建。旧快照内容缺失仍兼容，但不能为历史补造展示文本。这些校验依赖API提供权威旧快照和事务CAS；schema/摘要不提供认证，prepare不执行正式数据库提交。

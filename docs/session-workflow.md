@@ -4,7 +4,7 @@
 
 已实现Agent侧宿主函数，串联首题、连续回答、结束判断和同版本报告/记忆/反思候选。无新的业务HTTP路由、数据库或正式会话存储；业务API负责鉴权、任务/快照持久化、幂等键、租约和CAS。函数返回新候选，不修改旧快照；“completed”只表示本轮候选包完成，不表示数据库提交或RSI发布。
 
-`bun run agent:session:demo` 用两岗真实Pi SDK＋本地provider完成首题→项目回答→行为回答→两轮预算收尾，产生mixed-content报告、记忆候选和固定策略反思。只验证工程管线，真实模型/ASR/评分语义/教学效果未验证。当前种子仍小且draft，新会话发现旧题不再可用时返回知识缺口，不假造新题。
+`bun run agent:session:demo` 用两岗真实Pi SDK＋本地provider完成首题→项目回答→行为回答→两轮预算收尾，产生mixed-content报告、记忆候选和固定策略反思。只验证工程管线，该命令不验证真实模型/ASR/评分语义/教学效果。当前种子仍小且draft，新会话发现旧题不再可用时返回知识缺口，不假造新题。
 
 ```mermaid
 stateDiagram-v2
@@ -38,9 +38,11 @@ stateDiagram-v2
 
 每次成功迁移revision+1；回答后state.version+1，规划本身不改变能力状态。除完成重试特例外，expectedRevision须与快照一致，错阶段/旧修订返回VERSION_CONFLICT。revision是候选内检查，不是跨进程锁；并发从同一旧快照都可能算出候选，最终只能由API CAS接受一个。
 
-规划先检查宿主收尾，无需模型时不调用。其余调用已有知识规划器，合并真实回执，重复相同记录去重、同ID定义冲突拒绝；宿主再次验证岗位/技能/已问/构念/审核/难度与候选题目、量规和来源。不能使用无回执的伪造题目。候选变成current时记录currentIssuedAt及永久issuedQuestions日志；恢复pending题时也按发题时刻重验回执。
+规划先检查宿主收尾，无需模型时不调用。其余调用已有知识规划器，合并真实回执，重复相同记录去重、同ID定义冲突拒绝；宿主再次验证岗位/技能/已问/构念/审核/难度与候选题目、量规和来源。不能使用无回执的伪造题目。候选变成current时记录currentIssuedAt及永久issuedQuestions日志；恢复pending题时也按发题时刻重验回执。可选deps.deliver生成承接语，首题没有前答时保持原题；生成结束后重新读取宿主时间并检查收尾资格，currentIssuedAt取完成后的时间，不能用生成前时间冒充发题时刻。
 
-提交只提供回答，不能替换当前question/rubric；它们从宿主快照绑定。回答ID和评分runId不能在本场重复，观测ID及证据沿用既有验证。评分前now不得早于currentIssuedAt，恢复检查观测不早于对应发题。达到会话或任务deadline拒绝新评分。语音仍需speech.answer与answer匹配，原文特征与确认文分别保留。
+新计划总在issuedQuestions[].content保存question/rubric/source/text/stateVersion/policyId/planRunId/planAttemptId及可选delivery；text是待发题文本，不是客户端已展示回执。历史记录仅questionId/issuedAt的旧快照继续可读，缺失内容标记为未记录，不事后拼造。schema核对来源/版本、前答唯一摘录、状态与回答/报告一致性；可信API还必须与原快照比较，不能把schema当认证。
+
+提交只提供回答，不能替换当前question/rubric；它们从宿主快照绑定。若已发题记录包含content，自动复制text为TurnInput.presentedText；旧记录没有content则不补该字段。评分模型仍只读原question与rubric，不把桥句送入评分提示；报告保留questionText和可选presentedText，并以presentationReview标记pending或not-applicable。回答ID和评分runId不能在本场重复，观测ID及证据沿用既有验证。评分前now不得早于currentIssuedAt，恢复检查观测不早于对应发题。达到会话或任务deadline拒绝新评分。语音仍需speech.answer与answer匹配，原文特征与确认文分别保留。
 
 状态或知识缺口进入ready_to_close。用户结束可在非完成阶段触发；待回答题保留在发题日志但不写能力观测。默认automatic只允许ready_to_close；超时后可先调用plan让宿主直接收尾（须提供仍有效的任务context），不会调用过期会话的模型。
 
@@ -59,3 +61,11 @@ restore检查身份、phase、current与回执、发题时序、版本和记录�
 复用VALIDATION_ERROR、FORBIDDEN、ROLE_FORBIDDEN、VERSION_CONFLICT、MODEL_OUTPUT_INVALID、CONTEXT_BUDGET_EXCEEDED、RUN_CANCELLED和DEADLINE_EXCEEDED。未知依赖异常静态化为DEPENDENCY_UNAVAILABLE，不透出私密错误。快照上限8Mi字符，轮次/发题最多200。
 
 每个异步步骤使用独立AbortController、墙钟timer和等待后检查，忽略abort的依赖迟到也不能返回新快照。收尾步骤间再次检查；内存纯计算不承诺抢占同步CPU。未实现持久任务、跨进程恢复、事务写入或收费停止保证。内部候选包含量规、原文、回执等材料，API须按学生权限裁剪，不能整包交给renderer。
+
+## 呈现与文本留存演练
+
+客户端上报展示完成的回执采用独立API sidecar，见[发题确认与重连恢复](question-ack.md)。确认不改变本workflow或报告；现有answer不自动启用门禁，需API显式核对回执、当前题和任务版本。
+
+`bun run agent:workflow:delivery:demo`在两岗完成create→plan→answer→plan→answer→finish→restore，使用真实Pi SDK和本地固定provider，liveModelCalls=0。加`--tcp`使用本机端口；默认是进程内HTTP/SSE。快照实际写入.cache/workflow-delivery-demo并读回，后端内存CAS演练拒绝历史文本改写及降级删除。它不是正式数据库提交或生产任务恢复。
+
+2026-11-04同场景使用千问真实调用14HTTP、12935token、0.188436元声明费率估算通过；每岗首题原题、第二题生成桥句，回答/报告/JSON恢复文本一致，create/finish/restore不调用模型。输入为手写合成回答，人工语义审核pending，不能推导真人体验、评分准确性或教学效果。

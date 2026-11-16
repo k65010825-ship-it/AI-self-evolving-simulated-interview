@@ -19,7 +19,7 @@ bun run agent:delivery --verify .cache/agent-delivery/run-实际目录/report.js
 
 | 阶段 | 执行与判定 |
 | --- | --- |
-| typecheck / test / pi_offline / knowledge_check / openapi_lint / desktop_build | 固定六命令顺序执行；test要求退出0且Bun摘要有正数通过、0失败和断言计数 |
+| typecheck / test / pi_offline / knowledge_check / openapi_lint | 固定五命令顺序执行；test要求退出0且Bun摘要有正数通过、0失败和断言计数 |
 | model_preflight | 离线配置可用，planned配置禁止在线执行，未检查凭证 |
 | knowledge_catalog | 当前固定24条草案、20条结构可送审、0 reviewed；两岗均有资料 |
 | curated_knowledge | 两岗真实Pi离线工具查询；draft-preview选题，reviewed-only关闭 |
@@ -29,7 +29,7 @@ bun run agent:delivery --verify .cache/agent-delivery/run-实际目录/report.js
 | workflow_commit | 两岗内存CAS冲突、幂等重放、完成但未正式提交 |
 | source_integrity | 执行前后源码指纹必须相同 |
 
-独立阶段失败后继续收集其他结果；取消后续阶段标为`not_run/cancelled`，整体验收失败。工程子进程每项120秒、合计输出上限1MiB，仅暂存32KiB尾部解析测试计数，不持久化日志或任意异常正文。使用固定Bun命令、无shell、环境变量白名单及`--no-env-file`；这不是操作系统网络或秘密隔离沙箱。超时/取消尝试终止自身进程树，Windows使用自有PID的taskkill；不能据此保证任意第三方脱离进程均被清理。
+独立阶段失败后继续收集其他结果；取消后续阶段标为`not_run/cancelled`，整体验收失败。test子进程总时限180秒，其他工程子进程每项120秒；这只是离线检查器的阶段时限，不改变模型请求、重试或业务运行期限。合计输出上限1MiB，仅暂存32KiB尾部解析测试计数，不持久化日志或任意异常正文。使用固定Bun命令、无shell、环境变量白名单及`--no-env-file`；这不是操作系统网络或秘密隔离沙箱。超时/取消尝试终止自身进程树，Windows使用自有PID的taskkill；不能据此保证任意第三方脱离进程均被清理。
 
 场景每组60秒；超时/取消后不接受迟到结果，不写迟到产物。已有场景内部另有预算；外层超时不会强制中断同进程中的任意第三方异步工作。不会执行validation/reserved-final，也不会自动批准知识或发布策略。
 
@@ -37,7 +37,7 @@ bun run agent:delivery --verify .cache/agent-delivery/run-实际目录/report.js
 
 每次生成独立`.cache/agent-delivery/run-*`目录：
 
-- `report.json`：固定14阶段、状态、测试计数、运行版本、源码清单、证据文件字节数/SHA256、摘要与未验证项。
+- `report.json`：固定13阶段（Agent-only v2）、状态、测试计数、运行版本、源码清单、证据文件字节数/SHA256、摘要与未验证项。
 - `report.md`：可读报告。`handoff.md`：前后端协作者入口及数据提交边界。
 - `scenarios.json`：仅固定名称的布尔检查，不含题目/回答/量规或原始日志。
 - `acceptance.json`、`answers-development.json`：对应阶段有可校验结果时保存原模块安全报告；失败阶段不伪造补齐。

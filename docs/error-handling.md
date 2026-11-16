@@ -33,13 +33,15 @@ HTTP 错误使用 application/problem+json：type（稳定 URN）、title、stat
 | RATE_LIMITED | 429 | 是 | Retry-After；统一调度器在总预算内处理 |
 | DEPENDENCY_UNAVAILABLE | 503 | 是 | 只读依赖有限重试、退避，记录 attempt |
 | DEADLINE_EXCEEDED | 504 | 否 | 当前 run 期限耗尽，终止继续调用 |
-| MODEL_OUTPUT_INVALID | 502 | 是 | 最多一次 schema 修复，计入总调用预算 |
+| MODEL_OUTPUT_INVALID | 502 | 是 | 默认拒绝；已支持显式本地JSON围栏解包，模型修复调度尚未实现；未来重试须计入总预算 |
 | NOT_IMPLEMENTED | 501 | 否 | 骨架能力尚未实现，不返回虚构业务数据 |
 | INTERNAL_ERROR | 500 | 否 | 公开通用摘要，带 requestId，服务端记录脱敏诊断 |
 
 工具回执与 HTTP 使用同一 code catalog，但工具返回结构化 status/error，不把 HTTP code 当成模型可随意恢复的授权。query empty 是正常 empty，不使用异常触发全网搜索。
 
 ## 统一预算与结果资格
+
+自然提问呈现是可选附加步骤：未花费的额度/时间不足或已完整结算的非法桥句可回原题，原因明确写入delivery；评分失败、取消、期限、依赖失败以及unknown/overrun不会因此变成功。它不增加模型自动重试，详见[呈现契约](question-delivery.md)。
 
 Pi SDK retry/compaction 首版关闭。业务 run 最多两次任务尝试，每次最多三次 LLM 请求（含输出修复）、五次工具、120 秒；语音服务另设有界任务预算。只能由任务执行器统一重试，SDK/HTTP client/工具不得叠加无界重试。
 
@@ -49,8 +51,21 @@ HTTP 超时不保证远端没执行。API 用 run/attempt/sessionVersion/租约�
 
 ## 骨架行为
 
+发题确认API helper使用独立静态PRESENTATION_*错误码，见[确认契约](question-ack.md)。这些错误目前不新增HTTP映射或成功路由；精确重放回执不重新激活题目，取消/过期不能转换成展示成功。
+
 当前 /health 返回 stage=scaffold、能力列表和 liveModelConfigured=false。/v1 或 /internal/v1 下未实现能力统一 501；未知路径 404。没有登录/模型/数据库时绝不返回“面试完成”。error→HTTP 公开映射使用固定说明，不信任任意 Error.message。
 
 ## 内部离线运行
 
+宿主可选的HTTP重试和模型结构修复见[恢复契约](model-recovery.md)。默认关闭；明确429/503拒绝可有界等待重试，unknown/取消/过期/鉴权失败不自动恢复。引用与评分错误不能补造成成功，不重跑整个业务任务。
+
+显式启用turn.clarification时，完整结构且逐项显式null的证据不足是正常needs_clarification/abstained结果，run可completed但未评分、不提交观测。它与有证据的0分、漏字段/非法引用的MODEL_OUTPUT_INVALID及取消/超时错误不同；默认严格turn/完整workflow仍保留原校验。补充绑定/策略冲突为VERSION_CONFLICT，结构非法为VALIDATION_ERROR。详见[澄清与弃评](agent-runtime.md#显式澄清与弃评)。
+
 内部 HTTP 使用同一错误目录；运行期间的错误写入失败快照和 run.failed。取消与超时均拒绝迟到结果，SSE 断开只退订。429 表示内存记录或活跃上限，不承诺排队；409 包括同 runId 变更内容/attempt、旧 attempt 取消及超前游标。重启丢失内存任务和幂等记录，不能依此恢复正式提交。详见 [内部运行契约](agent-runtime.md)。
+
+
+评分证据静态诊断增加no-substantive-answer/risk-only-verification/advice-only-ownership。前者可在合法宿主校验后以0次模型请求澄清/弃评；后两者只识别已声明维度的有限反例。需要严格完整评分的路径拒绝不安全结果；支持弃评的路径返回null，不将其作为技术错误0分写入。详见content-rubrics.md，不将负向规则称通用语义验证。
+
+## 宿主门控与请求内分支
+
+Pi三个适配器共用CompletionGate；工具错误/未结束工具/异常停止/宿主输出校验失败不能返回有效结果。可选同步验证钩子异常按拒绝处理，观测回调仍不改变业务。评分JSON/schema修复从请求内Pi树checkpoint分支，旧错误仍保留但不进入新模型上下文；树不是持久业务回滚，重启与unknown恢复仍由持久账本决定。压缩器只可删选已知规划memory子序列，不改变当前题答、量规、系统或工具对。详见[Agent Harness](agent-harness.md)。

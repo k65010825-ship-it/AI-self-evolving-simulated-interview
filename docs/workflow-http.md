@@ -59,3 +59,5 @@ HTTP请求及直接run请求保持最多2MiB UTF-8 JSON。纯宿主Workflow最�
 ## 会话收尾后的 RSI 实验
 
 内部 runs 新增 `job.type=rsi`，输入完整已收尾 Workflow 和实验快照，返回 `kind=uncommitted-workflow-rsi`。SDK 支持执行与安全事件订阅；SSE 只输出合成聚合指标。离线实验可激活、拒绝或重放，原会话策略不变；下一场 pin 仅预览、未写正式库。来源校验、隔离规则、回滚重放及接口字段见 [会话收尾与 RSI 离线实验](workflow-rsi.md)。
+
+完整workflow的plan现可进入presenting阶段，并在question.completed附带delivery；首题保持原题。结果快照的issuedQuestions[].content保留待发题文本及原题/量规/来源绑定，后续answer和报告沿用该文本。它仍是未提交候选，业务API需先校验归属、租约、时间和CAS，再裁剪转发；事件送达不等于学生展示确认。

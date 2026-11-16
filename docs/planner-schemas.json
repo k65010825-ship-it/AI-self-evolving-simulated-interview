@@ -247,6 +247,56 @@
               "additionalProperties": false
             }
           },
+          "historyCompatibility": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "mode": {
+                "type": "string",
+                "const": "strict"
+              },
+              "allowed": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "skillId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "rubricId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "rubricVersion": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "required": [
+                    "skillId",
+                    "rubricId",
+                    "rubricVersion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "mode",
+              "allowed"
+            ],
+            "additionalProperties": false
+          },
           "followupDepth": {
             "type": "integer",
             "minimum": 0,
@@ -401,7 +451,8 @@
       },
       "query": {
         "type": "string",
-        "maxLength": 200
+        "maxLength": 200,
+        "description": "Optional literal substring filter, NOT semantic search. Omit for the initial skill lookup. Only narrow later with a short exact phrase already observed in returned text."
       },
       "limit": {
         "default": 2,
@@ -738,6 +789,96 @@
                           "minLength": 1,
                           "maxLength": 1000
                         },
+                        "verificationGoal": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "version": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "actionAliases": {
+                              "minItems": 1,
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              }
+                            },
+                            "targetAliases": {
+                              "minItems": 1,
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              }
+                            },
+                            "observationAliases": {
+                              "minItems": 1,
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              }
+                            },
+                            "observationPolicy": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "count",
+                                    "duration"
+                                  ]
+                                },
+                                "conditionAliases": {
+                                  "minItems": 1,
+                                  "maxItems": 12,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  }
+                                },
+                                "predicateAliases": {
+                                  "minItems": 1,
+                                  "maxItems": 12,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  }
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "conditionAliases"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "version",
+                            "actionAliases",
+                            "targetAliases",
+                            "observationAliases"
+                          ],
+                          "additionalProperties": false
+                        },
                         "dimension": {
                           "type": "string",
                           "enum": [
@@ -946,6 +1087,96 @@
                             "weight": {
                               "type": "number",
                               "exclusiveMinimum": 0
+                            },
+                            "verificationGoal": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "actionAliases": {
+                                  "minItems": 1,
+                                  "maxItems": 12,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  }
+                                },
+                                "targetAliases": {
+                                  "minItems": 1,
+                                  "maxItems": 12,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  }
+                                },
+                                "observationAliases": {
+                                  "minItems": 1,
+                                  "maxItems": 12,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80
+                                  }
+                                },
+                                "observationPolicy": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "count",
+                                        "duration"
+                                      ]
+                                    },
+                                    "conditionAliases": {
+                                      "minItems": 1,
+                                      "maxItems": 12,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 80
+                                      }
+                                    },
+                                    "predicateAliases": {
+                                      "minItems": 1,
+                                      "maxItems": 12,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 80
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "conditionAliases"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "version",
+                                "actionAliases",
+                                "targetAliases",
+                                "observationAliases"
+                              ],
+                              "additionalProperties": false
                             },
                             "dimension": {
                               "type": "string",
@@ -1186,6 +1417,167 @@
         "type": "integer",
         "minimum": 0,
         "maximum": 4
+      },
+      "contextAudit": {
+        "type": "object",
+        "properties": {
+          "characterCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 24000
+          },
+          "unit": {
+            "type": "string",
+            "const": "utf16-code-units"
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "strategy": {
+                "type": "string",
+                "const": "whole-evidence-projection-v1"
+              },
+              "sourceCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4000
+              },
+              "selectedCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "includedCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 30
+              },
+              "excludedCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4000
+              },
+              "reasonCounts": {
+                "type": "object",
+                "properties": {
+                  "duplicate": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "age": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "irrelevant_skill": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "per_skill_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "item_limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "context_budget": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "scoring_isolation": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "rubric_incompatible": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "strategy",
+              "sourceCount",
+              "selectedCount",
+              "includedCount",
+              "excludedCount",
+              "reasonCounts"
+            ],
+            "additionalProperties": false
+          },
+          "historyCompatibility": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "strict",
+                  "legacy-unchecked"
+                ]
+              },
+              "policyId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sourceCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4000
+              },
+              "eligibleCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4000
+              },
+              "excludedCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4000
+              },
+              "authority": {
+                "type": "string",
+                "const": "host-declared-unverified"
+              },
+              "compatibilityVerified": {
+                "type": "boolean",
+                "const": false
+              }
+            },
+            "required": [
+              "mode",
+              "policyId",
+              "sourceCount",
+              "eligibleCount",
+              "excludedCount",
+              "authority",
+              "compatibilityVerified"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "characterCount",
+          "unit",
+          "memory"
+        ],
+        "additionalProperties": false
       }
     },
     "required": [

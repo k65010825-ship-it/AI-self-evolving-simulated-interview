@@ -45,6 +45,32 @@ runAnswerBenchmark编译并复制数据，按选定split运行。给evaluate回�
 
 ## 指标口径
 
+### 引文支持判分的语义评测（现有评测完善）
+
+原MAE只比较分数；现在增加独立的“被引片段是否足以支持该criterion记录分数”评测。数据在evals/answers/semantic/references.json，复用原development回答、问题/量规与知识pins；8个判定来自6条合成回答、2个题族，两岗各4个，并非8个独立学生样本。原validation/reserved-final不执行、不用于调门槛。编译仍校验原完整数据包，预留分组并非秘密盲藏数据。
+
+每岗有全文支持、明确技术矛盾、信息不足、同一完整回答但错引验证步骤四种草案。最后一种反例保持回答和分数不变，只改变引文范围；整段回答其他地方正确，也不能用未引用句子补齐证据。claimedScore目前均为正确性primary标准4分。supported表示引用足以支持该分数，contradicted表示引文技术断言与该标准此分数冲突，insufficient表示尚不足以支持而非明确反向断言；judge也可uncertain。它不是对整段回答重新算分。
+
+全部标签与解释仍为assistant-authored/draft，humanReferenceCount=0、qualityClaimEligible=false，不接受文件自改reviewed或把模型/代理复审当人工金标准。caseDigest/rubricDigest与baseDatasetDigest绑定原回答和量规；偏移须对应原文，重复判定/越界/跨development拒绝。语义理由是待独立审核的提案，编译通过不证明理由正确。
+
+```powershell
+bun run agent:answers:semantic
+bun run agent:answers:semantic --review
+bun run agent:answers:semantic --verify .cache/semantic-support/run-实际目录/report.json
+```
+
+运行模式如上；复核与候选对照模式见下文。运行时judge只收到问题、岗位、回答、当前criterion/锚点、claimedScore与引文；不传claim/caseId、variant、group、参考标签或解释。真实Pi SDK每例独立内存Session，无工具/个人资源发现，使用本地固定supported provider，不读参考按类分支；网络模型调用0。隔离是数据流边界，不是不同安全进程。原MAE评分器不变，新的语义judge不回写真实评分/反馈、不自动将semanticSupport改为已验证。
+
+固定基线故意错误：8例全部completed，只有2例与草案一致（0.25），6个草案负例全被判supported，错误支持率1；宏F1约0.1333。这是坏基线的草案对照结果，不是模型准确率或质量提升。CLI退出0只表示全部离线判定完成且源码一致，不是语义达标。
+
+报告按两岗分别保留混淆矩阵、逐类precision/recall/F1、宏F1、总量/失败/弃权/覆盖。accuracy=正确/全部，失败与弃权不移出分母，并计入相应类别FN。precision在无该类预测时null；F1按2TP/(2TP+FP+FN)，分母0才null。宏F1取有定义类别平均。错误支持率=被判supported的草案负例/获得明确判定的草案负例；必须同时看负例判断覆盖，全部失败或弃权时错误支持率null、覆盖0，不能显示0错误。失败摘要只保留静态错误码，不保存异常/模型原文。
+
+每例默认5秒、上限30秒，支持宿主AbortSignal，预取消不调用judge；同步工作返回后再查单调截止，迟到不变成功。外层不能强制中断任意不协作异步或CPU阻塞；Pi适配收到取消后abort并dispose，未验证真实供应商资源停止。
+
+运行产物位于.cache/semantic-support/run-*的report.json/report.md，不含回答正文/引文/参考理由。review-*的packet.json刻意包含原创合成回答、量规、引用、草案解释，供实际人工复核；导出不创建批准。只读verify对schema/指标/摘要/数据pins/当前源码重新核对，不重跑judge，不将SHA当签名。读取上限4MiB、严格UTF-8、拒绝符号链接。Markdown为展示副本，权威复验对象是JSON。
+
+机器定义仍放answer-benchmark-schemas.json。当前没有真人标注导入/审核认证、新付费模型接入或业务HTTP接口，正式API仍501；新评测回归纳入全仓test，统一交付仍固定14阶段，专项报告需单独运行本命令。
+
 按岗位分别输出，不用两岗混合均分制造效果。
 
 | 字段 | 定义 |
@@ -64,8 +90,47 @@ pairedCount=0时MAE和偏差为null，不填0。全弃分可能没有任何数�
 
 ## 报告校验与协作
 
-共享契约见packages/contracts/src/answer-benchmark.ts和[生成Schema](answer-benchmark-schemas.json)。--verify最多读2MiB JSON，检查数据digest、严格结构、案例完整性/归属/量规、数值范围，重新计算指标并核对报告摘要；不重跑推理，不重做证据语义审核。
+### 复核记录与标签修订（现有评测完善）
+
+`--review`现在额外导出空ledger.json和operation-template.json，模板所有decision/checks均为null，不能直接导入或默认批准。packet.json包含原始合成材料，ledger只保存基线标签/摘要与操作历史，不复制回答全文。实际岗位审核者应逐锚点判断；模型、代理复审或导出动作不能冒充人工批准。
+
+```powershell
+bun run agent:answers:semantic --review
+bun run agent:answers:semantic --review-status .cache/semantic-support/review-实际目录/ledger.json
+bun run agent:answers:semantic --review-apply 路径/ledger.json 路径/operation.json --actor reviewer-id
+```
+
+从模板中复制单条operation，填写operationId、occurredAt（毫秒时间）、decision/checks/note；每次按最新ledgerVersion更新expectedLedgerVersion，不把八条初始模板当自动批量批准。actor由CLI/宿主注入，不允许放进operation冒认身份；CLI的actor参数只是一条未认证声明，不证明真实人员、独立性或审核发生时间。当前不读取账户/密钥或接入认证系统。
+
+两类操作：review_label记录approved或changes_requested，绑定当前claimId/requestDigest/expectedLabelVersion/labelDigest；approved要求literalMatch/criterionAlignment/scoreSupport全true。revise_label提供新reference{verdict,rationale}与changeReason，标签版本+1，即使仅修订理由也需重新复核；旧意见保留在records但不适用于新版本。版本0基线作者为assistant-proposed，修订作者来自宿主actor；不能复核自己的当前标签。同一actor对同版只能记录一次；同版出现批准和修改请求则disputed，不以最后一条批准覆盖争议，需修订后重新审核。
+
+账本全局CAS与单标签版本同时检查；同operationId、同内容、同actor重试幂等，不刷新接收时间或增加版本。旧版本、新ID覆盖、改内容/改actor重放、错请求/标签摘要、时钟倒退与缺检查均拒绝。SHA和回放只验证一致性，不能阻止能够重写整份文件与摘要的攻击者，也不是可信审核者认证。
+
+数据集摘要与基线绑定原请求（含回答/引文/量规）及标签。数据集改变后旧账本可只读查看，所有状态stale_held、当前批准数0；禁止直接追加/重绑定，须另建并显式复核，当前不自动迁移。初始模板版本0不是基准文件的修改权限。文件上限4MiB，严格UTF-8，拒绝符号链接/非文件；账本最多2000操作，文件限制可先达到。CLI导入在新的.cache/semantic-support/review-ledger-*输出ledger/summary，拒绝覆盖输入原文件。
+
+公开状态declared_approved仅表示本地声明通过规则。authority恒file-declared-unverified、humanReferenceCount=0、qualityClaimEligible=false，当前账本既不覆盖references.json，也不进入默认评测标签或把生产报告semanticSupport改为已验证。正式人工参考导入仍需可信认证、归属、时间和批准入口；这些未在本轮实现。原模型/语义评测默认行为不变，没有新业务HTTP或数据库迁移。
+
+### 候选标签隔离对照
+
+```powershell
+bun run agent:answers:semantic --compare 路径/report.json 路径/ledger.json
+bun run agent:answers:semantic --verify-comparison 路径/comparison.json 路径/report.json 路径/ledger.json
+```
+
+两份输入必须绑定当前数据；预测报告还须符合当前源码manifest且sourceStable=true。允许报告包含失败/弃权并完整保留分母。对照不重新调用judge，仅用同一份rows计算原草案与候选指标，不能解释为模型改进或教学收益。
+
+候选仅采用labelVersion>0且当前状态declared_approved的修订，包括仅理由变化的修订；adoptedCount表示采用了该修订，不保证verdict改变。未修订、未审核、要求修改或争议项继续使用原草案，claims逐条给出baseline_unrevised/unreviewed/changes_requested/disputed或adopted、标签版本/摘要与原/候选verdict。旧数据集直接拒绝，不能借此解除stale或把旧批准用于新标签。仍是本地声明，不是真实人工金标准。
+
+输出新.cache/semantic-support/comparison-*目录的comparison.json/md，不覆盖输入、references或正式报告。全量及两岗各保留原/候选混淆矩阵、F1、一致率、错误支持率与覆盖；候选变化可改变负例分母，必须一起看unsupportedTotal/unsupportedJudged。没有候选时指标相同，不制造提升。JSON不含回答、理由、actor。comparison绑定预测digest和ledger digest/version；复验用两份原输入重建全量对照，不是只校验SHA。读取上限4MiB且严格UTF-8/拒绝链接；Markdown只是展示，JSON是复验对象。命令失败退出2且公开静态错误，不回显材料。
+
+authority=file-declared-unverified、humanReferenceCount=0、qualityClaimEligible=false、inferenceReexecuted=false、baselineOverwritten=false。选择规则固定而非模型自主发布，无新HTTP接口或数据库提交；这些指标差异不能自动触发评分/RSI上线。
+
+共享契约见packages/contracts/src/answer-benchmark.ts、semantic-comparison.ts和[生成Schema](answer-benchmark-schemas.json)。原回答基准--verify最多读2MiB JSON，检查数据digest、严格结构、案例完整性/归属/量规、数值范围，重新计算指标并核对报告摘要；不重跑推理，不重做证据语义审核。
 
 报告中的assessmentDigest只是当时完整评估输出的摘要；原始正文不在报告中，因此投影校验不能重新验证原引用。所有SHA都是变更检测，不认证来源或执行。当前报告不提供代码签名、安装依赖证明或供应商调用记录，evaluatorId是宿主声明的标识。
 
 后续先由实际岗位审核者独立检查锚点、片段、null与分数，分歧留痕；再接入已授权模型固定版本与预算，保持分组隔离。不要拿这18条草案反复改标签使模型“通过”，不要从评分对照直接调整正式学生成绩或发布RSI策略。
+
+引用负向规则的可重复开发检查：`bun run agent:answers:evidence`。其28条规则回归与5条未解决语义挑战分开统计，全部为合成开发样本；不合并入真人/人工校准指标。规则、案例和runner摘要保留在独立新目录的report.json，未命中规则仍为not_verified。详见content-rubrics.md。
+
+带verificationGoal的新量规通过结构化action/target/expectation引用绑定验证目标；宿主id/version不匹配或伪造引用拒绝，证据链不足允许弃评。Java幂等和Web竞态合成场景覆盖实际Pi本地provider→评分→报告重放，候选恢复按相同规则复验。旧量规不隐式升级、真实题库不自动迁移，通用语义挑战与人工金标准边界保持不变。见[显式验证绑定](content-rubrics.md)。
