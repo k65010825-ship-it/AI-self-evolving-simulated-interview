@@ -47,7 +47,6 @@ Agent 的 service 为 agent，capabilities 为 offline-pi-spike、draft-seed-kno
 | GET | /v1/runs/{runId} | 任务快照 | 200 |
 | GET | /v1/runs/{runId}/events | SSE 事件 | 200 |
 | POST | /v1/runs/{runId}/cancellation | 取消并撤销提交资格 | 202 |
-| GET | /v1/profiles/me | 本人跨会话画像 | 200 |
 | POST | /v1/experiments | 创建策略评测任务 | 202 |
 | GET | /v1/experiments | 分页实验记录 | 200 |
 
@@ -107,9 +106,9 @@ sessionVersion 为当前快照的非负整数；answer 为 1—10000 字符。Id
 | Question | questionId、text、skillId、questionType（technical/project/scenario/behavioral）、difficulty（1—5） |
 | Run | runId、interviewId、attemptId（可空）、status、stage（可空）、error（Problem 或 null）、lastEventSeq、createdAt |
 | Role | roleId、name、skillIds；两岗独立知识和 rubric |
-| Profile | 按岗位/技能的 mastery（[0,1] 或 null）、confidence（[0,1]）、证据数/引用、更新时间和版本 |
+| LocalProfile | 由桌面端本地维护的岗位/技能 mastery（[0,1] 或 null）、confidence（[0,1]）、证据数/引用、更新时间和版本；不属于 HTTP API 响应 |
 
-Interview 状态为 planning、awaiting_answer、processing_answer、completed、cancelled、failed；Run 状态为 queued、running、completed、failed、cancelled。业务数据库 id 到这些 DTO 字段由 API 映射，客户端不直接读取数据库行。
+Interview 状态为 planning、awaiting_answer、processing_answer、completed、cancelled、failed；Run 状态为 queued、running、completed、failed、cancelled。业务数据库 id 到这些 DTO 字段由 API 映射，客户端不直接读取数据库行。LocalProfile 不上传到 API；桌面端本地持久化尚未实现。
 
 当前已生成 OpenAPI 主要覆盖路径、请求、错误与健康响应；表中的完整业务成功对象尚待实现时补入 schema。更改上表视为契约变更，不由各端各自推测。
 

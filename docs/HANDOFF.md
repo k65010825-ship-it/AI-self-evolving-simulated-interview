@@ -2,6 +2,8 @@
 
 > 归档说明：本文由原型阶段交付，`index.html` / `admin.html` 原型未随本仓库提交。文中接口清单与产品决策作为需求输入参考；与 [PRD](prd.md)、[接口文档](api.md) 冲突时以后两者为准，游戏化数值与角色 scope 已落入[数据库设计](database.md)。
 >
+> 画像存储决策更新：能力画像仅保存在桌面本机；不再实现文中的 `GET /v1/profiles/me`，画像不进入云端数据库。
+>
 > 本文档用于向开发同学（尤其交给 Codex / 后端 API 同学 / Agent 同学）交接「用户端 + 管理端」的原型设计与接口改动需求。
 > 阅读顺序：先看本文，再打开 `index.html`（用户端）和 `admin.html`（管理端）。
 
@@ -101,7 +103,7 @@ Agent 的离线智能逻辑（选题、追问、评分、反思、评测、记�
 - `GET /v1/interviews/{id}/report`（报告，含 reportId 分配、保存、鉴权）
 - `GET /v1/runs/{id}` / `GET /v1/runs/{id}/events`（快照 + SSE，**SSE 的 Last-Event-ID 持久化**）
 - `POST /v1/runs/{id}/cancellation`（取消）
-- `GET /v1/profiles/me`（画像）
+- 个人能力画像由桌面端本机维护，不提供云端画像接口。
 - **新增** `POST /v1/interviews/{id}/finish`（正常结束面试，触发收尾 + RSI）
 
 #### C. 用户端「语音 + 学习复测」接口（api.md 标注「待设计」，前端已画交互）
@@ -181,7 +183,7 @@ Agent 的离线智能逻辑（选题、追问、评分、反思、评测、记�
 
 ### 7.3 接口
 
-- `GET /v1/profiles/me` 的返回里带上 `xp` / `level` / `coins`。
+- `xp` / `level` / `coins` 由账号接口提供，不作为本机能力画像的一部分。
 - 涨扣由「完成面试 / 完成学习 / 使用道具」等既有业务动作**同步触发**，不单独暴露「加金币」接口（避免刷分）。
 
 ### 7.4 明确边界（防止过度设计）

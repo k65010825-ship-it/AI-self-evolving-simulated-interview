@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { userRole, userStatus } from './enums.ts';
+import { check, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { accountRole, userStatus } from './enums.ts';
 
 export const users = pgTable(
   'app_user',
@@ -8,25 +8,19 @@ export const users = pgTable(
     id: text('id').primaryKey(),
     email: text('email').notNull(),
     displayName: text('display_name').notNull(),
-    role: userRole('role').notNull().default('student'),
+    accountRole: accountRole('account_role').notNull().default('student'),
     status: userStatus('status').notNull().default('active'),
     passwordHash: text('password_hash').notNull(),
     passwordUpdatedAt: timestamp('password_updated_at', { withTimezone: true }).notNull().defaultNow(),
-    xp: integer('xp').notNull().default(0),
-    level: integer('level').notNull().default(1),
-    coins: integer('coins').notNull().default(0),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex('app_user_email_unique').on(sql`lower(${table.email})`),
-    index('app_user_role_idx').on(table.role),
+    index('app_user_account_role_idx').on(table.accountRole),
     check('app_user_email_length', sql`char_length(${table.email}) between 3 and 320`),
     check('app_user_display_name_length', sql`char_length(${table.displayName}) between 1 and 80`),
-    check('app_user_xp_non_negative', sql`${table.xp} >= 0`),
-    check('app_user_level_positive', sql`${table.level} >= 1`),
-    check('app_user_coins_non_negative', sql`${table.coins} >= 0`),
   ],
 );
 

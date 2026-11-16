@@ -285,24 +285,6 @@ paths:
         "422": *a1
         "429": *a1
         "501": *a1
-  /v1/profiles/me:
-    get:
-      operationId: getOwnProfile
-      summary: 本人能力画像
-      description: 设计契约。当前骨架返回 501；目标状态由 x-target-status 记录，不代表已实现。
-      x-implementation: planned
-      x-target-status: 200
-      security:
-        - BearerAuth: []
-      parameters: []
-      responses:
-        "200":
-          description: 目标成功响应；尚未实现，当前骨架实际返回 501。
-        "401": *a1
-        "403": *a1
-        "422": *a1
-        "429": *a1
-        "501": *a1
   /v1/experiments:
     post:
       operationId: createExperiment

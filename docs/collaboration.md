@@ -6,7 +6,7 @@
 
 | 负责人 | 主要目录 | 对团队交付 |
 | --- | --- | --- |
-| 前端 | apps/desktop | Electron 壳、界面、录音/转写确认、报告与双曲线、安装包验证；审核 Web 前端题目 |
+| 前端 | apps/desktop、packages/local-db | Electron 壳、界面、录音/转写确认、报告与双曲线、本地 SQLite 持久化、安装包验证；审核 Web 前端题目 |
 | 后端 | apps/api、packages/db、infra | 登录/归属、正式会话、任务与状态、持久数据、事件、策略版本、部署；审核 Java 题目 |
 | Agent | apps/agent、knowledge、evals、experiments/pi-sdk | 规划、知识访问、评估、记忆召回、语音服务适配、反思与策略实验 |
 | 共同维护 | packages/contracts、packages/interview-domain、docs | 跨端字段/状态、评分锚点、错误与契约、验收样例 |

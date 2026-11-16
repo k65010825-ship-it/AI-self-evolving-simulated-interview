@@ -48,12 +48,14 @@ bun run openapi:lint
 数据库迁移（表结构真值与不变量见 [数据库设计](docs/database.md)）：
 
 ```powershell
-bun run db:generate   # 修改 packages/db/src/tables 后生成迁移
-bun run db:check      # 校验迁移与快照一致
-bun run db:migrate    # 需要 DATABASE_URL，应用到目标 PostgreSQL
+bun run db:generate          # 修改 packages/db/src/tables 后生成服务端 PG 迁移
+bun run db:generate:local    # 修改 packages/local-db/src/tables 后生成本地 SQLite 迁移
+bun run db:check             # 校验 PG 迁移与快照一致
+bun run db:check:local       # 校验本地迁移与快照一致
+bun run db:migrate           # 需要 DATABASE_URL，应用到目标 PostgreSQL
 ```
 
-`bun test` 中的迁移用例会在 PGlite（PostgreSQL 17 WASM）实际执行迁移并校验约束；本机开发库已用 `bun run db:migrate` 建表成功，部署库仍需单独迁移。
+`bun test` 中的迁移用例会在 PGlite（PostgreSQL 17 WASM）执行 PG 迁移、在 `bun:sqlite` 执行本地迁移并校验约束；本机开发库已用 `bun run db:migrate` 建表成功，部署库仍需单独迁移。
 
 <details>
 <summary>Windows 没有全局 Bun 时的引导方式</summary>
@@ -80,7 +82,8 @@ apps/
 packages/
   contracts/                 跨服务 Zod 契约、错误与事件
   interview-domain/          纯领域规则
-  db/                        Drizzle 表结构、迁移与连接工厂
+  db/                        Drizzle 表结构、迁移与连接工厂（服务端 PostgreSQL）
+  local-db/                  Drizzle 表结构、迁移（桌面本地 SQLite）
 knowledge/                   两岗知识、题目草案与来源登记
 experiments/pi-sdk/          可复现的离线 SDK 示例
 evals/                       评测数据清单与说明
@@ -101,6 +104,7 @@ flowchart LR
     Bridge --> Main[Electron 主进程]
   end
   Main -->|HTTPS / SSE| API[业务 API]
+  Main --> Local[(本地 SQLite)]
   API -->|内部 HTTP| Agent[独立 Agent 服务]
   API --> DB[(PostgreSQL)]
   API --> Files[私有文件存储]
@@ -110,7 +114,7 @@ flowchart LR
   Agent --> Speech[语音服务]
 ```
 
-业务 API 管理身份、会话、画像和正式结果；Agent 负责规划、评估、工具调用与反思。模型和语音凭证保留在服务端。Electron 的主进程使用自带 Node.js，Bun 用于工程和服务端
+业务 API 管理身份、会话和正式结果；能力画像仅在 Electron 本机保存。Agent 负责规划、评估、工具调用与反思。模型和语音凭证保留在服务端。Electron 的主进程使用自带 Node.js，Bun 用于工程和服务端
 
 ## 技术栈
 
@@ -120,7 +124,7 @@ flowchart LR
 | 桌面 | Electron、Vite、esbuild | 桌面宿主、界面与主进程构建 |
 | 界面 | React、Tailwind CSS、Radix UI | 页面与交互；Jotai / TanStack Query 为状态与请求管理依赖 |
 | API / Agent | Hono、Zod、Pi Agent SDK | 业务接口、运行时校验、Agent 运行 |
-| 数据 | PostgreSQL、Drizzle ORM | 业务数据；当前只有初始 schema 和开发配置 |
+| 数据 | PostgreSQL、SQLite、Drizzle ORM | 管理域数据在服务端 PG；学生面试/评分/画像在本地 SQLite；当前只有初始 schema 和开发配置 |
 | 通信 | Electron IPC、HTTP、SSE | 进程桥接与服务事件；业务流待接入 |
 | 质量 | Bun Test、TypeScript、Redocly | 行为测试、类型检查与 OpenAPI 校验 |
 

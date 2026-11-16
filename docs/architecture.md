@@ -8,18 +8,19 @@
 | --- | --- | --- |
 | desktop/renderer | React 界面、录音与交互 | 任意 Node/file/shell 或模型凭证 |
 | desktop/preload | 白名单 bridge、参数边界 | 通用 IPC、任意 endpoint 转发 |
-| desktop/main | 窗口、客户端凭证、远程 API 连接、文件导出 | Agent 推理/模型 key、正式业务数据库 |
-| api | 身份/归属、面试/回答/报告/画像、任务、正式提交、事件 | 暴露 Pi 事件、任由模型写业务表 |
+| desktop/main | 窗口、客户端凭证、远程 API 连接、文件导出、仅本机能力画像持久化 | Agent 推理/模型 key、云端正式业务数据库 |
+| api | 身份/归属、面试/回答/报告、任务、正式提交、事件 | 持久化能力画像、暴露 Pi 事件、任由模型写业务表 |
 | agent | 累计状态规划、知识工具、评估、Pi 适配、反思/实验 | 用户鉴权真值、绕过 attempt 正式提交 |
 | contracts | Zod schema、DTO、错误码、归一事件 | 数据库/SDK/Electron 运行时依赖 |
 | interview-domain | 岗位规则、纯状态与评分计算 | 网络、凭证、GUI |
-| db | Drizzle schema/迁移与 repository | 供客户端或 Agent 直接访问 |
+| db | 服务端 PostgreSQL Drizzle schema/迁移与 repository（身份、岗位知识、审核、资源、评测、实验、审计） | 学生侧会话/评分/画像等本地数据 |
+| local-db | 桌面本地 SQLite Drizzle schema/迁移（会话、任务、评分、学习、反思、画像、预算账本） | 供 renderer 或 Agent 直接访问 |
 
 Pi Skill 与固定源码索引在 .agents/skills/pi-agent-development。SDK 最小示例不可直接作为业务会话工厂；资源、工具、状态和环境都需受控。Pi 1.4.0/Bun 1.4.4 已离线试跑，模型供应商无默认选择。
 
 ## 请求与提交链路
 
-POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 AgentRun，提交后才返回 202。任务执行器领取租约与 attemptId，Agent 消费输入快照并返回归一结果。API 检查 lease、attemptId、取消状态和 sessionVersion 后事务提交正式评分/画像/下一题。租约过期的旧结果拒绝，即使 SDK 已生成完整回答。
+POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 AgentRun，提交后才返回 202。任务执行器领取租约与 attemptId，Agent 消费输入快照并返回归一结果。API 检查 lease、attemptId、取消状态和 sessionVersion 后事务提交正式评分/下一题；桌面端从正式结果更新本地能力画像，不将画像上传 API。租约过期的旧结果拒绝，即使 SDK 已生成完整回答。
 
 断流只是连接状态变化；任务继续，重连查询快照并补持久事件。取消先撤销提交资格，再尽力 abort；不能保证供应商已停止计费。事件有 runId、attemptId、seq、schemaVersion，临时 token 不保证全量重放。
 
@@ -33,13 +34,13 @@ POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 A
 
 ## 数据概览
 
-User → InterviewSession → InterviewTurn → Evaluation；Session → AgentRun → RunAttempt/RunEvent。RoleProfile → KnowledgeItem/Question/Rubric。User+Role+Skill → SkillObservation/Profile。Recommendation → LearningProgress → PredictionSnapshot/PerformancePair → Reflection → PolicyVersion/EvalExperiment。
+数据按归属拆为两套库，不连成一套中心化数据库。**本地 SQLite**（`packages/local-db`）保存用户面试运行数据：InterviewSession → InterviewTurn → Evaluation/Report → Reflection → PredictionSnapshot/PerformancePair，以及 AgentRun → RunAttempt/RunEvent/BudgetLedger、AudioAsset/Transcript/AudioAnalysis、LearningProgress/Recommendation 和 SkillProfile/SkillObservation/XP 账本；`user_id` 是服务端账号 id，但本地不建外键依赖服务端。**服务端 PostgreSQL**（`packages/db`）只保存管理域：账号与 `auth_session`、`job_role`/`role_skill`、版本化 `knowledge_item`/`rubric` 与 `knowledge_review`、`policy_version`、`learning_resource`、评测集/实验/结果、`content_release`、审计/反馈/告警/指标。管理端导入样本不通过外键引用本机 `interview_id`。
 
-骨架 schema 已覆盖上述实体（表分组与不变量见[数据库设计](database.md)），迁移由 drizzle-kit 生成并有离线执行用例；但在部署实例执行迁移、repository/事务实现、并发与恢复验证属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与长期画像不能用同一份 JSONL 替代。
+服务端 schema 与本地 schema 的表分组与不变量见[数据库设计](database.md)；迁移都由 drizzle-kit 生成并有离线执行用例（PG 用 PGlite、本地用 bun:sqlite）。但部署实例执行迁移、repository/事务实现、并发与恢复验证属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与本地长期画像不能用同一份 JSONL 替代。
 
 ## 面试状态与规划
 
-InterviewState 保存已测/待测技能、各技能 mastery/confidence、薄弱点、已练题、剩余时间、难度、当前追问深度；历史画像初始化后，每轮按新证据更新。不是仅靠聊天摘要或上一句关键词。
+InterviewState 保存已测/待测技能、各技能 mastery/confidence、薄弱点、已练题、剩余时间、难度、当前追问深度；如用户允许并存在本机历史画像，则可用于初始化，每轮按新证据更新。不是仅靠聊天摘要或上一句关键词。
 
 初始规则：mastery 是固定 rubric 下归一技能分的证据加权均值；confidence 综合有效独立题数、题型覆盖、一致性与时效，范围 [0,1]，表示证据可信程度，不是已校准正确概率。缺证据时 mastery=null、confidence=0；重复原题不增加独立证据数，冲突触发诊断追问。候选排序综合岗位相关度、低置信、薄弱与覆盖缺口；领域模块目前只实现基础排序，不等于完整规划器。
 
@@ -53,7 +54,7 @@ InterviewState 保存已测/待测技能、各技能 mastery/confidence、薄弱
 
 报告区分技术正确性、深度、逻辑、岗位匹配、表达结构/沟通；语音才追加声学/情感维度。文字输入的音频维度为 null；噪声、过短、口音等情况标不足。TTS 播报问题与模型推理接口分别适配，不要求经 Pi 代理所有语音请求。
 
-原音频默认处理/确认后删除；用于听审时单独告知并同意保留至交付后 7 天。删除后时间片段和统计仍可说明依据，但必须标不可回放。画像、报告与删除请求按所有权处理；日志不记录完整音频、简历或密钥。
+原音频默认处理/确认后删除；用于听审时单独告知并同意保留至交付后 7 天。删除后时间片段和统计仍可说明依据，但必须标不可回放。云端报告按用户归属处理；能力画像仅保存在本机，清除本机画像与云端数据删除分开执行。日志不记录完整音频、简历或密钥。
 
 ## 反思与策略版本
 

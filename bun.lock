@@ -90,6 +90,16 @@
       "name": "@interview/interview-domain",
       "version": "0.1.0",
     },
+    "packages/local-db": {
+      "name": "@interview/local-db",
+      "version": "0.1.0",
+      "dependencies": {
+        "drizzle-orm": "0.45.4",
+      },
+      "devDependencies": {
+        "drizzle-kit": "0.31.11",
+      },
+    },
   },
   "overrides": {
     "minimatch": "11.0.3",
@@ -229,6 +239,8 @@
     "@interview/desktop": ["@interview/desktop@workspace:apps/desktop"],
 
     "@interview/interview-domain": ["@interview/interview-domain@workspace:packages/interview-domain"],
+
+    "@interview/local-db": ["@interview/local-db@workspace:packages/local-db"],
 
     "@isaacs/nonrecursive-glob-match": ["@isaacs/nonrecursive-glob-match@1.0.3", "https://registry.npmmirror.com/@isaacs/nonrecursive-glob-match/-/nonrecursive-glob-match-1.0.3.tgz", {}, "sha512-SI7kyKHq4XXDRozw+r9GlRZkia1ZkFrpLW98r2IC2Bpr8YkFGE3fvjzmxCG0x78A++69HmDNrDvSMYBZmHGpKA=="],
 
