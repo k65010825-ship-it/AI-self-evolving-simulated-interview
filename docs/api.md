@@ -1,5 +1,24 @@
 # 接口文档
 
+## 双端接口导航（当前协作入口）
+
+| 链路 | 契约与入口 | 当前状态 / 归属 |
+| --- | --- | --- |
+| 桌面面试、报告、记忆、任务、预算、ASR/TTS | [本地 stdio RPC](local-runtime-api.md)，`packages/contracts/src/local-runtime.ts` 及 local-speech/local-live | 实现位于 feature/agent；主进程用 `@interview/local-agent-client`，不经过云端面试 HTTP |
+| 页面投影、提示、画像趋势、学习复测、反思/实验查询 | 在本地 RPC 上补契约 | 尚未完整开放；Agent 与后端先定字段、状态、幂等和错误，前端不以原型假数据代替 |
+| 统一账号、管理查询/审核、知识/策略分发、授权回传、评测任务 | 管理 HTTPS API，由后端在共享 contracts 定义 | 设计目标，尚无完整可用契约；不能把下方旧试点路由直接视为管理接口 |
+| 旧服务面试与 Agent HTTP/SSE | 下方第 1—5 节、openapi.yaml / agent-openapi.yaml | 历史回归协议，完整试点实现在 feature/agent；master 的旧默认入口仍以代码为准 |
+
+**管理 API 不再承担新客户端正式会话的创建/答题/提交。** 用户数据由本地宿主写入；管理端保存账号、团队内容、授权样本副本和实验。SSE 不替代 stdio 事件重放，HTTP requestId 也不替代本地 operationId。
+
+以下管理资源是待设计清单，**不是已实现路径/字段**：账号登录/续期/退出；带版本与摘要的内容包查询/下载；带授权与幂等键的反馈/样本导入；只读指标；审核决定；受预算约束的实验创建/查询/逐例结果。具体路径、响应和错误须后端先提交 contracts。监控查询不得触发模型执行，实验达标不得返回已发布；发布/回退与客户端采用单独设计。
+
+账号/profile 切换由主进程与本地业务层协同实现，renderer 不传任意 profile 路径。学生不得调用 admin 接口，管理端也不得通过客户端通道获取供应商凭证。具体所有权见[架构](architecture.md)，接手顺序见[协作](collaboration.md)。新增方法须先提交 schema 和错误/状态契约，本文导航不代表已有相应运行入口。
+
+---
+
+以下为**旧服务试点接口说明**。仅用于旧链路回归，不是新双端开发的默认入口。
+
 **迁移提示（2026-11-10）**：本文HTTP接口属于旧服务试点，继续用于回归。新客户端文字宿主已采用独立本地运行时＋stdio RPC，schema在`packages/contracts/src/local-runtime.ts`，已实现方法见[本地接口](local-runtime-api.md)。它不需要网页登录、内部服务token或自请求HTTP；本地live文字已采用显式授权/私有凭证代理，完成注入HTTP离线验证；本地ASR确认/TTS已有独立stdio实现并离线注入验证，旧语音HTTP保留回归。
 
 版本0.2。**下述业务接口由 `bun run pilot:start` 启动的SQLite试点实现**；旧 `dev:api` 的业务路径继续返回501。跨服务schema真值为 `packages/contracts`，运行 `bun run openapi:generate` 生成 [OpenAPI](openapi.yaml) 与 workbench-schemas.json。不要使用旧目标接口字段联调新试点。

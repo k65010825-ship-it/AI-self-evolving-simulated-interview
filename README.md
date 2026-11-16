@@ -2,133 +2,115 @@
 
 ## 项目简介
 
-面向计算机相关专业学生的 AI 模拟面试平台，首批支持 **Java 后端**和 **Web 前端**岗位。通过多轮语音/文字面试、状态感知追问、多维评估和个性化复测，帮助学生发现并改善能力短板；系统根据历史评估与后续表现迭代追问策略，形成学生成长与系统自校准两个闭环。
+面向计算机相关专业学生的 AI 面试教练，首批支持 **Java 后端、Web 前端**。通过状态感知追问、多维评估、跨会话记忆和针对性复测，形成学生成长与系统策略自校准两个闭环。目标交付日期为 **2026-12-19**。
 
-交付形式为 **Windows Electron 客户端＋统一服务器**，目标交付日期为 **2026 年 12 月 19 日**。
+产品由 **Windows Electron 学生客户端＋网页管理端＋管理服务**组成。客户端随包启动独立本地 Agent，通过 **stdio RPC** 通信；会话、答案、报告、记忆、任务、事件和预算以用户本机 SQLite 为准。统一服务器负责账号、团队内容审核与分发、授权样本和管理评测，学生面试不经云端 API 转发执行。**本地运行时不等于本地大模型**，模型和语音可按授权联网。
 
-当前仓库处于开发骨架阶段：已有 Pi SDK 离线工具循环、岗位知识草案、共享契约、健康接口及桌面构建入口；正式面试、登录、语音评估、数据库任务和 RSI 业务流程待实现。
+本地宿主、Pi 核心、文字/语音协议、恢复与预算实现位于 `feature/agent`；桌面接线、账号绑定、正式知识分发和管理端仍需协作完成。离线注入、真实供应商调用、安装版验收和独立评分质量分别核验，不能混称完整交付。
 
 ## 开发入口
 
-需要 Node.js ≥24、Bun 1.4.4。依赖以 `bun.lock` 为准。
+先读[架构](docs/architecture.md)、[协作分工](docs/collaboration.md)和[接口导航](docs/api.md)，再切换负责的实现分支。
 
-安装依赖并启动服务（API 与 Agent 分别在两个终端启动）：
+| 分支 | 用途 | 当前边界 |
+| --- | --- | --- |
+| `master` | 共享文档与已合入的工程基线 | 文档包含目标设计，不能据此认定实现已全部合入；保留旧服务/桌面骨架 |
+| `feature/agent` | 本地宿主、主进程 SDK、Agent 核心与测试 | Agent 工作区不开发桌面 UI；本地运行与验收从此分支开始 |
+| `feature/api` / `feature/db` / `feature/infra` | 接口、数据模型与基础设施 | 各自按 PR 集成；建表不等于业务接线、部署或验收完成 |
+
+Node.js ≥24、Bun 1.4.4，使用 `bun.lock`。没有全局 Bun 时，可使用已安装的 `node_modules/@oven/bun-windows-x64/bin/bun.exe`。
 
 ```powershell
+git fetch origin
+git switch feature/agent
+git merge origin/feature/agent
 bun install --frozen-lockfile --ignore-scripts
-bun run dev:api
-bun run dev:agent
+bun --no-env-file run agent:local:acceptance
+bun --no-env-file run agent:local:live:acceptance
+bun --no-env-file run agent:local:speech:acceptance
 ```
 
-API：`http://127.0.0.1:3100/health`；Agent：`http://127.0.0.1:3200/health`。当前仅健康接口可用，业务接口返回 `501 NOT_IMPLEMENTED`。
+这些验收使用隔离用户目录、合成凭证和注入 HTTP，不读取真实 Key、不发起真实供应商调用，不是 Electron 安装包验收。主进程指定 `userData` 与安装资源目录，使用 `@interview/local-agent-client` 接入；不启动 localhost HTTP。详见[本地协议](docs/local-runtime-api.md)。
 
-构建和启动桌面客户端：
+共同基线检查：
 
 ```powershell
-bun run desktop:runtime
-bun run desktop:build
-bun run desktop:start
+bun --no-env-file run typecheck
+bun --no-env-file test
+bun --no-env-file run pi:offline
+bun --no-env-file run check:knowledge
+bun --no-env-file run openapi:lint
 ```
 
-`desktop:runtime` 下载 Electron 运行时。依赖安装默认禁用安装脚本，因此首次启动桌面前需要执行；桌面 GUI、麦克风与安装包仍需单独验收。
+schema/生成器变更才运行 `openapi:generate` 并提交生成物。旧 `dev:api` / `dev:agent` 和 `desktop:*` 是历史骨架入口，不是新双端接线方案；`pilot:start` 仅在 Agent 分支用于 HTTP 回归。数据库命令见[数据库边界](docs/database.md)，`db:migrate` 会写入配置的 PostgreSQL，不能当只读检查。
 
-开发检查：
-
-```powershell
-bun run typecheck
-bun test
-bun run pi:offline
-bun run check:knowledge
-bun run openapi:generate
-bun run openapi:lint
-```
-
-`pi:offline` 使用真实 SDK 和本地确定性 provider，不调用付费模型。模型与语音供应商尚未配置；配置项模板见 [.env.example](.env.example)。
-
-<details>
-<summary>Windows 没有全局 Bun 时的引导方式</summary>
-
-在项目根目录执行，不用 npm 安装带 `workspace:*` 的项目本身：
-
-```powershell
-npm install --prefix .tools/bun --ignore-scripts --no-audit --no-fund @oven/bun-windows-x64@1.4.4
-& .\.tools\bun\node_modules\@oven\bun-windows-x64\bin\bun.exe install --frozen-lockfile --ignore-scripts
-```
-
-随后可将上文的 `bun` 替换为 `& .\node_modules\@oven\bun-windows-x64\bin\bun.exe`。Linux 服务端使用预装 Bun。
-
-</details>
+真实模型/语音调用须明确供应商、凭证来源、请求/费用/时间上限；密钥不提交 Git、不进入渲染层。配置与能力以实际分支契约为准。
 
 ## 系统目录
 
+以下标明职责与所在分支；目录存在不表示功能已接通。
+
 ```text
-.agents/skills/              Pi SDK 开发与 Craft 架构参考 Skill
 apps/
-  desktop/                   Electron main / preload / React renderer
-  api/                       业务 API、会话与正式数据的服务入口
-  agent/                     Pi 适配、面试编排与工具执行
+  agent/src/local/     本地宿主、SQLite、stdio、凭证代理（feature/agent）
+  agent/src/           Pi、规划、评分、记忆、压缩、恢复、语音与评测核心
+  api/                 管理 API 接入位置；旧面试服务仅作回归
+  desktop/             master 的历史骨架；新桌面由前端负责，Agent 分支已删除
 packages/
-  contracts/                 跨服务 Zod 契约、错误与事件
-  interview-domain/          纯领域规则
-  db/                        Drizzle 数据模型
-knowledge/                   两岗知识、题目草案与来源登记
-experiments/pi-sdk/          可复现的离线 SDK 示例
-evals/                       评测数据清单与说明
-infra/                       开发基础设施配置
-scripts/                     构建、数据检查与接口文档生成
-tests/                       行为与 SDK 集成测试
-docs/                        需求、接口与团队开发文档
+  contracts/           跨进程/服务 Zod schema 真值
+  interview-domain/    纯领域规则
+  local-agent-client/  主进程专用 spawn/stdio/凭证 SDK（feature/agent）
+  agent-client/        旧 HTTP 客户端及候选提交验证（feature/agent）
+  db/                  PostgreSQL 模型；管理域拆分在 feature/db 待集成
+knowledge/             岗位题库、量规、来源、版本与审核资料
+experiments/           SDK 离线验证
+evals/                评测、分组隔离与证据检查（完整实现见 feature/agent）
+scripts/               按所在分支 package.json 执行的构建/检查/验收入口
+tests/                 对应分支回归测试
+docs/                  团队需求、架构、契约与运行说明
 ```
+
+`feature/db` 已提出 `packages/local-db` 与管理 PG 拆分；合入和适配前不视为现有本地宿主已切换存储。详见[数据库说明](docs/database.md)。
 
 ## 项目架构
 
-下面是目标架构；当前已实现的基础能力见需求文档中的状态表。
-
 ```mermaid
 flowchart LR
-  subgraph Windows客户端
-    UI[React 界面] --> Bridge[Preload 白名单桥接]
-    Bridge --> Main[Electron 主进程]
+  subgraph Student[Windows 学生客户端]
+    UI[React 界面] --> Preload[受限 preload]
+    Preload --> Main[Electron 主进程]
+    Main <-->|私有 stdio RPC| Host[本地宿主 / Agent 子进程]
+    Host --> Local[(用户目录 SQLite)]
+    Host --> Core[Pi 与面试核心]
   end
-  Main -->|HTTPS / SSE| API[业务 API]
-  API -->|内部 HTTP| Agent[独立 Agent 服务]
-  API --> DB[(PostgreSQL)]
-  API --> Files[私有文件存储]
-  Agent --> Pi[Pi SDK 适配层]
-  Agent --> Tools[授权知识与评分工具]
-  Pi --> Models[大语言模型]
-  Agent --> Speech[语音服务]
+  Core -->|显式授权| Provider[模型 / ASR / TTS]
+  Admin[管理 Web] -->|鉴权 HTTPS| API[管理 API]
+  Main <-->|账号 / 内容下载 / 授权回传| API
+  API --> PG[(管理 PostgreSQL)]
+  API --> Worker[受控评测任务 / 复用 Agent 核心]
 ```
 
-业务 API 管理身份、会话、画像和正式结果；Agent 负责规划、评估、工具调用与反思。模型和语音凭证保留在服务端。Electron 的主进程使用自带 Node.js，Bun 用于工程和服务端。
+本地宿主是用户正式记录的唯一写入方，模型和工具产候选，宿主校验后事务提交。管理服务拥有账号、团队内容、审核、管理实验与审计；不能直接访问或修改学生 SQLite。指标与样本经明确授权最小回传，不默认上传完整面试或音频。
+
+监控只读；评测达标不等于发布。云端发布版本、客户端安装版本与当前面试固定版本分别记录；正式发布与采用链路未验收时继续显示 `not_published`。XP/金币首版本地持久化，不是模型调用预算，也不改变技术分数。
 
 ## 技术栈
 
-| 层级        | 技术                                   | 用途                                                    |
-| ----------- | -------------------------------------- | ------------------------------------------------------- |
-| 工程        | Bun Workspaces、TypeScript strict、ESM | 单仓库与共享契约                                        |
-| 桌面        | Electron、Vite、esbuild                | 桌面宿主、界面与主进程构建                              |
-| 界面        | React、Tailwind CSS、Radix UI          | 页面与交互；Jotai / TanStack Query 为状态与请求管理依赖 |
-| API / Agent | Hono、Zod、Pi Agent SDK                | 业务接口、运行时校验、Agent 运行                        |
-| 数据        | PostgreSQL、Drizzle ORM                | 业务数据；当前只有初始 schema 和开发配置                |
-| 通信        | Electron IPC、HTTP、SSE                | 进程桥接与服务事件；业务流待接入                        |
-| 质量        | Bun Test、TypeScript、Redocly          | 行为测试、类型检查与 OpenAPI 校验                       |
+| 层 | 技术与职责 |
+| --- | --- |
+| 工程 | TypeScript strict、ESM、Bun 1.4.4 / Workspaces |
+| 学生端 | Electron、React；IPC 白名单桥接，前端负责桌面和 Windows 安装包 |
+| 本地 Agent | 包内 Bun 子进程、stdio JSONL、Pi SDK 1.4.0、Zod |
+| 管理端 | Web 界面＋Hono 管理 API，后端接入账号/权限和后台任务 |
+| 数据 | 用户本机 SQLite；中央 PostgreSQL / Drizzle，各自唯一写入方 |
+| 供应商 | Agent 分支含千问平台 LLM、Omni、TTS 适配；主进程按需提供凭证 |
+| 验证 | bun:test、TypeScript、Redocly；离线、在线链路、独立质量分开验收 |
 
 ## 文档
 
-- [数据库设计](docs/database.md)、[原型交接文档](docs/HANDOFF.md)（与当前PRD/接口冲突时以当前契约为准）
-
-- [需求与验收](docs/prd.md)、[架构](docs/architecture.md)、[接口](docs/api.md)、[协作分工](docs/collaboration.md)
-- [客户端本地运行时设计](docs/client-runtime.md)、[stdio协议与随包启动](docs/local-runtime-api.md)、[live与凭证代理](docs/client-live-runtime.md)、[本地语音](docs/client-speech-runtime.md)、[本地在线验收](docs/local-online-acceptance.md)
-- [试点运行、配置与恢复](docs/pilot.md)、[机器可读API](docs/openapi.yaml)
-- [会话编排](docs/session-workflow.md)、[澄清与弃评](docs/workflow-clarification.md)、[记忆与上下文](docs/memory-context.md)
-- [模型恢复](docs/model-recovery.md)、[任务持久化](docs/durable-runtime.md)、[统一会话预算](docs/session-accounting.md)
-- [真人双岗验收](docs/agent-field-acceptance.md)、[语音任务](docs/speech-tasks.md)、[表达观察](docs/expression-assessment.md)
-- [独立审核与真实队列](docs/field-evidence.md)、[知识审核](docs/knowledge-curation.md)、[评测计划](docs/evaluation-plan.md)
-- [反馈事实与引用支持度复核](docs/feedback-review.md)
-- [反馈发布隔离与复核回执](docs/feedback-publication.md)
-- [反馈修订候选与版本回放](docs/feedback-revision.md)
-- [会话收尾修订预览](docs/closeout-preview.md)
-- [结构化输出失败诊断与引用冲突边界](docs/output-diagnostics.md)
-- [Agent主流程演示与联调验收](docs/agent-journey.md)
-
+- 团队先读：[需求](docs/prd.md) → [架构](docs/architecture.md) → [协作分工](docs/collaboration.md) → [接口导航](docs/api.md)。
+- 客户端接线：[本地协议](docs/local-runtime-api.md)、[本地运行时](docs/client-runtime.md)、[凭证与 live](docs/client-live-runtime.md)、[本地语音](docs/client-speech-runtime.md)。
+- 数据与管理：[数据库边界](docs/database.md)、[知识审核](docs/knowledge-curation.md)、[评测计划](docs/evaluation-plan.md)。
+- Agent 机制：[会话编排](docs/session-workflow.md)、[澄清与弃评](docs/workflow-clarification.md)、[记忆与压缩](docs/memory-context.md)、[恢复](docs/model-recovery.md)、[Harness](docs/agent-harness.md)。
+- 验收：[本地在线验收](docs/local-online-acceptance.md)、[评分质量](docs/scoring-quality.md)、[真人双岗验收](docs/agent-field-acceptance.md)。
+- 历史参考：[原型交接](docs/HANDOFF.md)、[旧试点](docs/pilot.md)、[旧 HTTP OpenAPI](docs/openapi.yaml)。交接包和旧接口不覆盖当前架构；文档中的现有能力须到对应实现分支验证。
