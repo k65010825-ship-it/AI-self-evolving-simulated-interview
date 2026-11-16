@@ -78,3 +78,5 @@ Agent内部runs支持 `job.type=closeout-preview` 的只读修订预览与版本
 报告展示读取 `assessments[].feedback` 与 `feedbackPublication`，不要直接显示内部 `turns[].proposal.feedback` 或 SSE 中的完整候选。新建报告会暂缓明确事实冲突和指定待审疑点，业务提交校验重算相同投影；全部暂缓时反馈数组可为空。复核回执目前是宿主函数生成的未提交候选，没有 reviewer 登录、正式回执存储或重新发布 HTTP 路由，详见[反馈发布隔离与回执](feedback-publication.md)。
 
 学习事件核验、复测配对、实验发布/回退、reviewer登录、独立审核存储、数据删除传播、管理员界面等仍是宿主函数或CLI，没有正式HTTP成功路由；未实现 `/v1/*` 返回501。已有[真实队列采集](field-evidence.md)支持导入和缺失校验，不能伪造人工批准或真人效果。
+
+数据库表结构、迁移和约束见[数据库设计](database.md)，原型需求见[交接文档](HANDOFF.md)。schema合入不表示管理HTTP接口或本地账号归属已实现；新增preload桥接必须按当前契约单独实现。

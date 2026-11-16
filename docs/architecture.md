@@ -34,6 +34,8 @@ API与Agent当前在同一服务器上运行，分别持有SQLite连接；WAL、
 
 模型传输独立维护wire上下文：预处理预算 → auto_compact阈值检查 → HTTP → 上下文超限时reactive_compact → 有预算重发。压缩不改正式证据，不丢系统约束或拆散工具调用/回执对；不能压缩到安全预算则明确失败。输出截断与context overflow分开处理：提额、重新生成或受控续写都计入尝试；无完整有效JSON不提交。Pi隐式重试/压缩关闭，统一宿主调度。见[记忆](memory-context.md)、[恢复](model-recovery.md)。
 
+PostgreSQL/Drizzle schema已覆盖队友新增的管理与旧服务实体，包含迁移SQL及离线执行用例，见[数据库设计](database.md)。部署实例迁移、repository/事务实现和管理鉴权需分别验收；这些表不直接替代本地宿主的SQLite会话、任务与预算。产品会话、SDK上下文、任务和长期画像仍须区分。
+
 ## 4. 语音链路
 
 Agent接收宿主已经授权的规范WAV（16kHz/mono/PCM16），校验当前题目、归属、摘要、时限与预算，进入持久ASR任务；原转写和用户确认文分离。采集设备、客户端录音和UI由前端同学负责，本轮不实现。

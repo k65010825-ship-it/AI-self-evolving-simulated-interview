@@ -15,6 +15,9 @@
     "check:knowledge": "bun run scripts/check-knowledge.ts",
     "openapi:generate": "bun run scripts/generate-openapi.ts",
     "openapi:lint": "redocly lint docs/openapi.yaml",
+    "db:generate": "bun run --cwd packages/db db:generate",
+    "db:migrate": "bun run --cwd packages/db db:migrate",
+    "db:check": "bun run --cwd packages/db db:check",
     "dev:api": "bun run apps/api/src/index.ts",
     "dev:agent": "bun run apps/agent/src/index.ts",
     "desktop:build": "bun run scripts/build-desktop.ts",
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@earendil-works/pi-ai": "1.4.0",
     "@earendil-works/pi-coding-agent": "1.4.0",
+    "@electric-sql/pglite": "0.5.16",
     "@redocly/cli": "2.72.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/bun": "1.4.4",
