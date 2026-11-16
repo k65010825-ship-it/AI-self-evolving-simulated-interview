@@ -1,74 +1,63 @@
-# 架构基线 v0.1
+# 架构与职责
 
-部署：Windows Electron 客户端 → HTTPS API → 内部 Agent 服务；PostgreSQL 与私有文件/对象存储由服务端维护。首版单 API、单 Agent 实例，数据库任务/租约方案在正式问答迭代实现。本文描述目标设计，当前状态见 [PRD](prd.md#8-当前实现状态与待定项)。
+**本地运行时已完成离线文字阶段（2026-11-10）**：主进程通过stdio管理独立子进程；`apps/agent/src/local`的宿主负责身份、单库事务、会话/记忆和任务恢复，`packages/local-agent-client`负责spawn/协议/退出。已完成随包Bun产物的双岗重启验收，本地live文字/私有凭证代理及v2迁移已接入，采用注入HTTP离线验证；本地语音与v3迁移已接入并离线注入验证；音频硬件/凭证库/桌面接线待完成。见[设计](client-runtime.md)与[本地接口](local-runtime-api.md)。以下保留旧服务端架构和复用机制，不能将其API所有权或服务端验收当作新默认入口。
 
-## 责任与依赖
+本轮开发范围仅为Agent。外部客户端由队友实现，通过主进程stdio访问本地宿主；旧业务API仅用于服务回归；本仓库桌面实现已删除。借鉴Craft的契约/共享业务/应用装配分层、来源与权限集中管理；本项目使用Pi SDK1.4.0，按安装包声明隔离资源与工具，不照搬编码Agent的本地权限。
 
-| 单元 | 拥有的职责 | 不应承担的职责 |
-| --- | --- | --- |
-| desktop/renderer | React 界面、录音与交互 | 任意 Node/file/shell 或模型凭证 |
-| desktop/preload | 白名单 bridge、参数边界 | 通用 IPC、任意 endpoint 转发 |
-| desktop/main | 窗口、客户端凭证、远程 API 连接、文件导出 | Agent 推理/模型 key、正式业务数据库 |
-| api | 身份/归属、面试/回答/报告/画像、任务、正式提交、事件 | 暴露 Pi 事件、任由模型写业务表 |
-| agent | 累计状态规划、知识工具、评估、Pi 适配、反思/实验 | 用户鉴权真值、绕过 attempt 正式提交 |
-| contracts | Zod schema、DTO、错误码、归一事件 | 数据库/SDK/Electron 运行时依赖 |
-| interview-domain | 岗位规则、纯状态与评分计算 | 网络、凭证、GUI |
-| db | Drizzle schema/迁移与 repository | 供客户端或 Agent 直接访问 |
+## 1. 应用边界
 
-Pi Skill 与固定源码索引在 .agents/skills/pi-agent-development。SDK 最小示例不可直接作为业务会话工厂；资源、工具、状态和环境都需受控。Pi 1.4.0/Bun 1.4.4 已离线试跑，模型供应商无默认选择。
+| 层 | 所有权 |
+| --- | --- |
+| packages/contracts | Zod类型、请求/结果、错误、状态与预算schema的跨服务真值 |
+| packages/interview-domain | 无IO领域规则与可解释反馈 |
+| packages/agent-client | 内部HTTP/SSE消费、候选提交验证；不代替数据库事务 |
+| apps/api/src/pilot | 学生认证/归属、当前题目、正式会话与记忆、操作幂等和CAS回执 |
+| apps/agent/src | 规划、知识/评分/资源工具、记忆视图、Pi会话、恢复、语音、操作账本 |
+| apps/pilot | 两个独立服务的配置与装配、跨进程会话额度策略 |
+| Agent CLI | 真实参与者本机采集、显式模型评分、分岗盲审导出；不扩展桌面UI |
 
-## 请求与提交链路
+API与Agent当前在同一服务器上运行，分别持有SQLite连接；WAL、IMMEDIATE事务与busy_timeout用于本机并发。它不是跨服务器共享文件数据库方案。packages/db保留PostgreSQL/Drizzle目标模型，尚未迁移。面向真实多机部署应由API管理正式数据库和预算服务，不把SQLite文件放网络共享盘。
 
-POST 回答带 Idempotency-Key、sessionVersion；API 同事务保存回答及 AgentRun，提交后才返回 202。任务执行器领取租约与 attemptId，Agent 消费输入快照并返回归一结果。API 检查 lease、attemptId、取消状态和 sessionVersion 后事务提交正式评分/画像/下一题。租约过期的旧结果拒绝，即使 SDK 已生成完整回答。
+## 2. 一次面试
 
-断流只是连接状态变化；任务继续，重连查询快照并补持久事件。取消先撤销提交资格，再尽力 abort；不能保证供应商已停止计费。事件有 runId、attemptId、seq、schemaVersion，临时 token 不保证全量重放。
+登录 → API创建正式session/不可变额度/操作票据 → Agent产生create候选 → API提交CAS → 规划读取累计掌握度/置信度/时间 → Pi按需调用知识工具 → 宿主校验岗位/难度/未练题 → 自然承接＋真实题目 → 学生回答 → 独立Pi评分 → 严格引用/量规计算 → 状态候选 → API事务提交。
 
-## 基础与扩展
+同题澄清保留原回答与neutral提示，弃评不写0分、不推进能力观测。收尾输出多维报告、练习计划、记忆与反思候选。API统一事务保存正式workflow、跨会话memory及唯一回执；Agent不直写正式表。旧版本/跨用户/被取消/不匹配候选拒绝提交。
 
-知识先用版本化双岗 JSON 导入数据库，工具按岗位/技能过滤和 Top-K 查询；无结果说明不足，不动态抓任意 URL。向量数据库、Redis/MQ、MCP 不作为基础依赖。
+详见[工作流](session-workflow.md)、[HTTP](workflow-http.md)、[CAS](workflow-commit.md)、[澄清](workflow-clarification.md)。当前pilot没有接强制发题展示回执策略，question-ack适配仍由后续产品联调选择启用；不假称已验证学生实际阅读。
 
-语音先录音后转写：ASR 原文与确认文字均保留关联，原音频另做声学/情感；TTS 只播报问题。客户端不装 Bun、SDK 或数据库。Electron 主进程是自带 Node.js；Bun 用于工程与服务端，两种运行环境分开检查。
+## 3. 规划、记忆与上下文
 
-当前骨架只实现 /health、双岗种子知识执行器及工具适配、公共校验/错误、纯规划优先级示例、初始 schema、桌面安全桥接和静态启动界面。业务未实现入口返回 501；/health 返回 scaffold 状态，不代表面试服务已就绪。
+状态由原始证据派生，包含各技能掌握度和置信度、覆盖、深度、历史已练题与剩余预算。选择方向考虑岗位相关性、薄弱和不确定性，不能按题库顺序。知识query由模型决定，宿主强制身份/岗位/权限/Top-K/截止时间和工具参数校验；当前是真实本地工具，不依赖MCP服务。
 
-## 数据概览
+完整证据保存在正式API记录，记忆召回只是有界视图。按用户/岗位/量规版本隔离，优先近期薄弱与低置信度，历史不冒充本场新证据。规划上下文预处理去重、相关性排序与预算裁剪；评分只读取当前题/答案/量规，剥离历史画像，防止历史能力暗示评分。
 
-User → InterviewSession → InterviewTurn → Evaluation；Session → AgentRun → RunAttempt/RunEvent。RoleProfile → KnowledgeItem/Question/Rubric。User+Role+Skill → SkillObservation/Profile。Recommendation → LearningProgress → PredictionSnapshot/PerformancePair → Reflection → PolicyVersion/EvalExperiment。
+模型传输独立维护wire上下文：预处理预算 → auto_compact阈值检查 → HTTP → 上下文超限时reactive_compact → 有预算重发。压缩不改正式证据，不丢系统约束或拆散工具调用/回执对；不能压缩到安全预算则明确失败。输出截断与context overflow分开处理：提额、重新生成或受控续写都计入尝试；无完整有效JSON不提交。Pi隐式重试/压缩关闭，统一宿主调度。见[记忆](memory-context.md)、[恢复](model-recovery.md)。
 
-骨架 schema 仅放基础表，完整状态机、迁移、事务和持久化属于后续任务。各实体明确区分：产品会话、SDK 上下文、任务执行与长期画像不能用同一份 JSONL 替代。
+## 4. 语音链路
 
-## 面试状态与规划
+Agent接收宿主已经授权的规范WAV（16kHz/mono/PCM16），校验当前题目、归属、摘要、时限与预算，进入持久ASR任务；原转写和用户确认文分离。采集设备、客户端录音和UI由前端同学负责，本轮不实现。
 
-InterviewState 保存已测/待测技能、各技能 mastery/confidence、薄弱点、已练题、剩余时间、难度、当前追问深度；历史画像初始化后，每轮按新证据更新。不是仅靠聊天摘要或上一句关键词。
+原WAV只在内存处理，SQLite保存操作记录与转写候选。独立表达观察受音频时长与逐字引用约束，不进入正式综合分；TTS仅合成宿主授权的当前题目，忽略供应商下载URL。见[语音任务](speech-tasks.md)与[表达观察](expression-assessment.md)。
 
-初始规则：mastery 是固定 rubric 下归一技能分的证据加权均值；confidence 综合有效独立题数、题型覆盖、一致性与时效，范围 [0,1]，表示证据可信程度，不是已校准正确概率。缺证据时 mastery=null、confidence=0；重复原题不增加独立证据数，冲突触发诊断追问。候选排序综合岗位相关度、低置信、薄弱与覆盖缺口；领域模块目前只实现基础排序，不等于完整规划器。
+真人质量验证通过独立CLI进行，先采集本人文本回答，再显式调用Pi评分；每岗8题和对应量规冻结，回答不可改，独立审核者不接收模型分数。默认不发网络请求，真实身份和审核独立性仍须人工核验。见[真人双岗验收](agent-field-acceptance.md)。
 
-动作限定 deepen / switch_skill / adjust_difficulty / finish。模型依据累计状态选择知识和动作，程序约束时间、重复题、覆盖、追问深度与合法输出。保存简短依据与证据引用，不保存内部推理链。
+## 5. 持久任务与统一额度
 
-目标会话状态：planning → awaiting_answer → processing_answer → awaiting_answer / completed；非终态可进入 cancelled 或 failed。目标任务状态：queued → running → completed / failed / cancelled。各轮和状态迁移在 API 内检查 sessionVersion；已完成会话不接受新答案。HTTP 数据对象见 [接口文档](api.md)。
+Agent SQLite保存任务、事件、模型尝试、lease/fence与幂等；API保存正式操作票据。崩溃不能证明外部调用未收费：已派发残留转unknown并保留预留，无证据不自动重试；终态任务也恢复账目。事件续订与任务恢复不同，SSE成功不是正式业务提交。
 
-## 语音与评估
+统一accounting.sqlite按真实session/user/role限定LLM/ASR/TTS跨轮、跨进程额度：reserve → dispatch → responded/unknown → reconcile。reserve/dispatch先于任何真实HTTP；写入失败则HTTP=0。responded释放并发但保留费用；unknown保留并发/费用直到宿主有据对账。LLMusage按声明费率估算，不称供应商账单；导入证据CAS也不自动认证发票。见[统一会话额度](session-accounting.md)、[试点runtime](pilot-runtime.md)、[运行手册](pilot.md)。
 
-原音频一条分支做 ASR，原始转写与学生确认文同时关联；内容评估使用确认文。另一条分支从原音频取得有声时长、停顿等特征和中文情感推断，支撑表达反馈。音频清晰度是待人工样例验证的可懂度估计，不能直接使用 ASR confidence 代替自信或发音评分。
+## 6. 质量与双闭环
 
-报告区分技术正确性、深度、逻辑、岗位匹配、表达结构/沟通；语音才追加声学/情感维度。文字输入的音频维度为 null；噪声、过短、口音等情况标不足。TTS 播报问题与模型推理接口分别适配，不要求经 Pi 代理所有语音请求。
+学生侧已有报告/练习/不同题复测和历史记忆规则；系统侧已有自动反思/策略候选/合成实验激活与回退。真实学习核验与复测数据必须独立采集；正式策略发布仍需业务端与管理员权限，当前不自动把offline-experiment策略发给全部学生。
 
-原音频默认处理/确认后删除；用于听审时单独告知并同意保留至交付后 7 天。删除后时间片段和统计仍可说明依据，但必须标不可回放。画像、报告与删除请求按所有权处理；日志不记录完整音频、简历或密钥。
+独立评分、自然承接/泄题、表达可靠性、知识批准和真实RSI不能由代码制造。field-evidence工具导出盲审包、校验版本/来源/审核者分组，拒绝自审、污染和缺失分母，支持真实前后表现的描述性分析。无真实标签时not_ready，不把合成收益当真人因果效果。详见[采集门禁](field-evidence.md)、[评测计划](evaluation-plan.md)。
 
-## 反思与策略版本
+## 7. Agent Harness与阶段侧链
 
-每场反思先记录追问目标、新增证据、重复/漏测、时间与不确定性；无复测时等待后续数据。当前能力估计、学习增益和带学习条件/期限的未来成绩预测分开存储。PredictionSnapshot 在看到复测题/答案前固定，符合期限、难度、学习暴露和 rubric 的样本才进入 PerformancePair。
+Pi为唯一模型运行时；规划/评分/承接语共享`createHarnessPiSession`。按阶段动态加载技能正文，严格固定工具白名单和空本地资源发现；共享CompletionGate检查工具/最终消息/settled及宿主验证，返回校验结果副本。宿主验证钩子异常拒绝结果，不能作为普通日志忽略。Claude的PostToolUse/Stop为设计参考，不宣称这些SDK事件本身提供强安全保证。
 
-首版固定评分 rubric，候选只调整 uncertaintyPriorityBoost、maxFollowupDepth、coverageReserveRatio 等白名单参数，预设范围和单次上限，模型不能改发布门槛或权限。保留基线 v0；会话启动固定策略，正在进行的会话不随新版本变动。
+评分的格式修复使用请求局部Pi会话树检查点，保留失败分支且不将其输出回灌主循环；正式业务和预算不会被树导航回滚。wire压缩插件只可删选已知规划可选memory，auto/reactive沿同一宿主预算恢复。技能/工具源/钩子/侧链分别装配，当前工具源为local；不虚称已有MCP服务或第二SDK运行时。完整机制与面试解释见[Agent Harness](agent-harness.md)。
 
-自动门槛使用预标注分支场景和内部验证参考评分；通过后事务更新实验范围 champion，失败保留旧版。真人命中率独立盲审，不能把场景代理当真人效果。支持人工审计与回退，普通正式发布可另有管理员控制，但不能替代自动实验链路。数据门槛、预测字段和指标见 [评测计划](evaluation-plan.md)。
-
-## 工程与交付约束
-
-共享契约位于 packages/contracts；跨服务事件转换留在 Pi 适配层，前端不接 SDK 原始事件。Electron contextIsolation/sandbox 开启、nodeIntegration 关闭，preload 仅命名白名单方法，主进程验证发送来源。当前桥接只有版本与健康查询，语音权限仍默认拒绝。
-
-创建/恢复 Pi 会话显式指定资源、工具、settings、session 和 runtime；不读取个人全局资源。凭证留在服务器，SDK 恢复不代表业务任务或外部副作用可恰好一次恢复。工具契约、预算与错误由 [tool-contracts.md](tool-contracts.md) 和 [error-handling.md](error-handling.md) 定义。
-
-三人模块所有权、分周目标和 PR 流程见 [collaboration.md](collaboration.md)。签名安装包、非开发机测试、HTTPS、数据库备份/恢复须独立验证，不能用桌面构建通过替代。
-
-不为了像 Craft 增加桌面内置服务器、双 SDK 或通用 SessionManager 巨类。
+当前面试业务不建设通用插件市场、任意会话树重放或递归子Agent调度。工厂已强制注册阶段业务guard，规划题目必须来自本次验证回执，非法钩子配置在SDK分配前拒绝；额外钩子不能替换默认校验。既有宿主阶段路由、受保护auto/reactive压缩和持久任务恢复为正式边界，建设触发条件见[业务机制决策](agent-harness.md)。

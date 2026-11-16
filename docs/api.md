@@ -1,175 +1,80 @@
 # 接口文档
 
-版本：v1 开发基线。面向前端、业务后端与 Agent 联调。**当前仅 GET /health 可用；所有正式业务接口仍返回 501。** 下文请求约束已在 OpenAPI 中定义；业务成功对象与 SSE payload 是目标约定，实现前须同步到公共 schema 和 OpenAPI。
+**迁移提示（2026-11-10）**：本文HTTP接口属于旧服务试点，继续用于回归。新客户端文字宿主已采用独立本地运行时＋stdio RPC，schema在`packages/contracts/src/local-runtime.ts`，已实现方法见[本地接口](local-runtime-api.md)。它不需要网页登录、内部服务token或自请求HTTP；本地live文字已采用显式授权/私有凭证代理，完成注入HTTP离线验证；本地ASR确认/TTS已有独立stdio实现并离线注入验证，旧语音HTTP保留回归。
 
-## 1. 服务与协议
+版本0.2。**下述业务接口由 `bun run pilot:start` 启动的SQLite试点实现**；旧 `dev:api` 的业务路径继续返回501。跨服务schema真值为 `packages/contracts`，运行 `bun run openapi:generate` 生成 [OpenAPI](openapi.yaml) 与 workbench-schemas.json。不要使用旧目标接口字段联调新试点。
 
-| 服务 | 本地地址 | 使用方 |
-| --- | --- | --- |
-| 业务 API | http://127.0.0.1:3100 | Electron 主进程 |
-| Agent | http://127.0.0.1:3200 | 业务后端，生产不对公网开放 |
+## 1. 服务与认证
 
-生产 API 使用 HTTPS。时间统一 ISO 8601 UTC；标识符为不透明字符串，不依赖前缀解析。普通 JSON 用 application/json，错误用 application/problem+json。私有业务接口目标使用 Authorization: Bearer <token>；不预设 token 必须是 JWT，登录与刷新方案尚未定。当前骨架没有认证实现，不能将健康接口可达当作登录成功。
+API默认 `http://127.0.0.1:3100`，Agent默认3200；远程API必须HTTPS。学生使用运营者配置账号登录，获得1小时有效的随机不透明Bearer令牌。令牌的客户端保存与界面接线由前端同学负责；当前Agent工作不包含桌面实现。供应商凭证只在Agent进程。内部服务使用独立服务token，不能用学生token调用。
 
-集合接口约定 cursor、limit（默认 20、范围 1—100），目标响应为 `{ "items": [], "nextCursor": null }`；最后一页 nextCursor=null。
+JSON时间为epoch毫秒，正文UTF-8。普通错误统一 `application/problem+json`，包含 code/status/detail/requestId/retryable 等；不透出供应商原始响应或堆栈。JSON32KiB、WAV4MiB，HTTP入口并发8，Agent语音执行并发4；不是多实例全局限流保证。正式会话数据仅允许本人访问。
 
-## 2. 当前可用：健康检查
+## 2. 可用业务接口
 
-```http
-GET /health
-```
+| 方法与路径 | 请求/响应与行为 |
+| --- | --- |
+| GET /health | stage=pilot表示试点入口；不是模型/设备可用性探测 |
+| POST /v1/auth/login | `{userId,password}` → `{token,expiresAt,user}`；没有学生注册或任意userId授权 |
+| POST /v1/auth/logout | 撤销当前令牌 |
+| GET /v1/roles | Java后端、Web前端和技能清单 |
+| GET /v1/interviews | 本人最近100场 PilotSessionView 数组；尚无分页 |
+| POST /v1/interviews | PilotSessionCreate → 202 `{sessionId,operationId}` |
+| GET /v1/interviews/{id} | PilotSessionView，包含revision/phase/question/clarification/report |
+| POST /v1/interviews/{id}/question | PilotCommand → 202操作ID；按状态选下一题 |
+| POST /v1/interviews/{id}/answers | PilotAnswer → 202操作ID；语音需附已确认speechId |
+| POST /v1/interviews/{id}/completion | PilotCommand → 202操作ID；生成报告、记忆和反思候选 |
+| GET /v1/operations/{id} | running/completed/failed/interrupted与公开errorCode |
+| POST /v1/interviews/{id}/speech | PilotSpeechCreate → 201 `{speechId}`；仅登记源，不表示ASR成功 |
+| PUT /v1/speech/{id}/audio | audio/wav 原始规范WAV → 202任务视图 |
+| GET /v1/speech/{id} | 原转写/确认文/版本/错误/未验证表达观察 |
+| POST /v1/speech/{id}/confirmation | `{expectedVersion,text}` → 确认候选；不等于答题提交 |
+| POST /v1/speech/{id}/cancellation | 撤销候选资格，不保证供应商停止计费 |
+| GET /v1/interviews/{id}/question-audio?questionId=... | 当前正式题目24kHz PCM16 WAV；缓存幂等；离线为提示音 |
+| GET /v1/evidence/status | 独立审核和真实队列的初始待验证状态；不是持续更新的审核数据库 |
 
-业务 API 当前返回：
+### 创建与回答示例
 
 ```json
-{
-  "service": "api",
-  "stage": "scaffold",
-  "liveModelConfigured": false,
-  "capabilities": ["health-only"]
-}
+{"operationId":"create-001","roleId":"java-backend","goal":"练习事务与项目设计","durationMinutes":20,"pressure":false}
 ```
 
-Agent 的 service 为 agent，capabilities 为 offline-pi-spike、draft-seed-knowledge。此接口不检查真实模型、语音或数据库就绪。
-
-## 3. 目标 HTTP 接口清单
-
-下表“目标成功码”不是当前运行结果；当前统一返回 501。创建/读取实验须管理员权限，学生数据须验证本人归属。
-
-| 方法 | 路径 | 用途 | 目标成功码 |
-| --- | --- | --- | --- |
-| GET | /v1/roles | 分页岗位清单 | 200 |
-| POST | /v1/interviews | 创建面试与初始规划任务 | 201 |
-| GET | /v1/interviews | 本人面试列表 | 200 |
-| GET | /v1/interviews/{interviewId} | 本人面试快照与当前问题 | 200 |
-| POST | /v1/interviews/{interviewId}/answers | 幂等提交回答、创建处理任务 | 202 |
-| GET | /v1/interviews/{interviewId}/report | 本人评估报告 | 200 |
-| GET | /v1/runs/{runId} | 任务快照 | 200 |
-| GET | /v1/runs/{runId}/events | SSE 事件 | 200 |
-| POST | /v1/runs/{runId}/cancellation | 取消并撤销提交资格 | 202 |
-| GET | /v1/profiles/me | 本人跨会话画像 | 200 |
-| POST | /v1/experiments | 创建策略评测任务 | 202 |
-| GET | /v1/experiments | 分页实验记录 | 200 |
-
-### 3.1 创建面试
-
-```http
-POST /v1/interviews
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "roleId": "java-backend",
-  "goal": "练习事务与并发场景题",
-  "durationMinutes": 20
-}
-```
-
-| 字段 | 约束 |
-| --- | --- |
-| roleId | 必填，java-backend / web-frontend |
-| goal | 必填，1—500 字符 |
-| durationMinutes | 必填整数，15—25 |
-
-目标 201 对象为 `{ "interview": Interview, "run": Run }`。初始状态为 planning、queued，currentQuestion=null；计划/首题就绪后会话进入 awaiting_answer。创建成功不等于问题已生成。
-
-### 3.2 提交回答
-
-```http
-POST /v1/interviews/interview-demo/answers
-Authorization: Bearer <token>
-Idempotency-Key: answer-demo-001
-Content-Type: application/json
-
-{
-  "sessionVersion": 1,
-  "answer": "我会先明确数据库事务和缓存更新之间的失败窗口……"
-}
-```
-
-sessionVersion 为当前快照的非负整数；answer 为 1—10000 字符。Idempotency-Key 必填，长度 1—128。相同键与相同内容返回既有任务；相同键但内容不同、版本落后、未在 awaiting_answer 状态均应 409。
-
-目标返回 202 Run。API 只有在保存回答与创建任务的事务成功后确认接受；客户端通过 Run 与事件获取进度，再刷新面试快照，不能提前把下一题写为正式状态。
-
-语音上传、ASR、转写确认和音频引用的 HTTP 字段尚未冻结：当前 answer 仅文字，不接受假定的 audioId。正式语音接口设计时一起更新本文、OpenAPI 和公共 schema。
-
-### 3.3 取消与报告
-
-取消路径只传 runId，不接受模型/客户端指定 attemptId 来越过权限。目标 202 返回最新 Run；已完成任务保留 completed，取消成功后旧结果不能提交。关闭窗口/断开 SSE 不自动取消任务。
-
-报告未生成时目标返回 409 VERSION_CONFLICT，并通过快照继续查询；无权限 403，不存在/不可见按权限策略返回 404。生成后报告有 reportId、interviewId、roleId、评分/策略版本、各维 score/evidence、亮点/不足、练习和资源建议。无音频维度为 null，不能填零。详细评分对象在报告迭代冻结前不得假装已具备完整机器 schema。
-
-## 4. 目标数据对象
-
-| 对象 | 字段与语义 |
-| --- | --- |
-| Interview | interviewId、roleId、goal、durationMinutes、status、sessionVersion、policyVersion、currentQuestion（可空）、createdAt |
-| Question | questionId、text、skillId、questionType（technical/project/scenario/behavioral）、difficulty（1—5） |
-| Run | runId、interviewId、attemptId（可空）、status、stage（可空）、error（Problem 或 null）、lastEventSeq、createdAt |
-| Role | roleId、name、skillIds；两岗独立知识和 rubric |
-| Profile | 按岗位/技能的 mastery（[0,1] 或 null）、confidence（[0,1]）、证据数/引用、更新时间和版本 |
-
-Interview 状态为 planning、awaiting_answer、processing_answer、completed、cancelled、failed；Run 状态为 queued、running、completed、failed、cancelled。业务数据库 id 到这些 DTO 字段由 API 映射，客户端不直接读取数据库行。
-
-当前已生成 OpenAPI 主要覆盖路径、请求、错误与健康响应；表中的完整业务成功对象尚待实现时补入 schema。更改上表视为契约变更，不由各端各自推测。
-
-## 5. SSE 与重连
-
-```http
-GET /v1/runs/run-demo/events
-Authorization: Bearer <token>
-Last-Event-ID: 7
-Accept: text/event-stream
-```
-
-目标示例（尚未实现）：
-
-```text
-id: 8
-event: run.stage
-data: {"schemaVersion":1,"runId":"run-demo","attemptId":"attempt-1","seq":8,"type":"run.stage","payload":{"stage":"evaluating","message":"正在评估回答"},"occurredAt":"2026-11-01T12:00:00.000Z"}
-```
-
-| 事件 | 目标 payload |
-| --- | --- |
-| run.accepted | stage=queued |
-| run.stage | stage、可公开 message |
-| question.delta | questionId、delta（临时展示） |
-| question.completed | question（完整 Question） |
-| run.completed | interviewId、sessionVersion |
-| run.failed | error（公开 Problem） |
-| run.cancelled | reason（公开摘要） |
-
-公共 RunEventSchema 已定义 envelope，payload 当前是占位 Record，正式推送前须改为各事件的独立校验。seq 在单 run 内单调递增并跨 attempt 保持顺序；Last-Event-ID 表示最后消费的 seq，必须同时核对 runId。最终快照权威，临时文本 delta 不保证全部重放；seq 缺口时刷新快照，不据此重做回答提交。
-
-Electron main 消费 SSE，preload 只转发产品事件；不把 SDK 原始消息或内部思维内容交给 UI。普通 API JSON 错误与已建立流之后的 run.failed 分开处理。
-
-## 6. Agent 内部接口与工具
-
-Agent 目前仅提供健康接口；/internal/v1/* 返回 501。API→Agent 的 start/stream/cancel 形状由 apps/agent/src/runtime/backend.ts 表达边界，HTTP 鉴权与运行请求体尚未实现。正式接入时须携带可校验的任务引用、内部服务身份和预算，客户端不能直连。
-
-query_role_knowledge 是 SDK 内工具，不是公开 HTTP 查询端点。模型输入 roleId/skillId/purpose/query/limit，执行上下文由宿主注入；详见[工具契约](tool-contracts.md)与[工具 JSON Schema](tool-schemas.json)。
-
-桌面当前暴露的桥接只有 window.interview.getVersion() 与 getApiHealth()；不能调用通用 ipcRenderer、任意 channel 或任意 URL。新增提交/取消/订阅桥接时须按本文契约单独实现。
-
-## 7. 错误与联调流程
-
-当前未实现路径的真实响应示例：
+创建成功受理后轮询 `/v1/operations/create-001`，完成后读取会话revision，再提交：
 
 ```json
-{
-  "type": "urn:interview:error:not-implemented",
-  "title": "NOT_IMPLEMENTED",
-  "status": 501,
-  "code": "NOT_IMPLEMENTED",
-  "detail": "该能力尚未实现，当前为开发骨架。",
-  "requestId": "opaque-request-id",
-  "retryable": false
-}
+{"operationId":"plan-001","expectedRevision":0}
 ```
 
-错误码、重试和取消规则见[错误处理](error-handling.md)。401/403 不自动换身份重试；409 刷新状态；429 看 code 和 Retry-After；输出修复、工具与任务重试共同受预算约束。
+回答使用新操作ID和当前revision：
 
-联调顺序：先确认目标状态与字段 → 修改 packages/contracts 与 OpenAPI 生成脚本 → 生成机器文档 → 前后端按相同样例实现 → 验证正常/错误/取消路径。执行 bun run openapi:generate、bun run openapi:lint；不要手改生成后的 YAML/JSON。接口实现后同时更新“当前可用”标记。
+```json
+{"operationId":"answer-001","expectedRevision":1,"text":"我会先说明事务边界和异常回滚条件。"}
+```
 
-待进一步设计：登录/刷新、音频上传与转写、学习资源/完成记录、结束面试、策略审核/回退等 HTTP 端点。它们是产品需求，尚未冻结路径和请求体，不能据界面先假定已可调用。
+operationId在所有动作间唯一；同ID同内容回放结果，改内容/动作/用户冲突拒绝。并发旧revision不覆盖新状态。完整command字段见 workbench-schemas.json。202只是受理，只有operation completed后，API才已通过提交验证并以SQLite事务原子写正式会话、记忆及唯一回执。Agent结果是未提交候选。
+
+## 3. 语音与澄清
+
+客户端把麦克风重采样为16kHz单声道PCM16 WAV，先登记 `{expectedRevision,sha256,byteLength}`，保存speechId后上传。同ID同字节重传不再次ASR，改字节拒绝；任何查询/确认均校验用户、岗位、当前题目与绑定。录音不自动上传，必须点击确认上传。
+
+转写完成后保留originalText，学生只能编辑确认文本与expectedVersion；提交回答时text须与确认文一致。原始WAV不落业务库，任务与转写候选持久化。确认与正式提交是两个动作。
+
+needs_clarification保留同题，客户端提供原回答前缀和补充；服务端避免重复拼接。abstained记录未评分原因，不写0分或掌握度观测；报告显示覆盖分母、记忆不伪造分数。详见 [完整会话澄清](workflow-clarification.md)。
+
+## 4. Agent内部契约
+
+工作流通过已鉴权 `/internal/v1/runs` 与归一SSE执行；实际JSON定义见 [Agent OpenAPI](agent-openapi.yaml)、[HTTP/SSE说明](workflow-http.md) 与 [客户端SDK](agent-client.md)。内部语音接口见 [speech-tasks.md](speech-tasks.md)。
+
+另有 `POST /internal/v1/speech/synthesis`，请求 QuestionVoiceRequest，API宿主提供canonical当前题目绑定；返回audio/wav。Agent用内部token回调API的 `/internal/v1/voice/authorization` 与 `/internal/v1/speech/authorization`，由正式记录决定授权，模型不能提供或覆盖身份。
+
+预算结算、账单导入只开放给运营者本地CLI，不开放学生HTTP。恢复中的unknown保留预留与并发，不能简单刷新即收费重跑。详见 [统一额度](session-accounting.md)、[持久恢复](durable-runtime.md)。
+
+## 5. 尚未开放的业务能力
+
+Agent内部runs支持 `job.type=closeout-preview` 的只读修订预览与版本选择，具体见[预览契约](closeout-preview.md)；它不能走正式提交，也不意味着下列业务发布接口已开放。
+
+反馈修订目前提供共享宿主函数与离线JSON回放，不提供正式版本选择、审批落库或重新发布路由。必须保留原始turns，通过受检版本链获得 `revisionContext` 再复核，不能把修订候选覆盖正式原答/评分或把旧回执移到新版本。见[反馈修订与回放](feedback-revision.md)。
+
+报告展示读取 `assessments[].feedback` 与 `feedbackPublication`，不要直接显示内部 `turns[].proposal.feedback` 或 SSE 中的完整候选。新建报告会暂缓明确事实冲突和指定待审疑点，业务提交校验重算相同投影；全部暂缓时反馈数组可为空。复核回执目前是宿主函数生成的未提交候选，没有 reviewer 登录、正式回执存储或重新发布 HTTP 路由，详见[反馈发布隔离与回执](feedback-publication.md)。
+
+学习事件核验、复测配对、实验发布/回退、reviewer登录、独立审核存储、数据删除传播、管理员界面等仍是宿主函数或CLI，没有正式HTTP成功路由；未实现 `/v1/*` 返回501。已有[真实队列采集](field-evidence.md)支持导入和缺失校验，不能伪造人工批准或真人效果。
