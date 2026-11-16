@@ -18,8 +18,8 @@
 | 学生页面 | 当前可用入口（feature/agent） | 尚待补充 |
 | --- | --- | --- |
 | 关卡 | roles.list、session.create | 六技能目录、结构化弱点/全面练习模式 |
-| 试炼 | session.get/nextQuestion/answer/complete、job.get/cancel/events、speech.* | 澄清与逐轮反馈投影、每题2次有效提示及持久幂等回执 |
-| 战报 | session.get 的已提交 report | 原文证据、稳定的维度汇总及辅助作答状态 |
+| 试炼 | session.get/answers（澄清、弃评、逐轮反馈）及原命令/任务/语音 | 每题2次有效提示与持久幂等回执仍待实现 |
+| 战报 | session.report分页、session.get首屏，含有界原文证据、逐题分维评分和发布状态 | 跨量规统一汇总不提供；提示辅助状态待提示模块接入 |
 | 修炼 | 既有核心规则，尚无完整本地 RPC | 资源/学习记录、不同题复测与配对保存 |
 | 进化/面板 | session.list、memory.get 提供基础记录 | 画像趋势、成长查询、反思与策略/实验状态投影 |
 

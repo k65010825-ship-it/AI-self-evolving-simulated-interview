@@ -34,6 +34,8 @@
           "session.complete",
           "session.list",
           "session.get",
+          "session.answers",
+          "session.report",
           "memory.get",
           "job.get",
           "job.cancel",
@@ -686,10 +688,1133 @@
     ],
     "additionalProperties": false
   },
+  "readPage": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "offset": {
+        "default": 0,
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "limit": {
+        "default": 5,
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "expectedRevision": {
+        "type": "integer",
+        "minimum": -1,
+        "maximum": 9007199254740991
+      },
+      "sessionId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      }
+    },
+    "required": [
+      "offset",
+      "limit",
+      "sessionId"
+    ],
+    "additionalProperties": false
+  },
+  "answerPage": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "presentationVersion": {
+        "type": "number",
+        "const": 1
+      },
+      "sessionId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": -1,
+        "maximum": 9007199254740991
+      },
+      "offset": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "limit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "total": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "nextOffset": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "items": {
+        "maxItems": 5,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "questionText": {
+              "type": "string",
+              "maxLength": 4200
+            },
+            "answerId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scored",
+                "needs_clarification",
+                "abstained"
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "evidence_insufficient",
+                    "clarification_limit",
+                    "time_budget"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rubricVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "technical-content",
+                "behavioral-content"
+              ]
+            },
+            "semanticSupport": {
+              "type": "string",
+              "const": "not_verified"
+            },
+            "normalizedScore": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidenceMode": {
+              "type": "string",
+              "enum": [
+                "offline-fixture",
+                "live-model",
+                "unverified"
+              ]
+            },
+            "strengths": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "improvements": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "feedbackStatus": {
+              "type": "string",
+              "enum": [
+                "draft-unverified",
+                "partially-withheld",
+                "withheld",
+                "not-scored"
+              ]
+            },
+            "withheldFeedbackCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "criteria": {
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "dimension": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "correctness",
+                          "depth",
+                          "ownership",
+                          "logic",
+                          "communication",
+                          "relevance",
+                          "verification"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "score": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "maxScore": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "action": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "dimension",
+                  "score",
+                  "maxScore",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "evidence": {
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "answerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "end": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "excerpt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerId",
+                  "start",
+                  "end",
+                  "excerpt",
+                  "truncated"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "evidenceOmitted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "questionId",
+            "questionText",
+            "answerId",
+            "status",
+            "reason",
+            "rubricVersion",
+            "scope",
+            "semanticSupport",
+            "normalizedScore",
+            "evidenceMode",
+            "strengths",
+            "improvements",
+            "feedbackStatus",
+            "withheldFeedbackCount",
+            "criteria",
+            "evidence",
+            "evidenceOmitted"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "presentationVersion",
+      "sessionId",
+      "revision",
+      "offset",
+      "limit",
+      "total",
+      "nextOffset",
+      "items"
+    ],
+    "additionalProperties": false
+  },
+  "reportView": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "evidenceMode": {
+        "type": "string"
+      },
+      "coverage": {
+        "type": "object",
+        "properties": {
+          "totalAnswers": {
+            "type": "number"
+          },
+          "scoredAnswers": {
+            "type": "number"
+          },
+          "unscoredAnswers": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalAnswers",
+          "scoredAnswers",
+          "unscoredAnswers"
+        ],
+        "additionalProperties": false
+      },
+      "skills": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "mastery": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "confidence": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "mastery",
+            "confidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "answers": {
+        "maxItems": 5,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "questionText": {
+              "type": "string",
+              "maxLength": 4200
+            },
+            "answerId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "scored",
+                "needs_clarification",
+                "abstained"
+              ]
+            },
+            "reason": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "evidence_insufficient",
+                    "clarification_limit",
+                    "time_budget"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rubricVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "technical-content",
+                "behavioral-content"
+              ]
+            },
+            "semanticSupport": {
+              "type": "string",
+              "const": "not_verified"
+            },
+            "normalizedScore": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidenceMode": {
+              "type": "string",
+              "enum": [
+                "offline-fixture",
+                "live-model",
+                "unverified"
+              ]
+            },
+            "strengths": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "improvements": {
+              "maxItems": 5,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "feedbackStatus": {
+              "type": "string",
+              "enum": [
+                "draft-unverified",
+                "partially-withheld",
+                "withheld",
+                "not-scored"
+              ]
+            },
+            "withheldFeedbackCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "criteria": {
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "dimension": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "correctness",
+                          "depth",
+                          "ownership",
+                          "logic",
+                          "communication",
+                          "relevance",
+                          "verification"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "score": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "maxScore": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "action": {
+                    "type": "null"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "dimension",
+                  "score",
+                  "maxScore",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "evidence": {
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "answerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "end": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "excerpt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "answerId",
+                  "start",
+                  "end",
+                  "excerpt",
+                  "truncated"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "evidenceOmitted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "questionId",
+            "questionText",
+            "answerId",
+            "status",
+            "reason",
+            "rubricVersion",
+            "scope",
+            "semanticSupport",
+            "normalizedScore",
+            "evidenceMode",
+            "strengths",
+            "improvements",
+            "feedbackStatus",
+            "withheldFeedbackCount",
+            "criteria",
+            "evidence",
+            "evidenceOmitted"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "studyPlan": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "minutes": {
+              "type": "number"
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "minutes",
+            "actions"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "unscoredAnswers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "questionId",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "expression": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "summary"
+        ],
+        "additionalProperties": false
+      },
+      "presentationVersion": {
+        "type": "number",
+        "const": 1
+      },
+      "sessionId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "revision": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "generatedAt": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "policyVersion": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "aggregation": {
+        "type": "string",
+        "const": "per-answer-only"
+      },
+      "answerPage": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          "nextOffset": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "offset",
+          "limit",
+          "total",
+          "nextOffset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "evidenceMode",
+      "coverage",
+      "skills",
+      "answers",
+      "studyPlan",
+      "unscoredAnswers",
+      "warnings",
+      "expression",
+      "presentationVersion",
+      "sessionId",
+      "revision",
+      "generatedAt",
+      "policyVersion",
+      "aggregation",
+      "answerPage"
+    ],
+    "additionalProperties": false
+  },
   "sessionView": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
+      "presentationVersion": {
+        "type": "number",
+        "const": 1
+      },
+      "submittedCount": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "scoredCount": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "unscoredCount": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 200
+      },
+      "needsClarification": {
+        "type": "boolean"
+      },
+      "clarification": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "questionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "prompt": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "previousText": {
+                "type": "string",
+                "maxLength": 10000
+              }
+            },
+            "required": [
+              "questionId",
+              "prompt",
+              "previousText"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "lastAnswer": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "questionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "questionText": {
+                "type": "string",
+                "maxLength": 4200
+              },
+              "answerId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "scored",
+                  "needs_clarification",
+                  "abstained"
+                ]
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "evidence_insufficient",
+                      "clarification_limit",
+                      "time_budget"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rubricVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "technical-content",
+                  "behavioral-content"
+                ]
+              },
+              "semanticSupport": {
+                "type": "string",
+                "const": "not_verified"
+              },
+              "normalizedScore": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "evidenceMode": {
+                "type": "string",
+                "enum": [
+                  "offline-fixture",
+                  "live-model",
+                  "unverified"
+                ]
+              },
+              "strengths": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "improvements": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 500
+                }
+              },
+              "feedbackStatus": {
+                "type": "string",
+                "enum": [
+                  "draft-unverified",
+                  "partially-withheld",
+                  "withheld",
+                  "not-scored"
+                ]
+              },
+              "withheldFeedbackCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10
+              },
+              "criteria": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "label": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "dimension": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "correctness",
+                            "depth",
+                            "ownership",
+                            "logic",
+                            "communication",
+                            "relevance",
+                            "verification"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "score": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "maxScore": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "action": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "dimension",
+                    "score",
+                    "maxScore",
+                    "action"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidence": {
+                "maxItems": 3,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "answerId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "start": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "end": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "excerpt": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "answerId",
+                    "start",
+                    "end",
+                    "excerpt",
+                    "truncated"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidenceOmitted": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "questionId",
+              "questionText",
+              "answerId",
+              "status",
+              "reason",
+              "rubricVersion",
+              "scope",
+              "semanticSupport",
+              "normalizedScore",
+              "evidenceMode",
+              "strengths",
+              "improvements",
+              "feedbackStatus",
+              "withheldFeedbackCount",
+              "criteria",
+              "evidence",
+              "evidenceOmitted"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "viewKind": {
+        "type": "string",
+        "enum": [
+          "full",
+          "summary"
+        ]
+      },
+      "startedAt": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "hasReport": {
+        "type": "boolean"
+      },
       "sessionId": {
         "type": "string",
         "minLength": 1,
@@ -823,72 +1948,248 @@
                 }
               },
               "answers": {
+                "maxItems": 5,
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
                     "questionId": {
-                      "type": "string"
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
                     },
                     "questionText": {
-                      "type": "string"
+                      "type": "string",
+                      "maxLength": 4200
+                    },
+                    "answerId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "scored",
+                        "needs_clarification",
+                        "abstained"
+                      ]
+                    },
+                    "reason": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "evidence_insufficient",
+                            "clarification_limit",
+                            "time_budget"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rubricVersion": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "technical-content",
+                        "behavioral-content"
+                      ]
+                    },
+                    "semanticSupport": {
+                      "type": "string",
+                      "const": "not_verified"
+                    },
+                    "normalizedScore": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "evidenceMode": {
+                      "type": "string",
+                      "enum": [
+                        "offline-fixture",
+                        "live-model",
+                        "unverified"
+                      ]
                     },
                     "strengths": {
+                      "maxItems": 5,
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 500
                       }
                     },
                     "improvements": {
+                      "maxItems": 5,
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "string",
+                        "maxLength": 500
                       }
                     },
+                    "feedbackStatus": {
+                      "type": "string",
+                      "enum": [
+                        "draft-unverified",
+                        "partially-withheld",
+                        "withheld",
+                        "not-scored"
+                      ]
+                    },
+                    "withheldFeedbackCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10
+                    },
                     "criteria": {
+                      "maxItems": 20,
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
                           "id": {
-                            "type": "string"
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
                           },
                           "label": {
-                            "type": "string"
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "dimension": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "correctness",
+                                  "depth",
+                                  "ownership",
+                                  "logic",
+                                  "communication",
+                                  "relevance",
+                                  "verification"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "score": {
-                            "type": [
-                              "number",
-                              "null"
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              {
+                                "type": "null"
+                              }
                             ]
                           },
                           "maxScore": {
-                            "type": "number"
+                            "type": "number",
+                            "exclusiveMinimum": 0
                           },
                           "action": {
-                            "type": [
-                              "string",
-                              "null"
-                            ]
+                            "type": "null"
                           }
                         },
                         "required": [
                           "id",
                           "label",
+                          "dimension",
                           "score",
                           "maxScore",
                           "action"
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "evidence": {
+                      "maxItems": 3,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "answerId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "start": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "end": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "excerpt": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 240
+                          },
+                          "truncated": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "answerId",
+                          "start",
+                          "end",
+                          "excerpt",
+                          "truncated"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "evidenceOmitted": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
                     }
                   },
                   "required": [
                     "questionId",
                     "questionText",
+                    "answerId",
+                    "status",
+                    "reason",
+                    "rubricVersion",
+                    "scope",
+                    "semanticSupport",
+                    "normalizedScore",
+                    "evidenceMode",
                     "strengths",
                     "improvements",
-                    "criteria"
+                    "feedbackStatus",
+                    "withheldFeedbackCount",
+                    "criteria",
+                    "evidence",
+                    "evidenceOmitted"
                   ],
                   "additionalProperties": false
                 }
@@ -966,6 +2267,73 @@
                   "summary"
                 ],
                 "additionalProperties": false
+              },
+              "presentationVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "sessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "generatedAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "policyVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "aggregation": {
+                "type": "string",
+                "const": "per-answer-only"
+              },
+              "answerPage": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 200
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 200
+                  },
+                  "nextOffset": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "offset",
+                  "limit",
+                  "total",
+                  "nextOffset"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -976,7 +2344,14 @@
               "studyPlan",
               "unscoredAnswers",
               "warnings",
-              "expression"
+              "expression",
+              "presentationVersion",
+              "sessionId",
+              "revision",
+              "generatedAt",
+              "policyVersion",
+              "aggregation",
+              "answerPage"
             ],
             "additionalProperties": false
           },
@@ -1042,6 +2417,16 @@
       }
     },
     "required": [
+      "presentationVersion",
+      "submittedCount",
+      "scoredCount",
+      "unscoredCount",
+      "needsClarification",
+      "clarification",
+      "lastAnswer",
+      "viewKind",
+      "startedAt",
+      "hasReport",
       "sessionId",
       "roleId",
       "revision",
