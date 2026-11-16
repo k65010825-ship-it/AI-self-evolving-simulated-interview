@@ -1,0 +1,8 @@
+{
+  "studyId": "pending-consented-cohort-2026-11",
+  "baselinePolicyVersion": "baseline-unpublished-v1",
+  "candidatePolicyVersion": "candidate-unpublished-v1",
+  "developmentGroupIds": [],
+  "minimumPairsPerArm": 8,
+  "pairs": []
+}

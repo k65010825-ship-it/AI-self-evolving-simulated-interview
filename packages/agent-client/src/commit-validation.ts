@@ -1,6 +1,11 @@
+import {inspectVerificationBinding} from '@interview/interview-domain/verification-binding';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { ScoringContextSchema, type InterviewWorkflow, type WorkflowOperation, type WorkflowCommitErrorCode } from '@interview/contracts';
+import { buildCriterionFeedback } from '@interview/interview-domain/feedback';
+import {projectFeedbackPublication} from '@interview/interview-domain/feedback-publication';
+import { evidenceSupportRejection,isExplicitNonAnswer } from '@interview/interview-domain/evidence-support';
+import {validClarificationPrompt} from '@interview/interview-domain/clarification';
 
 export class WorkflowCommitError extends Error { constructor(readonly code: WorkflowCommitErrorCode) { super(code); this.name = 'WorkflowCommitError'; } }
 export function reject(code: WorkflowCommitErrorCode): never { throw new WorkflowCommitError(code); }
@@ -36,11 +41,29 @@ function scoreChecks(turn: InterviewWorkflow['turns'][number]) {
     const d = result.dimensions.find(d => d.criterionId === c.id);
     if (!d || d.score === null || d.score > c.maxScore || d.normalizedScore === null || Math.abs(d.normalizedScore - d.score / c.maxScore) > 1e-9 ||
       !d.evidenceIds.length || new Set(d.evidenceIds).size !== d.evidenceIds.length || d.evidenceIds.some(id => !proposal.evidence.some(e => e.id === id))) reject('COMMIT_TRANSITION_INVALID');
+    if(!['bound','not_required'].includes(inspectVerificationBinding(c.verificationGoal,d.verificationBinding,proposal.evidence,d.evidenceIds,input.answer.text).status))reject('COMMIT_TRANSITION_INVALID');
+    const quotes=proposal.evidence.filter(e=>d.evidenceIds.includes(e.id)).map(e=>e.excerpt);
+    if(quotes.some(isExplicitNonAnswer)||evidenceSupportRejection(c,quotes,input.answer.text))reject('COMMIT_TRANSITION_INVALID');
     weighted += d.normalizedScore * c.weight;
   }
   if (result.normalizedScore === null || Math.abs(result.normalizedScore - weighted) > 1e-9) reject('COMMIT_TRANSITION_INVALID');
 }
-/** Continuity/binding validation only; not model, planner, report or reflection algorithm replay. */
+function receiptChecks(attempt:NonNullable<InterviewWorkflow['clarificationAttempts']>[number],previous:NonNullable<InterviewWorkflow['clarificationAttempts']>[number]|undefined,now:number){
+ const {input:i,resolution:r}=attempt,{digest,...body}=r,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
+ const {answer,context,speech,...frozen}=i;
+ if(digest!==hash(JSON.stringify(body))||r.inputDigest!==hash(JSON.stringify({...frozen,userId:context.userId,roleId:context.roleId}))
+  ||r.answerDigest!==hash(i.answer.text)||r.answerCharacters!==i.answer.text.length||r.observationId!==i.observationId||r.issuedAt>now
+  ||!validClarificationPrompt(i,r)
+  ||r.issuedAt>=Math.min(i.context.deadlineAt,i.state.deadlineAt)||r.issuedAt<i.state.startedAt
+  ||r.remainingSeconds!==Math.max(0,Math.floor((i.state.deadlineAt-r.issuedAt)/1000))||r.policy.maxClarifications!==1||r.policy.minRemainingSeconds!==45
+  ||r.missingCriterionIds.some(id=>!i.rubric.criteria.some(c=>c.id===id)))reject('COMMIT_TRANSITION_INVALID');
+ requireEqual(r.basedOn,{sessionId:i.state.sessionId,sessionVersion:i.expectedVersion,runId:i.context.runId,attemptId:i.context.attemptId,answerId:i.answer.id,questionId:i.question.id});
+ const p=previous?.resolution;
+ if(p&&(p.status!=='needs_clarification'||p.inputDigest!==r.inputDigest||i.answer.id===p.basedOn.answerId||i.context.runId===p.basedOn.runId
+  ||r.issuedAt<p.issuedAt||i.answer.text.length<=p.answerCharacters||!i.answer.text.slice(p.answerCharacters).trim()||hash(i.answer.text.slice(0,p.answerCharacters))!==p.answerDigest))reject('COMMIT_TRANSITION_INVALID');
+ if(r.attempt!==(p?.attempt??0)+(r.status==='needs_clarification'?1:0)||r.reason!==(r.remainingSeconds<45?'time_budget':(p?.attempt??0)>=1?'clarification_limit':'evidence_insufficient'))reject('COMMIT_TRANSITION_INVALID');
+}
+/** Continuity/binding plus shared feedback projection; not model or full report/reflection algorithm replay. */
 export function validateWorkflowTransition(op: WorkflowOperation, after: InterviewWorkflow, now: number) {
   if (op.action === 'create') {
     const c = op.config;
@@ -55,6 +78,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     return;
   }
   const before = op.snapshot;
+  for(const turn of before.turns)scoreChecks(turn);
   if (op.action === 'restore') { requireEqual(after, before); return; }
   const command = op.command;
   if (op.action === 'finish' && before.phase === 'completed') {
@@ -82,10 +106,17 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
       requireEqual(selection.source, { knowledgeId: item.id, version: item.version, sourceIds: item.sourceIds, reviewStatus: item.reviewStatus });
       requireEqual(selection.rubric, { id: item.id, version: item.version, roleId: item.roleId, scope: item.questionType === 'behavioral' ? 'behavioral-content' : 'technical-content',
         criteria: item.rubric.map(c => ({ id: c.criterionId, maxScore: c.maxScore, weight: c.weight, required: true, description: c.description,
-          ...(c.dimension ? { dimension: c.dimension } : {}), ...(c.evidenceRule ? { evidenceRule: c.evidenceRule } : {}), ...(c.anchors ? { anchors: c.anchors } : {}) })) });
+          ...(c.dimension ? { dimension: c.dimension } : {}), ...(c.evidenceRule ? { evidenceRule: c.evidenceRule } : {}), ...(c.anchors ? { anchors: c.anchors } : {}),...(c.verificationGoal?{verificationGoal:c.verificationGoal}:{}) })) });
       requireEqual(after.current, selection);
       requireEqual(after.askedQuestionIds, [...before.askedQuestionIds, selection.question.id]);
-      requireEqual(after.issuedQuestions, [...before.issuedQuestions, { questionId: selection.question.id, issuedAt: after.currentIssuedAt }]);
+      const issued=after.issuedQuestions.at(-1);if(!issued?.content)reject('COMMIT_TRANSITION_INVALID');const content=issued.content,d=content.delivery;
+      if(d){const previous=before.turns.at(-1)?.input.answer,e=d.excerpt;
+        if(!previous||d.basedOn.sessionId!==before.state.sessionId||d.basedOn.stateVersion!==before.state.version||d.basedOn.previousAnswerId!==previous.id
+          ||e!==null&&(previous.text.indexOf(e)<0||previous.text.indexOf(e)!==previous.text.lastIndexOf(e)))reject('COMMIT_TRANSITION_INVALID');
+      }
+      requireEqual(after.issuedQuestions, [...before.issuedQuestions, {questionId:selection.question.id,issuedAt:after.currentIssuedAt,content:{
+        question:selection.question,rubric:selection.rubric,source:selection.source,text:d?.text??selection.question.text,stateVersion:before.state.version,
+        policyId:before.policy.id,planRunId:op.command.context.runId,planAttemptId:op.command.context.attemptId,...(d?{delivery:d}:{})}}]);
     } else {
       if (after.phase !== 'ready_to_close' || after.current !== null || after.currentIssuedAt !== null || after.pendingReason !== (selection.status === 'finished' ? 'plan_finished' : 'knowledge_gap')) reject('COMMIT_TRANSITION_INVALID');
       requireEqual(after.askedQuestionIds, before.askedQuestionIds); requireEqual(after.issuedQuestions, before.issuedQuestions);
@@ -93,12 +124,38 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     return;
   }
   if (op.action === 'answer') {
-    if (before.phase !== 'awaiting_answer' || !before.current || after.turns.length !== before.turns.length + 1) reject('COMMIT_TRANSITION_INVALID');
+    if (before.phase !== 'awaiting_answer' || !before.current) reject('COMMIT_TRANSITION_INVALID');
+    const attempts=before.clarificationAttempts??[],nextAttempts=after.clarificationAttempts??[],c=op.command;
+    const expectedInput={ state: before.state, expectedVersion: before.state.version, observationId: c.observationId, goal: before.goal, context: c.context,
+      question: before.current.question, answer: c.answer, quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
+      ...(before.issuedQuestions.at(-1)?.content?{presentedText:before.issuedQuestions.at(-1)!.content!.text}:{}) };
+    const previous=attempts.filter(a=>a.input.question.id===before.current!.question.id).at(-1);
+    if([...before.turns,...attempts].some(t=>t.input.answer.id===c.answer.id||t.input.context.runId===c.context.runId))reject('COMMIT_TRANSITION_INVALID');
+    if(previous){const p=previous.resolution,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
+      if(p.status!=='needs_clarification'||c.observationId!==p.observationId||!equal({...expectedInput,answer:previous.input.answer,context:previous.input.context,speech:previous.input.speech},
+        {...previous.input,speech:previous.input.speech})||c.answer.text.length<=p.answerCharacters||!c.answer.text.slice(p.answerCharacters).trim()
+        ||hash(c.answer.text.slice(0,p.answerCharacters))!==p.answerDigest)reject('COMMIT_TRANSITION_INVALID');
+    }
+    if(after.turns.length===before.turns.length){
+      unchanged(before,after,['revision','clarificationAttempts','current','currentIssuedAt','phase','pendingReason']);
+      if(nextAttempts.length!==attempts.length+1)reject('COMMIT_TRANSITION_INVALID');
+      requireEqual(nextAttempts.slice(0,-1),attempts);const attempt=nextAttempts.at(-1)!;requireEqual(attempt.input,expectedInput);
+      if(attempt.evidenceMode!==c.evidenceMode||attempt.resolution.issuedAt<before.currentIssuedAt!)reject('COMMIT_TRANSITION_INVALID');
+      receiptChecks(attempt,previous,now);
+      if(attempt.resolution.status==='needs_clarification'){
+        requireEqual(after.current,before.current);requireEqual(after.currentIssuedAt,before.currentIssuedAt);
+        if(after.phase!=='awaiting_answer'||after.pendingReason!==null)reject('COMMIT_TRANSITION_INVALID');
+      }else if(after.current!==null||after.currentIssuedAt!==null||!['ready_to_plan','ready_to_close'].includes(after.phase)
+       ||after.pendingReason!==(after.phase==='ready_to_close'?'plan_finished':null))reject('COMMIT_TRANSITION_INVALID');
+      return;
+    }
+    if(after.turns.length!==before.turns.length+1)reject('COMMIT_TRANSITION_INVALID');
     unchanged(before, after, ['revision', 'state', 'turns', 'current', 'currentIssuedAt', 'phase', 'pendingReason']);
     requireEqual(after.turns.slice(0, -1), before.turns);
-    const turn = after.turns.at(-1)!, c = op.command;
+    const turn = after.turns.at(-1)!;
     requireEqual(turn.input, { state: before.state, expectedVersion: before.state.version, observationId: c.observationId, goal: before.goal, context: c.context,
-      question: before.current.question, answer: c.answer, quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}) });
+      question: before.current.question, answer: c.answer, quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
+      ...(before.issuedQuestions.at(-1)?.content?{presentedText:before.issuedQuestions.at(-1)!.content!.text}:{}) });
     if (turn.evidenceMode !== c.evidenceMode) reject('COMMIT_TRANSITION_INVALID');
     requireEqual(turn.proposal.basedOn, { sessionId: before.state.sessionId, sessionVersion: before.state.version, runId: c.context.runId, attemptId: c.context.attemptId,
       answerId: c.answer.id, questionId: before.current.question.id });
@@ -120,18 +177,24 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     close.requestRevision !== c.expectedRevision || close.requestMode !== c.mode || close.sourceGroupId !== c.sourceGroupId ||
     after.pendingReason !== close.reason || close.reason !== (c.mode === 'user_stop' ? 'user_stop' : before.pendingReason) || (c.mode === 'automatic' && before.phase !== 'ready_to_close')) reject('COMMIT_TRANSITION_INVALID');
   const report = close.report;
+  const unscored=(before.clarificationAttempts??[]).filter((a,index,all)=>!before.turns.some(t=>t.input.question.id===a.input.question.id)
+    &&!all.slice(index+1).some(next=>next.input.question.id===a.input.question.id));
+  if(unscored.length){requireEqual(report.unscoredAnswers,unscored.map(a=>({answerId:a.input.answer.id,questionId:a.input.question.id,skillId:a.input.question.skillId,
+    status:a.resolution.status,reason:a.resolution.reason,normalizedScore:null,missingCriterionIds:a.resolution.missingCriterionIds,evidenceMode:a.evidenceMode})));
+    if(report.coverage.scoredAnswers!==before.turns.length||report.coverage.unscoredAnswers!==unscored.length)reject('COMMIT_TRANSITION_INVALID');
+  }else if(report.unscoredAnswers!==undefined||report.coverage.scoredAnswers!==undefined||report.coverage.unscoredAnswers!==undefined)reject('COMMIT_TRANSITION_INVALID');
   const modes = new Set([...before.turns.map(t => t.evidenceMode), ...before.state.priorEvidence.map(o => o.evidenceMode)]);
   const evidenceMode = modes.size === 0 || modes.has('unverified') ? 'unverified' : modes.size > 1 ? 'mixed' : [...modes][0]!;
   const scopes = new Set([...before.turns.map(t => t.input.rubric.scope), ...before.state.priorEvidence.map(o => o.questionType === 'behavioral' ? 'behavioral-content' as const : 'technical-content' as const)]);
   const scope = scopes.size > 1 ? 'mixed-content' : [...scopes][0] ?? 'technical-content';
   if (report.roleId !== before.identity.roleId || report.generatedAt !== close.generatedAt || report.policyVersion !== before.policy.id ||
     report.evidenceMode !== evidenceMode || close.reflection.evidenceMode !== evidenceMode || report.scope !== scope ||
-    report.assessments.length !== before.turns.length || report.coverage.totalAnswers !== before.turns.length || close.reflection.roleId !== before.identity.roleId ||
+    report.assessments.length !== before.turns.length || report.coverage.totalAnswers !== before.turns.length+unscored.length || close.reflection.roleId !== before.identity.roleId ||
     close.reflection.sourceGroupId !== c.sourceGroupId || close.reflection.generatedAt !== close.generatedAt) reject('COMMIT_TRANSITION_INVALID');
   const reflected = close.reflection.candidate;
   if (reflected && (reflected.roleId !== before.identity.roleId || reflected.baselineId !== before.policy.id || reflected.sourceSessionId !== before.state.sessionId ||
     reflected.sourceGroupId !== c.sourceGroupId || reflected.createdAt !== close.generatedAt || reflected.evidenceMode !== evidenceMode)) reject('COMMIT_TRANSITION_INVALID');
-  const speech = before.turns.flatMap(t => {
+  const speech = [...unscored,...before.turns].flatMap(t => {
     if (!t.input.speech) return [];
     const s = t.input.speech, transcript = s.transcription;
     return [{ answerId: t.input.answer.id, questionId: t.input.question.id, transcriptionId: transcript.transcriptionId,
@@ -143,11 +206,16 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     const modes = new Set(speech.map(s => s.mode));
     if (report.expression.speechEvidenceMode !== (modes.size > 1 ? 'mixed' : [...modes][0])) reject('COMMIT_TRANSITION_INVALID');
     requireEqual(report.expression.answers, speech);
+    requireEqual(report.expression.coverage,{totalAnswers:before.turns.length+unscored.length,speechAnswers:speech.length,
+      textAnswers:before.turns.length+unscored.length-speech.length,descriptiveAnswers:speech.filter(s=>s.features.status==='descriptive').length,
+      insufficientAnswers:speech.filter(s=>s.features.status==='insufficient_data').length});
   } else if (report.expression.status !== 'not_evaluated') reject('COMMIT_TRANSITION_INVALID');
-  const expectedAssessments = before.turns.map(t => ({ observationId: t.input.observationId, answerId: t.input.answer.id, questionId: t.input.question.id,
-    skillId: t.input.question.skillId, questionType: t.input.question.questionType, questionText: t.input.question.text, difficulty: t.input.question.difficulty,
+  const expectedAssessments = before.turns.map(t => {const publication=projectFeedbackPublication(t.input,t.proposal);const a={ observationId: t.input.observationId, answerId: t.input.answer.id, questionId: t.input.question.id,
+    skillId: t.input.question.skillId, questionType: t.input.question.questionType, questionText: t.input.question.text,
+    ...(t.input.presentedText!==undefined?{presentedText:t.input.presentedText,presentationReview:t.input.presentedText===t.input.question.text?'not-applicable' as const:'pending' as const}:{}),difficulty: t.input.question.difficulty,
     rubricId: t.input.rubric.id, rubricVersion: t.input.rubric.version, rubric: t.input.rubric, evaluation: t.proposal.evaluation,
-    evidence: t.proposal.evidence, feedback: t.proposal.feedback, evidenceMode: t.evidenceMode }));
+    evidence: t.proposal.evidence, feedback: publication.feedback,feedbackPublication:publication.publication,feedbackVerification:'not_verified' as const,evidenceMode: t.evidenceMode };
+    return {...a,criterionFeedback:buildCriterionFeedback(a)};});
   requireEqual(report.assessments, expectedAssessments);
   if (!before.turns.length) {
     if (close.memoryDisposition !== 'unchanged_no_answers') reject('COMMIT_TRANSITION_INVALID');

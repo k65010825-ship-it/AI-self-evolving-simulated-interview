@@ -38,7 +38,9 @@ test('weak skills receive actionable practice with cited answer and a different-
   const report = await buildInterviewReport(await fixture());
   const task = report.studyPlan.find(p => p.skillId === 'transactions');
   if (!task) throw new Error('Expected practice task');
-  expect(task.reason).toBe('repair_gap'); expect(task.actions).toContain('补充失败回滚条件');
+  expect(task.reason).toBe('repair_gap'); expect(task.actions[0]).toContain('解释正确');
+  expect(task.feedbackRefs).toEqual([{answerId:'a1',criterionId:'correctness'}]);
+  expect(report.assessments[0]?.feedback.improvements).toContain('补充失败回滚条件');
   expect(task.evidenceAnswerIds).toEqual(['a1']); expect(task.retest.excludeQuestionIds).toEqual(['q1']);
   expect(task.retest.requireDifferentQuestion).toBe(true);
 });

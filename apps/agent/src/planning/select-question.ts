@@ -27,7 +27,7 @@ export function selectNextQuestion(rawInput: unknown, rawOptions: unknown = {}):
     rubric: { id: selected.id, version: selected.version, roleId: selected.roleId, scope: selected.questionType==='behavioral'?'behavioral-content':'technical-content',
       criteria: selected.rubric.map(c => ({ id: c.criterionId, maxScore: c.maxScore, weight: c.weight,
         required: true, description: c.description,
-        ...(c.dimension?{dimension:c.dimension}:{}),...(c.evidenceRule?{evidenceRule:c.evidenceRule}:{}),...(c.anchors?{anchors:c.anchors}:{}) })) },
+        ...(c.dimension?{dimension:c.dimension}:{}),...(c.evidenceRule?{evidenceRule:c.evidenceRule}:{}),...(c.anchors?{anchors:c.anchors}:{}),...(c.verificationGoal?{verificationGoal:c.verificationGoal}:{}) })) },
     source: { knowledgeId: selected.id, version: selected.version, sourceIds: selected.sourceIds, reviewStatus: selected.reviewStatus } });
   if (!result.success) throw new AgentStateError('VALIDATION_ERROR');
   return result.data;

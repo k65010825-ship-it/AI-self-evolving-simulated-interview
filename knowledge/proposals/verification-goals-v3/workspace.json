@@ -1,0 +1,447 @@
+{
+  "items": [
+    {
+      "id": "java-project-capacity",
+      "roleId": "java-backend",
+      "skillId": "project-design",
+      "questionType": "project",
+      "difficulty": 3,
+      "question": "以单JVM中的名额计数器为例：上限100、初值99，多个请求同时申请最后一个名额。说明你的原子边界、失败处理，以及怎样验证成功数和计数上限。可以明确使用假设方案，不要求真实项目经历。 本题仅统计单轮申请、不包含名额归还或重试；验证维度请明确初值99时的成功数预期。",
+      "keyPoints": [
+        "具体说明个人贡献与不变量",
+        "区分测试证据、风险和生产效果",
+        "验证目标与观测量显式绑定；字面约束不是独立语义校准"
+      ],
+      "rubric": [
+        {
+          "criterionId": "invariant",
+          "dimension": "correctness",
+          "description": "容量不变量与并发边界",
+          "maxScore": 4,
+          "weight": 0.4,
+          "evidenceRule": "引用回答中体现“容量不变量与并发边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对容量不变量与并发边界只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "提到容量上限但没有边界"
+            },
+            {
+              "score": 2,
+              "description": "说明检查与写入的并发窗口"
+            },
+            {
+              "score": 3,
+              "description": "给出事务/锁/原子操作与失败条件"
+            },
+            {
+              "score": 4,
+              "description": "解释不变量、并发正确性及失败恢复取舍"
+            }
+          ]
+        },
+        {
+          "criterionId": "ownership",
+          "dimension": "ownership",
+          "description": "个人贡献与事实边界",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "引用回答中体现“个人贡献与事实边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对个人贡献与事实边界只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "只说参与项目"
+            },
+            {
+              "score": 2,
+              "description": "区分团队方案和个人修改"
+            },
+            {
+              "score": 3,
+              "description": "说明本人修改位置、原因与约束"
+            },
+            {
+              "score": 4,
+              "description": "贡献可定位，明确哪些结果未验证而不夸大"
+            }
+          ]
+        },
+        {
+          "criterionId": "logic",
+          "dimension": "logic",
+          "description": "问题到方案的因果链",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "引用回答中体现“问题到方案的因果链”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对问题到方案的因果链只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "列出多个技术名词"
+            },
+            {
+              "score": 2,
+              "description": "说明问题与一种方案的联系"
+            },
+            {
+              "score": 3,
+              "description": "按约束、方案、代价组织回答"
+            },
+            {
+              "score": 4,
+              "description": "对替代方案给出一致的因果比较与适用条件"
+            }
+          ]
+        },
+        {
+          "criterionId": "verification",
+          "dimension": "verification",
+          "description": "并发验证与容量证据",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "数值分须提供同一证据单元的action/target/expectation及observation.metric/value/condition。metric/value在expectation内，condition含宿主条件别名；缺少抽取或不相关结果保持null，相关但错误的预期仍可0。假设方案允许，reported不证明执行。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "相关但明确违反单轮容量约束的验证结论；无答案、无关过程或缺少观测提取不补0"
+            },
+            {
+              "score": 1,
+              "description": "明确初值99和成功数预期，有相关最小检查但竞争输入或统计方式不完整"
+            },
+            {
+              "score": 2,
+              "description": "说明初值99、并发输入与成功数预期，区分结果与证明"
+            },
+            {
+              "score": 3,
+              "description": "说明同步起跑、成功数统计及最终计数交叉检查，区分算法论证和实验"
+            },
+            {
+              "score": 4,
+              "description": "可复现初值/并发输入、失败处理与不归还前提，说明单JVM与跨实例证明边界"
+            }
+          ],
+          "verificationGoal": {
+            "id": "capacity-counter-verification",
+            "version": "draft-3-observation",
+            "actionAliases": [
+              "并发抢占",
+              "同步起跑",
+              "并发申请",
+              "并发提交",
+              "同时竞争",
+              "concurrent acquire",
+              "一齐发起申请"
+            ],
+            "targetAliases": [
+              "容量计数器",
+              "名额计数器",
+              "剩余名额",
+              "capacity counter",
+              "准入变量"
+            ],
+            "observationAliases": [
+              "成功数"
+            ],
+            "observationPolicy": {
+              "kind": "count",
+              "conditionAliases": [
+                "初值99"
+              ]
+            }
+          }
+        }
+      ],
+      "sourceIds": [
+        "java-atomic-integer",
+        "team-original"
+      ],
+      "version": "seed-0.5-observation-draft",
+      "reviewStatus": "draft"
+    },
+    {
+      "id": "web-project-rendering",
+      "roleId": "web-frontend",
+      "skillId": "project-design",
+      "questionType": "project",
+      "difficulty": 3,
+      "question": "以列表组件的一次筛选交互为例，说明你如何测量并减少重复渲染，并在相同交互条件下验证性能和筛选结果。可以明确使用假设页面；不要把开发测量外推为全站或真实用户收益。 验证维度请固定相同交互并说明actualDuration的时长或变化；结果正确性与其他指标另行解释。",
+      "keyPoints": [
+        "先测量再优化",
+        "说明状态边界和优化代价",
+        "验证目标与观测量显式绑定；字面约束不是独立语义校准"
+      ],
+      "rubric": [
+        {
+          "criterionId": "measurement",
+          "dimension": "correctness",
+          "description": "渲染测量与优化边界",
+          "maxScore": 4,
+          "weight": 0.4,
+          "evidenceRule": "引用回答中体现“渲染测量与优化边界”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对渲染测量与优化边界只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "只声称页面卡顿"
+            },
+            {
+              "score": 2,
+              "description": "指出渲染测量和一个状态边界"
+            },
+            {
+              "score": 3,
+              "description": "把性能观测对应到组件/依赖或状态变化"
+            },
+            {
+              "score": 4,
+              "description": "解释测量、修改和优化代价，区分开发与真实用户表现"
+            }
+          ]
+        },
+        {
+          "criterionId": "ownership",
+          "dimension": "ownership",
+          "description": "个人修改与结果归属",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "引用回答中体现“个人修改与结果归属”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对个人修改与结果归属只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "只说团队优化"
+            },
+            {
+              "score": 2,
+              "description": "指出自己修改的组件或逻辑"
+            },
+            {
+              "score": 3,
+              "description": "说明具体改动、原因和依赖"
+            },
+            {
+              "score": 4,
+              "description": "贡献可定位并交代没有验证的设备/交互条件"
+            }
+          ]
+        },
+        {
+          "criterionId": "logic",
+          "dimension": "logic",
+          "description": "症状到原因再到取舍",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "引用回答中体现“症状到原因再到取舍”的具体句段；只评叙述内容，不能据此证明实际经历。缺少证据返回null，不编造摘录；0分也须引用明确错误或空泛的相关表述。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "引用内容对症状到原因再到取舍只有无关口号或明确相反做法"
+            },
+            {
+              "score": 1,
+              "description": "罗列memo等工具"
+            },
+            {
+              "score": 2,
+              "description": "说明症状与一种原因"
+            },
+            {
+              "score": 3,
+              "description": "按测量假设、修改、代价组织"
+            },
+            {
+              "score": 4,
+              "description": "比较替代优化并说明交互正确性不被牺牲"
+            }
+          ]
+        },
+        {
+          "criterionId": "verification",
+          "dimension": "verification",
+          "description": "渲染与交互验证",
+          "maxScore": 4,
+          "weight": 0.2,
+          "evidenceRule": "数值分须提供同一证据单元的action/target/expectation及observation.metric/value/condition。metric/value在expectation内，condition含宿主条件别名；缺少抽取或不相关结果保持null，相关但错误的预期仍可0。假设方案允许，reported不证明执行。",
+          "anchors": [
+            {
+              "score": 0,
+              "description": "相关但把测量含义明确说反，例如将耗时升高说成更快；结果不理想本身不等于答错，缺证据不补0"
+            },
+            {
+              "score": 1,
+              "description": "明确相同交互和actualDuration时长或变化，但采样/对照说明不完整"
+            },
+            {
+              "score": 2,
+              "description": "固定相同交互比较actualDuration，说明测量值的含义"
+            },
+            {
+              "score": 3,
+              "description": "说明相同交互的前后测量、构建与采样条件，并独立核对筛选结果"
+            },
+            {
+              "score": 4,
+              "description": "可复现的测量/正确性证据和局限齐备，不将子树耗时外推为全站收益"
+            }
+          ],
+          "verificationGoal": {
+            "id": "list-rendering-verification",
+            "version": "draft-3-observation",
+            "actionAliases": [
+              "复现相同操作",
+              "重复相同交互",
+              "对照测量",
+              "录制交互",
+              "profile interaction",
+              "相同输入操作",
+              "重演同一筛选过程"
+            ],
+            "targetAliases": [
+              "列表组件",
+              "组件子树",
+              "目标组件",
+              "list subtree",
+              "结果列表视图"
+            ],
+            "observationAliases": [
+              "actualDuration"
+            ],
+            "observationPolicy": {
+              "kind": "duration",
+              "conditionAliases": [
+                "相同交互"
+              ]
+            }
+          }
+        }
+      ],
+      "sourceIds": [
+        "react-profiler-rendering",
+        "team-original"
+      ],
+      "version": "seed-0.5-observation-draft",
+      "reviewStatus": "draft"
+    }
+  ],
+  "dossiers": [
+    {
+      "itemId": "java-project-capacity",
+      "itemVersion": "seed-0.5-observation-draft",
+      "version": "dossier-observation-draft-3",
+      "authoredAt": "2026-11-08",
+      "applicability": "Java SE21、单JVM、初值99和上限100的简化名额计数器；不据此推导多实例/数据库一致性。",
+      "answerGuide": "先说明个人或假设角色。区分单变量原子操作与检查再写入复合动作；可讨论CAS循环或互斥，把上限判断放在同一原子边界。实验可从99出发同步发起多个申请，记录成功数与结束计数。AtomicInteger文档仅支持其原子访问语义，不证明具体程序或实验正确；失败归还/幂等与跨进程约束须另外解释。 本版本观测策略只核对成功数的计数及初值99；有限词法不确认条件与结果的语义归属、不判定正确性或充分性。",
+      "followups": [
+        {
+          "question": "如何让请求在相近时刻竞争，怎样统计成功数和最终计数？",
+          "assesses": "操作、目标、观测量与边界"
+        },
+        {
+          "question": "本地实验能证明跨实例容量安全吗？失败归还会引入什么新条件？",
+          "assesses": "证明边界与失败策略"
+        },
+        {
+          "question": "请明确指出结果数值或变化、适用条件，并区分预期与实测。",
+          "assesses": "观测引用与条件归属；提取失败不等于没有能力"
+        }
+      ],
+      "sourceReferences": [
+        {
+          "sourceId": "java-atomic-integer",
+          "sourceVersion": "docs-2026-11-08",
+          "locator": "compareAndSet/update methods and atomic access scope"
+        },
+        {
+          "sourceId": "team-original",
+          "sourceVersion": "original-1",
+          "locator": "原创面试情景与验证测试建议；不是官方实验或实际收益背书"
+        }
+      ]
+    },
+    {
+      "itemId": "web-project-rendering",
+      "itemVersion": "seed-0.5-observation-draft",
+      "version": "dossier-observation-draft-3",
+      "authoredAt": "2026-11-08",
+      "applicability": "React列表组件的可复现筛选交互；Profiler指标、开发/性能构建与真实用户体验分别解释。",
+      "answerGuide": "先固定列表、输入、设备/构建与交互条件，再比较修改前后同类更新的Profiler数据；actualDuration描述当前提交的子树渲染耗时，不能等同整个页面或网络延迟。性能与筛选结果正确性分别验证；交代测量开销、构建差异和未覆盖边界。目标别名只限制相关证据，不能独立决定分值。 本版本观测策略只核对actualDuration的时长/变化及相同交互；有限词法不确认条件与结果的语义归属、不判定正确性或充分性。",
+      "followups": [
+        {
+          "question": "怎样固定前后交互条件，如何理解actualDuration与baseDuration？",
+          "assesses": "性能指标解释与可比性"
+        },
+        {
+          "question": "减少渲染后如何确认筛选结果没有改变？",
+          "assesses": "交互回归与证据充分性"
+        },
+        {
+          "question": "请明确指出结果数值或变化、适用条件，并区分预期与实测。",
+          "assesses": "观测引用与条件归属；提取失败不等于没有能力"
+        }
+      ],
+      "sourceReferences": [
+        {
+          "sourceId": "react-profiler-rendering",
+          "sourceVersion": "docs-2026-11-08",
+          "locator": "onRender parameters; actualDuration/baseDuration; profiling-build caveat"
+        },
+        {
+          "sourceId": "team-original",
+          "sourceVersion": "original-1",
+          "locator": "原创面试情景与验证测试建议；不是官方实验或实际收益背书"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "java-atomic-integer",
+      "version": "docs-2026-11-08",
+      "title": "Java SE21 AtomicInteger API",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html",
+      "owner": "Oracle",
+      "licenseNote": "本次通过MarkItDown MCP读取官方正文并核对目标章节，仅链接和原创概括，不转载全文。来源内容核对不是岗位批准或独立金标准。",
+      "retrievedAt": "2026-11-08",
+      "verificationStatus": "content-checked"
+    },
+    {
+      "id": "react-profiler-rendering",
+      "version": "docs-2026-11-08",
+      "title": "React Profiler reference",
+      "url": "https://react.dev/reference/react/Profiler",
+      "owner": "React contributors",
+      "licenseNote": "本次通过MarkItDown MCP读取官方正文并核对目标章节，仅链接和原创概括，不转载全文。来源内容核对不是岗位批准或独立金标准。",
+      "retrievedAt": "2026-11-08",
+      "verificationStatus": "content-checked"
+    },
+    {
+      "id": "team-original",
+      "title": "团队原创面试场景草案",
+      "url": null,
+      "owner": "project-team",
+      "licenseNote": "项目内原创示例，需岗位审核。",
+      "retrievedAt": null,
+      "verificationStatus": "draft",
+      "version": "original-1"
+    }
+  ],
+  "reviews": []
+}

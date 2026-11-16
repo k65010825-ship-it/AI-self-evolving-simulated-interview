@@ -1,5 +1,5 @@
 {
   "name": "@interview/agent-client", "version": "0.1.0", "private": true, "type": "module",
   "exports": "./src/index.ts",
-  "dependencies": { "@interview/contracts": "workspace:*", "zod": "4.6.7" }
+  "dependencies": { "@interview/contracts": "workspace:*", "@interview/interview-domain": "workspace:*", "zod": "4.6.7" }
 }

@@ -1,7 +1,7 @@
 import{createInterviewState,recordObservation}from'../../apps/agent/src/planning/interview-state.ts';
 import java from'../../knowledge/java-backend/seed.json'with{type:'json'};
-const base=Date.now();
 export function runtimeRequest(id='run-1'){
+ const base=Date.now();
  let state=createInterviewState({sessionId:'session',roleId:'java-backend',durationMinutes:20,
   skills:[{skillId:'spring-transactions',relevance:1},{skillId:'java-concurrency',relevance:0.1}]},base);
  state=recordObservation(state,{observationId:'o0',roleId:'java-backend',skillId:'spring-transactions',questionId:'prior-q',

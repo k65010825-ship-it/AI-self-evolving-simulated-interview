@@ -1,0 +1,16 @@
+import{test,expect}from'bun:test';import{mkdtempSync,readdirSync,unlinkSync,rmdirSync}from'node:fs';import{join}from'node:path';import{tmpdir}from'node:os';
+import{createFieldSession}from'../apps/agent/src/field/session.ts';import{scoreFieldSession}from'../apps/agent/src/field/score.ts';import example from'../apps/agent/src/model-access/qianwen.example.json'with{type:'json'};
+const fixture=()=>{const dir=mkdtempSync(join(tmpdir(),'field-score-recovery-')),s=createFieldSession(join(dir,'study.sqlite'),{participantId:'test-only',consentRecordId:'synthetic-consent',consentedAt:Date.now(),developmentReviewerIds:[]});return{dir,s,close(){s.close();for(const n of readdirSync(dir))unlinkSync(join(dir,n));rmdirSync(dir);}};};
+const config=()=>({...example,authorization:{enabled:true,operatorApproved:true,maxRuns:16,expiresAt:Date.now()+60000}});
+function stream(content:string){return new Response('data: '+JSON.stringify({choices:[{index:0,delta:{role:'assistant',content},finish_reason:'stop'}]})+'\n\ndata: '+JSON.stringify({choices:[],usage:{prompt_tokens:100,completion_tokens:40,total_tokens:140}})+'\n\ndata: [DONE]\n\n',{headers:{'content-type':'text/event-stream'}});}
+async function output(input:RequestInfo|URL,init?:RequestInit,insufficient=false){const body=await(input instanceof Request?input:new Request(input,init)).json()as any;const m=body.messages.filter((x:any)=>x.role==='user').at(-1).content;const v=JSON.parse(typeof m==='string'?m:m.map((p:any)=>p.text??'').join(''));const answer=v.interview.answer.text;
+ return stream(JSON.stringify({evidence:insufficient?[]:[{id:'e',start:0,end:4,excerpt:answer.slice(0,4)}],criterionScores:v.rubric.criteria.map((c:any)=>({criterionId:c.id,score:insufficient?null:c.maxScore/2,evidenceIds:insufficient?[]:['e']})),feedback:{strengths:[],improvements:['离线恢复测试，不是真人模型评分']}}));}
+test('field request routes legitimate null criteria into abstention rather than a failed task',async()=>{const f=fixture();try{const q=f.s.questions('java-backend')[0]!;f.s.submit('java-backend',q.id,'不知道');const r=await scoreFieldSession(f.s,config(),{readCredential:()=> 'fixture',fetch:(i,n)=>output(i,n,true)});
+ expect(r.outcomes[0]?.status).toBe('completed');expect(f.s.scoreSnapshot(q.id)?.result?.kind).toBe('uncommitted-unscored-turn-result');expect(f.s.reviewBundle('java-backend').privateManifest.tasks[0]!.item.modelScore).toBeNull();
+ }finally{f.close();}});
+test('resume skips immutable prior failures and scores new cases without retrying old paid attempts',async()=>{const f=fixture();let calls=0;try{const q=f.s.questions('java-backend')[0]!;f.s.submit('java-backend',q.id,'先说明原子操作、可见性和测试。');
+ const first=await scoreFieldSession(f.s,config(),{readCredential:()=> 'fixture',fetch:async()=>{calls++;return stream('invalid JSON');}});expect(first.outcomes[0]?.status).toBe('failed');const old=f.s.scoreSnapshot(q.id);
+ const web=f.s.questions('web-frontend')[0]!;f.s.submit('web-frontend',web.id,'我会先处理竞态，再检查过期请求。');
+ const resumed=await scoreFieldSession(f.s,config(),{readCredential:()=> 'fixture',fetch:async(i,n)=>{calls++;return output(i,n);}});
+ expect(resumed.httpAttemptsThisInvocation).toBe(1);expect(calls).toBe(2);expect(f.s.scoreSnapshot(q.id)).toEqual(old);expect(f.s.scoreSnapshot(web.id)?.status).toBe('completed');
+ }finally{f.close();}});

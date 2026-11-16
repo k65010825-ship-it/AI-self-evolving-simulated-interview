@@ -1,3 +1,4 @@
+import {VerificationBindingSchema} from './verification-binding.ts';
 import { z } from 'zod';
 import { RoleIdSchema, ToolContextSchema, ErrorCodeSchema } from './tools.ts';
 import { ContentScopeSchema,CriterionMetadata,validAnchors } from './rubric-dimensions.ts';
@@ -7,13 +8,13 @@ export const RubricSchema = z.object({ id, version: id, roleId: RoleIdSchema,
     maxScore: z.number().positive().max(100), weight: z.number().positive().max(1), required: z.boolean(),
     description: z.string().min(1).max(1000).optional(),
     ...CriterionMetadata,
-  }).strict().refine(c=>validAnchors(c.maxScore,c.anchors),'Anchors must be ordered from zero to maxScore.')).min(1).max(20) }).strict().superRefine((v, ctx) => {
+  }).strict().refine(c=>(!c.verificationGoal||c.dimension==='verification')&&validAnchors(c.maxScore,c.anchors),'Anchors must be ordered from zero to maxScore.')).min(1).max(20) }).strict().superRefine((v, ctx) => {
   if (new Set(v.criteria.map(c => c.id)).size !== v.criteria.length
     || Math.abs(v.criteria.reduce((s, c) => s + c.weight, 0) - 1) > 1e-9)
     ctx.addIssue({ code: 'custom', message: 'Unique criteria and weights summing to one required.' });
 });
 export const ScoringInputSchema = z.object({ rubricId: id, rubricVersion: id,
-  criterionScores: z.array(z.object({ criterionId: id, score: z.number().nonnegative().nullable(),
+  criterionScores: z.array(z.object({ verificationBinding:VerificationBindingSchema.optional(),criterionId: id, score: z.number().nonnegative().nullable(),
     evidenceIds: z.array(id).max(30) }).strict()).max(20),
 }).strict().superRefine((v, ctx) => {
   if (new Set(v.criterionScores.map(c => c.criterionId)).size !== v.criterionScores.length
@@ -31,7 +32,7 @@ export const ScoringContextSchema = ToolContextSchema.extend({ answerId: id, ans
 export const ScoringResultSchema = z.object({ answerId: id, rubricId: id, rubricVersion: id,
   scope: ContentScopeSchema, normalizedScore: z.number().min(0).max(1).nullable(),
   coverageWeight: z.number().min(0).max(1), complete: z.boolean(), missingDimensions: z.array(id),
-  dimensions: z.array(z.object({ criterionId: id, score: z.number().nonnegative().nullable(),
+  dimensions: z.array(z.object({ verificationBinding:VerificationBindingSchema.optional(),criterionId: id, score: z.number().nonnegative().nullable(),
     normalizedScore: z.number().min(0).max(1).nullable(), evidenceIds: z.array(id) }).strict()),
 }).strict();
 export const ScoringReceiptSchema = z.object({ callId: z.string(), toolName: z.literal('compute_rubric_score'),

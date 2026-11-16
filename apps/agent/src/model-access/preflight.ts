@@ -6,14 +6,14 @@ export function preflightModelAccess(raw: unknown) {
   if (!p.success) return ModelPreflightSchema.parse({ configValid: false, mode: null, canExecuteFixture: false, canExecuteLive: false,
     credentialInspection: 'not-performed', networkAccess: 'disabled', issues: ['MODEL_CONFIG_INVALID'] });
   const config = p.data, issues: ('LIVE_TRANSPORT_DISABLED' | 'PROVIDER_MODEL_OR_PRICING_UNSELECTED')[] = [];
-  if (config.mode === 'live-planned') {
+  if (config.mode === 'live-planned'||config.mode==='live-service') {
     issues.push('LIVE_TRANSPORT_DISABLED');
     if ([config.providerId, config.modelId, config.apiFamily, config.pricing.id].includes('unselected')) issues.push('PROVIDER_MODEL_OR_PRICING_UNSELECTED');
   }
   return ModelPreflightSchema.parse({ configValid: true, mode: config.mode, canExecuteFixture: config.mode === 'offline-fixture', canExecuteLive: false,
     credentialInspection: 'not-performed', networkAccess: 'disabled', issues });
 }
-/** USD micro-units, caller-declared token rates; not an observed vendor charge. */
+/** Profile-currency micro-units, caller-declared rates; not an observed vendor charge. */
 export function estimateCostMicros(rawRates: unknown, inputTokens: number, outputTokens: number): number {
   const p = DeclaredRatesSchema.safeParse(rawRates);
   if (!p.success || !Number.isSafeInteger(inputTokens) || inputTokens < 0 || inputTokens > 10_000_000 ||

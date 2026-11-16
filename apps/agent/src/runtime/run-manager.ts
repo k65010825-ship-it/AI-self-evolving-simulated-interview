@@ -5,32 +5,56 @@ import{AgentRunRequestSchema,AgentRunResultSchema,AgentRunEventSchema,AgentRunSn
 import{AgentRunStageSchema}from'../../../../packages/contracts/src/agent-run.ts';
 import{describeError}from'../../../../packages/contracts/src/errors.ts';
 import type{RoleId,ErrorCode}from'../../../../packages/contracts/src/tools.ts';
+import type{ToolContextSchema}from'../../../../packages/contracts/src/tools.ts';
 import{AgentStateError}from'../planning/interview-state.ts';
 import{evaluateTurn,type EvaluationDependencies}from'../orchestration/evaluate-turn.ts';
+import{evaluateTurnWithClarification}from'../orchestration/clarify-turn.ts';
+import{decideNextAction}from'../planning/interview-state.ts';
 import{selectNextQuestion}from'../planning/select-question.ts';
 import{buildInterviewReport}from'../reporting/build-report.ts';
 import type { InterviewBackend } from './backend.ts';
 import{PlannerResultSchema,type PlannerInput,type PlannerResult}from'../../../../packages/contracts/src/knowledge-planner.ts';
 import{executeWorkflowJob}from'./workflow-job.ts';
 import{evaluateWorkflowRsi}from'../reflection/evaluate-workflow-rsi.ts';
+import{createRuntimeShutdown}from'./shutdown.ts';
+import type{EvaluationDiagnosticSink}from'../../../../packages/contracts/src/evaluation-diagnostic.ts';
+import type{BridgeGenerator}from'../../../../packages/contracts/src/question-delivery.ts';
+import{deliverQuestion}from'../questioning/deliver-question.ts';
+import{buildCloseoutPreview}from'../reporting/closeout-preview.ts';
 export interface RunManagerDependencies{evaluateForRole:(roleId:RoleId)=>EvaluationDependencies['evaluate'];now?:()=>number;
+ previewEditorsFor?:(context:z.infer<typeof ToolContextSchema>)=>readonly string[];
+ onCheckpoint?:(snapshot:AgentRunSnapshot,event:AgentRunEvent)=>void;
+ onDiagnostic?:EvaluationDiagnosticSink;deliverForRole?:(roleId:RoleId)=>BridgeGenerator;
+ forRun?:(context:z.infer<typeof ToolContextSchema>)=>{evaluate:EvaluationDependencies['evaluate'];onDiagnostic?:EvaluationDiagnosticSink;deliver?:BridgeGenerator;plan?:(input:PlannerInput,signal:AbortSignal)=>Promise<PlannerResult>};
  planForRole?:(roleId:RoleId)=>(input:PlannerInput,signal:AbortSignal)=>Promise<PlannerResult>;}
-interface Entry{snapshot:AgentRunSnapshot;events:AgentRunEvent[];listeners:Set<()=>void>;controller:AbortController;digest:string;done:Promise<void>;resolve:()=>void;}
+interface Entry{snapshot:AgentRunSnapshot;events:AgentRunEvent[];listeners:Set<()=>void>;controller:AbortController;digest:string;done:Promise<void>;resolve:()=>void;workPending:boolean;pendingDependencies:number;deadlineTimer:boolean;}
 const OptionsSchema=z.object({maxRuns:z.number().int().min(1).max(100).default(32),maxActiveRuns:z.number().int().min(1).max(20).default(4),
  timeoutMs:z.number().int().min(1).max(60000).default(30000)}).strict();
 const terminal=(s:AgentRunSnapshot['status'])=>['completed','failed','cancelled'].includes(s);
 export function createRunManager(dependencies:RunManagerDependencies,rawOptions:unknown={}){
  const config=OptionsSchema.safeParse(rawOptions);if(!config.success||typeof dependencies.evaluateForRole!=='function')throw new AgentStateError('VALIDATION_ERROR');
- const options=config.data,now=dependencies.now??Date.now,entries=new Map<string,Entry>();let disposed=false;
+ const options=config.data,now=dependencies.now??Date.now,entries=new Map<string,Entry>();let disposed=false,draining=false;
  const clock=()=>{const n=now();if(!Number.isSafeInteger(n)||n<0)throw new AgentStateError('VALIDATION_ERROR');return n;};
  const find=(id:string)=>{const e=entries.get(id);if(!e)throw new AgentStateError('NOT_FOUND');return e;};
  const snapshot=(id:string)=>structuredClone(find(id).snapshot);
+ const occupied=(e:Entry)=>!terminal(e.snapshot.status)||e.workPending||e.pendingDependencies>0;
+ /** Internal aggregate observations, not SDK/network/OS resource instrumentation. */
+ const diagnostics=()=>({disposed,draining,retainedRuns:entries.size,activeRuns:[...entries.values()].filter(e=>!terminal(e.snapshot.status)).length,
+  occupiedSlots:[...entries.values()].filter(occupied).length,inFlightDependencies:[...entries.values()].reduce((n,e)=>n+e.pendingDependencies,0),
+  pendingWork:[...entries.values()].filter(e=>e.workPending).length,deadlineTimers:[...entries.values()].filter(e=>e.deadlineTimer).length,
+  eventSubscribers:[...entries.values()].reduce((n,e)=>n+e.listeners.size,0)});
  function emit(e:Entry,type:AgentRunEvent['type'],payload:unknown){
   const previous=Date.parse(e.snapshot.updatedAt),read=now();
   const at=Number.isSafeInteger(read)&&read>=previous?read:previous;
   const event=AgentRunEventSchema.parse({schemaVersion:1,runId:e.snapshot.runId,attemptId:e.snapshot.attemptId,seq:e.events.length+1,
    occurredAt:new Date(at).toISOString(),type,payload});
-  e.events.push(event);e.snapshot.lastEventSeq=event.seq;e.snapshot.updatedAt=event.occurredAt;
+  const next={...e.snapshot,lastEventSeq:event.seq,updatedAt:event.occurredAt};
+  try{dependencies.onCheckpoint?.(structuredClone(next),structuredClone(event));}catch{
+   const{status:_status,...error}=describeError('DEPENDENCY_UNAVAILABLE');
+   e.snapshot={...e.snapshot,status:'failed',stage:null,result:null,error};
+   e.controller.abort(new AgentStateError('DEPENDENCY_UNAVAILABLE'));for(const notify of e.listeners)notify();throw new AgentStateError('DEPENDENCY_UNAVAILABLE');
+  }
+  e.snapshot=next;e.events.push(event);
   for(const notify of e.listeners)notify();
  }
  function fail(e:Entry,code:ErrorCode){if(terminal(e.snapshot.status))return;
@@ -41,66 +65,112 @@ export function createRunManager(dependencies:RunManagerDependencies,rawOptions:
   let timer:ReturnType<typeof setTimeout>|undefined,onAbort:(()=>void)|undefined;
   try{
    if(terminal(e.snapshot.status))return;e.snapshot.status='running';
+   async function tracked<T>(call:()=>Promise<T>):Promise<T>{e.pendingDependencies++;try{return await call();}finally{e.pendingDependencies--;}}
+   // Track the actual injected dependency, not evaluateTurn's cancellation race wrapper.
+   const previewOnly=request.job.type==='closeout-preview';
+   const bound=previewOnly?undefined:dependencies.forRun?.(structuredClone(request.context));
+   const planner=previewOnly?undefined:bound?.plan??dependencies.planForRole?.(request.context.roleId);
+   const presenter=previewOnly?undefined:bound?.deliver??dependencies.deliverForRole?.(request.context.roleId),onDiagnostic=bound?.onDiagnostic??dependencies.onDiagnostic;
+   const scoped:RunManagerDependencies={...dependencies,evaluateForRole:role=>{if(role!==request.context.roleId)throw new AgentStateError('ROLE_FORBIDDEN');
+    const evaluate=bound?.evaluate??dependencies.evaluateForRole(role);return(request,signal)=>tracked(()=>evaluate(request,signal));},
+    ...(onDiagnostic?{onDiagnostic}:{}),
+    ...(presenter?{deliverForRole:(role:RoleId)=>{if(role!==request.context.roleId)throw new AgentStateError('ROLE_FORBIDDEN');return(input,signal)=>tracked(()=>presenter(input,signal));}}:{}),
+    ...(planner?{planForRole:()=> (input,signal)=>tracked(()=>planner(input,signal))}:{})};
    const check=()=>{if(e.controller.signal.aborted)throw(e.controller.signal.reason??new AgentStateError('RUN_CANCELLED'));
     if(clock()>=request.context.deadlineAt)throw new AgentStateError('DEADLINE_EXCEEDED');};
    const stage=(value:z.infer<typeof AgentRunStageSchema>,message:string)=>{check();e.snapshot.stage=value;emit(e,'run.stage',{stage:value,message});};
    const stop=new Promise<never>((_resolve,reject)=>{onAbort=()=>reject(e.controller.signal.reason??new AgentStateError('RUN_CANCELLED'));
     e.controller.signal.addEventListener('abort',onAbort,{once:true});
-    timer=setTimeout(()=>e.controller.abort(new AgentStateError('DEADLINE_EXCEEDED')),Math.max(1,Math.min(options.timeoutMs,request.context.deadlineAt-clock())));});
+    e.deadlineTimer=true;timer=setTimeout(()=>{e.deadlineTimer=false;e.controller.abort(new AgentStateError('DEADLINE_EXCEEDED'));},Math.max(1,Math.min(options.timeoutMs,request.context.deadlineAt-clock())));});
+   e.workPending=true;
    const work=(async():Promise<AgentRunResult>=>{
+    if(request.job.type==='closeout-preview'){
+     stage('closeout_preview','正在生成只读收尾预览');
+     const result=await buildCloseoutPreview(request.job.input,request.context,{authorizedEditorIds:dependencies.previewEditorsFor?.(structuredClone(request.context))??[],now,signal:e.controller.signal});check();return result;
+    }
     if(request.job.type==='rsi'){
      stage('rsi_evaluating','正在隔离评测收尾策略候选');
      const result=await evaluateWorkflowRsi(request.job.input,{signal:e.controller.signal,now,deadlineAt:request.context.deadlineAt});check();return result;
     }
     if(request.job.type==='workflow'){
-     const snapshot=await executeWorkflowJob(request.job,request.context,dependencies,e.controller.signal,options.timeoutMs,stage);check();
+     const snapshot=await executeWorkflowJob(request.job,request.context,scoped,e.controller.signal,options.timeoutMs,stage);check();
      return{kind:'uncommitted-workflow-result',action:request.job.operation.action,snapshot};
     }
     if(request.job.type==='turn'){
      stage('evaluating','正在评估回答');
-     const proposal=await evaluateTurn(request.job.input,{evaluate:dependencies.evaluateForRole(request.context.roleId),now,
-      signal:e.controller.signal,timeoutMs:options.timeoutMs});check();stage('selecting','正在选择下一题');
-     const planning=dependencies.planForRole?PlannerResultSchema.parse(await dependencies.planForRole(request.context.roleId)({state:proposal.nextState,
+     const deps={evaluate:scoped.evaluateForRole(request.context.roleId),now,signal:e.controller.signal,timeoutMs:options.timeoutMs,
+      ...(scoped.onDiagnostic?{onDiagnostic:scoped.onDiagnostic}:{})};
+     const resolution=request.job.clarification?await evaluateTurnWithClarification(request.job.input,deps,request.job.clarification):undefined;
+     check();
+     if(resolution&&resolution.status!=='scored'){
+      emit(e,'answer.resolution',{status:resolution.status,questionId:resolution.basedOn.questionId,answerId:resolution.basedOn.answerId,
+       clarification:resolution.clarification,reason:resolution.reason,attempt:resolution.attempt,missingCriterionIds:resolution.missingCriterionIds});
+      if(resolution.status==='needs_clarification')return{kind:'uncommitted-unscored-turn-result',resolution};
+      stage('selecting','本题未评分，正在准备后续安排');
+      const selection=resolution.reason==='time_budget'?{status:'finished' as const,plan:{...decideNextAction(request.job.input.state,clock(),request.job.input.planningPolicy?.parameters??{}),
+        action:'finish' as const,skillId:null,reason:'clarification_time_budget'}}:
+       selectNextQuestion({state:request.job.input.state,now:clock(),knowledge:request.job.knowledge,askedQuestionIds:[...new Set([...request.job.askedQuestionIds,request.job.input.question.id])],
+        planningPolicy:request.job.input.planningPolicy},{allowDraftKnowledge:request.job.allowDraftKnowledge});
+      check();if(selection.status==='selected')emit(e,'question.completed',{question:selection.question});
+      return{kind:'uncommitted-unscored-turn-result',resolution,selection};
+     }
+     const proposal=resolution?.status==='scored'?resolution.proposal:await evaluateTurn(request.job.input,deps);
+     check();stage('selecting','正在选择下一题');
+     const planning=scoped.planForRole?PlannerResultSchema.parse(await scoped.planForRole(request.context.roleId)({state:proposal.nextState,
       context:request.context,goal:request.job.input.goal,askedQuestionIds:request.job.askedQuestionIds,
       ...(request.job.input.planningPolicy?{planningPolicy:request.job.input.planningPolicy}:{}),allowDraftKnowledge:request.job.allowDraftKnowledge},e.controller.signal)):undefined;
      check();const selection=planning?.selection??selectNextQuestion({state:proposal.nextState,now:clock(),knowledge:request.job.knowledge,
       askedQuestionIds:request.job.askedQuestionIds,planningPolicy:request.job.input.planningPolicy},{allowDraftKnowledge:request.job.allowDraftKnowledge});
-     check();if(selection.status==='selected')emit(e,'question.completed',{question:selection.question});
-     return{kind:'uncommitted-turn-result',proposal,selection,...(planning?{planning}:{})};
+     check();let delivery;
+     if(selection.status==='selected'&&scoped.deliverForRole){
+      stage('presenting','正在准备下一题的承接语');const generate=scoped.deliverForRole(request.context.roleId);
+      delivery=await deliverQuestion({context:request.context,state:proposal.nextState,selection,previousAnswer:request.job.input.answer,
+       wrapUpSeconds:request.job.input.planningPolicy?.parameters.wrapUpSeconds??30},
+       {generate,signal:e.controller.signal,now});check();
+     }
+     if(selection.status==='selected')emit(e,'question.completed',{question:selection.question,...(delivery?{delivery}:{})});
+     return{kind:'uncommitted-turn-result',proposal,selection,...(planning?{planning}:{}),...(delivery?{delivery}:{})};
     }
     stage('reporting','正在整理内容报告');const report=await buildInterviewReport(request.job.input);check();return{kind:'uncommitted-report-result',report};
    })();
+   void work.then(()=>{e.workPending=false;},()=>{e.workPending=false;});
    const result=AgentRunResultSchema.parse(await Promise.race([work,stop]));check();
-   if(terminal(e.snapshot.status))return;e.snapshot={...e.snapshot,status:'completed',stage:null,result,error:null};
+   if(terminal(e.snapshot.status))return;
    if(result.kind==='uncommitted-workflow-result'){
     const s=result.snapshot;emit(e,'workflow.updated',{action:result.action,sessionId:s.state.sessionId,revision:s.revision,phase:s.phase,stateVersion:s.state.version});
-    if(result.action==='plan'&&s.current)emit(e,'question.completed',{question:s.current.question});
+    if(result.action==='plan'&&s.current){const delivery=s.issuedQuestions.at(-1)?.content?.delivery;emit(e,'question.completed',{question:s.current.question,...(delivery?{delivery}:{})});}
    }
    if(result.kind==='uncommitted-workflow-rsi')emit(e,'rsi.completed',{sessionId:result.source.sessionId,experimentId:result.registryCandidate.experimentId,
     status:result.status,registryVersion:result.registryCandidate.version,evidenceMode:'synthetic',productionPublished:false,
     baselineAgreement:result.evaluation?.baseline.value??null,candidateAgreement:result.evaluation?.candidate.value??null,delta:result.evaluation?.delta??null});
+   // Domain milestones are still running checkpoints. Only the final event seals the result.
+   check();if(terminal(e.snapshot.status))return;
+   e.snapshot={...e.snapshot,status:'completed',stage:null,result,error:null};
    emit(e,'run.completed',{resultKind:result.kind,committed:false});
-  }catch(error){fail(e,error instanceof AgentStateError?error.code:'INTERNAL_ERROR');}
-  finally{if(timer!==undefined)clearTimeout(timer);if(onAbort)e.controller.signal.removeEventListener('abort',onAbort);e.resolve();}
+  }catch(error){try{fail(e,error instanceof AgentStateError?error.code:'INTERNAL_ERROR');}catch{
+   const{status:_status,...failure}=describeError('DEPENDENCY_UNAVAILABLE');e.snapshot={...e.snapshot,status:'failed',stage:null,result:null,error:failure};
+  }}
+  finally{if(timer!==undefined)clearTimeout(timer);e.deadlineTimer=false;if(onAbort)e.controller.signal.removeEventListener('abort',onAbort);e.resolve();}
  }
  function start(rawRequest:unknown):AgentRunSnapshot{
-  if(disposed)throw new AgentStateError('DEPENDENCY_UNAVAILABLE');
+  if(disposed||draining)throw new AgentStateError('DEPENDENCY_UNAVAILABLE');
   const parsed=AgentRunRequestSchema.safeParse(rawRequest);if(!parsed.success)throw new AgentStateError('VALIDATION_ERROR');
   const request=parsed.data,text=JSON.stringify(request);
   if(new TextEncoder().encode(text).length>2*1024*1024)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');
   const digest=createHash('sha256').update(text).digest('hex'),existing=entries.get(request.context.runId);
   if(existing){if(existing.digest!==digest)throw new AgentStateError('VERSION_CONFLICT');return snapshot(request.context.runId);}
   const at=clock();if(at>=request.context.deadlineAt)throw new AgentStateError('DEADLINE_EXCEEDED');
-  if(entries.size>=options.maxRuns||[...entries.values()].filter(e=>!terminal(e.snapshot.status)).length>=options.maxActiveRuns)throw new AgentStateError('RATE_LIMITED');
+  if(entries.size>=options.maxRuns||[...entries.values()].filter(occupied).length>=options.maxActiveRuns)throw new AgentStateError('RATE_LIMITED');
   let resolve!:()=>void;const done=new Promise<void>(r=>{resolve=r;});
-  const e:Entry={digest,done,resolve,events:[],listeners:new Set(),controller:new AbortController(),snapshot:AgentRunSnapshotSchema.parse({
+  const e:Entry={digest,done,resolve,workPending:false,pendingDependencies:0,deadlineTimer:false,events:[],listeners:new Set(),controller:new AbortController(),snapshot:AgentRunSnapshotSchema.parse({
    runId:request.context.runId,attemptId:request.context.attemptId,inputSnapshotId:request.inputSnapshotId,status:'queued',stage:'queued',
    createdAt:new Date(at).toISOString(),updatedAt:new Date(at).toISOString(),lastEventSeq:0,error:null,result:null})};
-  entries.set(request.context.runId,e);emit(e,'run.accepted',{stage:'queued'});queueMicrotask(()=>{void process(e,request);});return snapshot(request.context.runId);
+  entries.set(request.context.runId,e);try{emit(e,'run.accepted',{stage:'queued'});}catch(error){entries.delete(request.context.runId);throw error;}
+  queueMicrotask(()=>{void process(e,request);});return snapshot(request.context.runId);
  }
  function cancel(runId:string,attemptId:string):AgentRunSnapshot{
   const e=find(runId);if(e.snapshot.attemptId!==attemptId)throw new AgentStateError('VERSION_CONFLICT');
-  if(!terminal(e.snapshot.status)){fail(e,'RUN_CANCELLED');e.controller.abort(new AgentStateError('RUN_CANCELLED'));}return snapshot(runId);
+  if(!terminal(e.snapshot.status)){try{fail(e,'RUN_CANCELLED');}finally{e.controller.abort(new AgentStateError('RUN_CANCELLED'));}}return snapshot(runId);
  }
  async function* events(runId:string,afterSeq=0,signal?:AbortSignal):AsyncGenerator<AgentRunEvent>{
   const e=find(runId);if(!Number.isSafeInteger(afterSeq)||afterSeq<0)throw new AgentStateError('VALIDATION_ERROR');
@@ -113,6 +183,8 @@ export function createRunManager(dependencies:RunManagerDependencies,rawOptions:
   finally{e.listeners.delete(listener);signal?.removeEventListener('abort',aborted);}
  }
  function dispose(){if(disposed)return;disposed=true;for(const e of entries.values())if(!terminal(e.snapshot.status))cancel(e.snapshot.runId,e.snapshot.attemptId);}
- return{start,snapshot,cancel,events,wait:(runId:string)=>find(runId).done,dispose} satisfies InterviewBackend & {wait:(runId:string)=>Promise<void>;dispose:()=>void};
+ const shutdown=createRuntimeShutdown({closeAdmission:()=>{draining=true;},cancelActive:()=>{const n=diagnostics().activeRuns;dispose();return n;},
+  resources:()=>{const{disposed:_disposed,draining:_draining,...counts}=diagnostics();return counts;}});
+ return{start,snapshot,cancel,events,wait:(runId:string)=>find(runId).done,dispose,diagnostics,shutdown} satisfies InterviewBackend & {wait:(runId:string)=>Promise<void>;dispose:()=>void;diagnostics:()=>ReturnType<typeof diagnostics>;shutdown:typeof shutdown};
 }
 export type AgentRunManager=ReturnType<typeof createRunManager>;

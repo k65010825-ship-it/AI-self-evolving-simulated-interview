@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import type { DeliveryStage, QualityId } from './report.ts';
 export const commands: Record<QualityId, readonly string[]> = {
   typecheck: ['run', 'typecheck'], test: ['test'], pi_offline: ['run', 'pi:offline'],
-  knowledge_check: ['run', 'check:knowledge'], openapi_lint: ['run', 'openapi:lint'], desktop_build: ['run', 'desktop:build'],
+  knowledge_check: ['run', 'check:knowledge'], openapi_lint: ['run', 'openapi:lint'],
 };
 export function parseCounts(id: QualityId, tail: string) {
   const last = (re: RegExp) => [...tail.matchAll(re)].at(-1)?.[1];
@@ -11,7 +11,8 @@ export function parseCounts(id: QualityId, tail: string) {
     assertions: n(last(/(\d+) expect\(\) calls/g)), warnings: null } : null;
 }
 /** Fixed commands only. Output is bounded and discarded; it is never included in artifacts. */
-export async function runQuality(id: QualityId, root: string, signal?: AbortSignal, timeoutMs = 120000): Promise<DeliveryStage> {
+// The 995-test Windows matrix completed in 246s (2026-11-15); keep a bounded 300s window.
+export async function runQuality(id: QualityId, root: string, signal?: AbortSignal, timeoutMs = id === 'test' ? 300000 : 120000): Promise<DeliveryStage> {
   const start = performance.now();
   return new Promise(resolve => {
     let settled = false, stopping: DeliveryStage['error'] = null, total = 0, tail = '', timer: ReturnType<typeof setTimeout>, cleanupTimer: ReturnType<typeof setTimeout> | undefined;

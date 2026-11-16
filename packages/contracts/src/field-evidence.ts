@@ -1,0 +1,14 @@
+import { z } from 'zod';
+const id=z.string().trim().min(1).max(100), digest=z.string().regex(/^[a-f0-9]{64}$/), score=z.number().min(0).max(1), time=z.number().int().nonnegative();
+export const FieldEvidenceItemSchema=z.object({id,sourceGroupId:id,authorId:id,version:id,roleId:id,kind:z.enum(['answer','knowledge','continuation','expression']),payload:z.record(z.string(),z.unknown()),modelScore:score.nullable().default(null),sourceReferences:z.array(z.object({sourceId:id,sourceVersion:id,locator:z.string().trim().min(1).max(500)}).strict()).max(100).default([])}).strict().refine(i=>i.kind!=='knowledge'||i.sourceReferences.length>0,'Knowledge requires versioned sources');
+export const FieldEvidenceInputSchema=z.object({datasetId:id,developmentGroupIds:z.array(id),developmentReviewerIds:z.array(id),minimumCases:z.number().int().positive().max(10000).default(8),items:z.array(FieldEvidenceItemSchema).max(10000)}).strict();
+export const FieldReviewLabelSchema=z.object({taskId:id,taskDigest:digest,reviewId:id,reviewerId:id,reviewedAt:z.iso.datetime(),humanScore:score.nullable(),citationSupported:z.boolean().nullable(),continuationAccurate:z.boolean().nullable(),answerLeaked:z.boolean().nullable(),expressionReliable:z.boolean().nullable(),rationale:z.string().trim().min(1).max(4000)}).strict();
+export const FieldKnowledgeReviewSchema=z.object({taskId:id,taskDigest:digest,reviewId:id,reviewerId:id,reviewedAt:z.iso.datetime(),decision:z.enum(['approved','changes_requested']),checks:z.object({technicalAccuracy:z.boolean(),scoringClarity:z.boolean(),sourceAlignment:z.boolean(),roleFit:z.boolean()}).strict(),note:z.string().trim().min(1).max(4000)}).strict();
+const before=z.object({answerId:id,questionId:id,sessionId:id,submittedAt:time,score:score.nullable(),reviewerId:id,reviewId:id}).strict();
+export const FieldCohortPairSchema=z.object({pairId:id,studentId:id,arm:z.enum(['baseline','candidate']),sourceGroupId:id,roleId:id,skillId:id,rubricId:id,rubricVersion:id,difficulty:z.number().int().min(1).max(5),dataMode:z.enum(['consented','synthetic','unverified']),consentRecordId:id.nullable(),learningArtifactId:id.nullable(),policyVersion:id,before:before.nullable(),learningVerifiedAt:time.nullable(),after:before.extend({questionIssuedAt:time}).strict().nullable()}).strict();
+export const FieldCohortInputSchema=z.object({studyId:id,baselinePolicyVersion:id,candidatePolicyVersion:id,developmentGroupIds:z.array(id),developmentReviewerIds:z.array(id).default([]),minimumPairsPerArm:z.number().int().positive().max(10000).default(8),pairs:z.array(FieldCohortPairSchema).max(10000)}).strict();
+export type FieldReviewLabel=z.infer<typeof FieldReviewLabelSchema>;
+export type FieldEvidenceInput=z.infer<typeof FieldEvidenceInputSchema>;
+export type FieldCohortInput=z.infer<typeof FieldCohortInputSchema>;
+
+

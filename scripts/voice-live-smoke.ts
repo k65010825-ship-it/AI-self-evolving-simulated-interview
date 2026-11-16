@@ -1,0 +1,21 @@
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';import {resolve,join} from 'node:path';import {randomUUID} from 'node:crypto';
+import {synthesizeTts} from '../apps/agent/src/speech/tts.ts';import {createExpressionAssessor} from '../apps/agent/src/speech/expression-assessment.ts';
+import {openSessionAccounting} from '../apps/agent/src/accounting/session-ledger.ts';
+if(process.argv[2]!=='--execute')throw Error('Explicit --execute required; max2 attempts, declared CNY0.20 hold');
+const dir=resolve('.cache/voice-live',randomUUID());mkdirSync(dir,{recursive:true});const deadlineAt=Date.now()+120000,context={userId:'synthetic',roleId:'java-backend' as const,runId:'voice-check',attemptId:'attempt',deadlineAt};
+const ledger=openSessionAccounting(join(dir,'ledger.sqlite'));ledger.ensureSession({sessionId:'voice-check',...{userId:context.userId,roleId:context.roleId},currency:'CNY',maxCostMicros:200000,maxCalls:2,maxConcurrent:1,deadlineAt});
+let calls=0;const traces:any[]=[];const traceJobs:Promise<void>[]=[];
+const transport=async(url:string,init:RequestInit)=>{if(++calls>2)throw Error('REQUEST_LIMIT');const response=await fetch(url,init);const trace:any={status:response.status,events:[]};traces.push(trace);
+ const clone=response.clone();traceJobs.push((async()=>{let n=0,text='';const reader=clone.body!.getReader();try{for(;;){const x=await reader.read();if(x.done)break;n+=x.value.length;if(n>12*1024*1024)break;text+=new TextDecoder().decode(x.value);}}catch{trace.transportInterrupted=true;}finally{void reader.cancel().catch(()=>{});}
+ for(const line of text.split(/\r?\n/)){if(!line.startsWith('data:'))continue;try{const v=JSON.parse(line.slice(5));if(v.output?.audio?.data!==undefined){const b=Buffer.from(v.output.audio.data,'base64');v.output.audio.data=`[base64 length ${v.output.audio.data.length}; first64hex ${b.subarray(0,64).toString('hex')}]`;}if(v.output?.audio?.url)v.output.audio.url='[supplier URL ignored]';trace.events.push(v);}catch{trace.events.push({nonJson:line.slice(0,60)});}}
+ })());return response;};
+const hooks=(id:string)=>({beforeDispatch:()=>{ledger.reserve({sessionId:'voice-check',userId:context.userId,roleId:context.roleId,operationId:id,attemptId:id,kind:id==='tts'?'tts':'llm',reservedCostMicros:100000,pricing:{source:'host-hold-not-invoice',version:'1',unit:'request'}});ledger.dispatch('voice-check',id);},onResponse:()=>{ledger.completeResponse('voice-check',id);},onUnknown:()=>{ledger.markUnknown('voice-check',id);}});
+const results:any={};
+try{try{const result=await synthesizeTts({text:'请介绍你的项目。',operationId:'tts',deadlineAt},{enabled:true,endpoint:'https://cn-beijing.maas.qianwenaiapi.com/api/v1/services/aigc/multimodal-generation/generation',model:'qwen3-tts-flash',voice:'Cherry',credentialEnv:'INTERVIEW_BAILIAN_ASR_API_KEY'},
+ {readCredential:n=>process.env[n],fetch:transport,...hooks('tts')});writeFileSync(join(dir,'tts.wav'),result.wavBytes);results.tts={status:'completed',bytes:result.wavBytes.length};}catch(e){results.tts={error:(e as Error).message};}
+ // Separate operation deliberately keeps the same shared conservative ledger.
+ try{const analyzer=createExpressionAssessor({version:1,enabled:true,providerId:'qianwen',modelId:'qwen3.8-omni-flash',endpoint:'https://cn-beijing.maas.qianwenaiapi.com/compatible-mode/v1',timeoutMs:30000,maxOutputTokens:1500,authorization:{allowLive:true,expiresAt:deadlineAt},budget:{maxCalls:1,maxTotalAudioMs:10000,maxCostMicros:100000,reserveCostMicrosPerCall:100000}},
+ {context,voiceKey:process.env.INTERVIEW_BAILIAN_ASR_API_KEY??'',fetch:transport,...hooks('expression')});results.expression=await analyzer.assess({wavBytes:new Uint8Array(readFileSync('.cache/asr-live/local-synthesized-en.wav')),originalText:'Java transactions should roll back when an operation fails.'},new AbortController().signal);}catch(e){results.expression={error:(e as Error).message};}
+ await Promise.allSettled(traceJobs);writeFileSync(join(dir,'report.json'),JSON.stringify({results,httpAttempts:calls,traces,accounting:ledger.snapshot('voice-check'),humanAudio:false,vendorBillingVerified:false},null,2));
+ console.log(JSON.stringify({artifact:join(dir,'report.json'),httpAttempts:calls,tts:results.tts,expressionStatus:results.expression.error??results.expression.dataStatus}));
+}finally{ledger.close();}

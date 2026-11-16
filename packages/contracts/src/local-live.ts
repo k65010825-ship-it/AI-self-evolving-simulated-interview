@@ -1,0 +1,11 @@
+import {z} from 'zod';
+import {LiveModelProfileSchema,ModelUsageSchema} from './model-access.ts';
+import {LiveServiceConfigSchema} from './live-model.ts';
+const id=z.string().min(1).max(80).regex(/^[A-Za-z0-9_.-]+$/);
+export const LocalSessionBudgetLimitsSchema=z.object({maxCalls:z.number().int().min(1).max(100),maxTotalTokens:z.number().int().min(1).max(10_000_000),maxCostMicros:z.number().int().min(0).max(1_000_000_000_000)}).strict();
+export const LocalSessionBudgetSchema=z.object({sessionId:id,profile:LiveModelProfileSchema,profileDigest:z.string().regex(/^[a-f0-9]{64}$/),currency:z.literal('CNY'),pricingVersion:id,limits:LocalSessionBudgetLimitsSchema,serviceConfig:LiveServiceConfigSchema.optional()}).strict();
+export const LocalLiveGrantInputSchema=z.object({grantId:id,sessionId:id,expectedVersion:z.number().int().nonnegative(),expiresAt:z.number().int().nonnegative(),credentialRef:id,profile:LiveModelProfileSchema}).strict();
+export const LocalLiveGrantSchema=LocalLiveGrantInputSchema.omit({expectedVersion:true}).extend({version:z.number().int().positive(),profileDigest:z.string().regex(/^[a-f0-9]{64}$/)}).strict();
+export const LocalLiveReconciliationSchema=z.object({sessionId:id,jobId:id,runId:id,attemptId:id,callId:id,expectedVersion:z.number().int().nonnegative(),usage:ModelUsageSchema,evidenceRef:z.string().min(1).max(200)}).strict();
+export type LocalSessionBudget=z.infer<typeof LocalSessionBudgetSchema>;
+export type LocalLiveGrant=z.infer<typeof LocalLiveGrantSchema>;

@@ -1,0 +1,46 @@
+{
+  "id": "verification-observation-proposal-v3",
+  "version": 1,
+  "authoredAt": "2026-11-08",
+  "origin": "assistant-authored-draft",
+  "baseItems": [
+    {
+      "id": "java-project-capacity",
+      "version": "seed-0.2",
+      "digest": "370d9ecef0ca41a5e1996858830847746247ebf9827944a798b292f77271d370"
+    },
+    {
+      "id": "web-project-rendering",
+      "version": "seed-0.2",
+      "digest": "f26f61ca01ca83179909807fdd3133d00c01dc06c86424489ffd2294bd6e74a0"
+    }
+  ],
+  "sourceChecks": [
+    {
+      "sourceId": "java-atomic-integer",
+      "url": "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/atomic/AtomicInteger.html",
+      "section": "compareAndSet(int,int); atomic update methods; update function constraints",
+      "characters": 33143,
+      "capturedAt": "2026-11-08",
+      "extractor": "MarkItDown MCP",
+      "nonEmpty": true,
+      "structureUsable": true,
+      "convertedTextDigest": "6dde4077781e446ed0bc909d0838901282688a7e20e4c8c980068fe317d2182f",
+      "sourceVersion": "docs-2026-11-08"
+    },
+    {
+      "sourceId": "react-profiler-rendering",
+      "url": "https://react.dev/reference/react/Profiler",
+      "section": "onRender callback; actualDuration/baseDuration; profiling-build caveat",
+      "characters": 5183,
+      "capturedAt": "2026-11-08",
+      "extractor": "MarkItDown MCP",
+      "nonEmpty": true,
+      "structureUsable": true,
+      "convertedTextDigest": "56a60f74bbef0db8a9c7c68338fb53e66dd30bbf23d2d84a1c778a9185830b12",
+      "sourceVersion": "docs-2026-11-08"
+    }
+  ],
+  "reviewStatus": "draft",
+  "productionPublished": false
+}

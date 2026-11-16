@@ -1,5 +1,7 @@
 node_modules/
 .cache/
+.cache-field-*/
+.cache-field-*.json
 .tools/
 dist/
 release/
@@ -9,3 +11,6 @@ coverage/
 !.env.example
 *.log
 .sdd/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

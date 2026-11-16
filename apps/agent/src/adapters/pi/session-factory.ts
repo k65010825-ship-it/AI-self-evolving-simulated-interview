@@ -29,3 +29,30 @@ export function createIsolatedPiSession(input: {
     tools: ['query_role_knowledge'], customTools: [createPiKnowledgeTool(input.context)],
   });
 }
+
+import type {ToolDefinition} from '@earendil-works/pi-coding-agent';
+import {getHarnessProfile,type HarnessPhase} from '../../harness/profiles.ts';
+import {createCompletionGate,type HarnessHook} from '../../harness/completion-gate.ts';
+import {AgentStateError} from '../../planning/interview-state.ts';
+import {createStageHooks} from '../../harness/business-guards.ts';
+/** One sidechain per call. No filesystem discovery, built-ins, implicit retries or compaction. */
+export async function createHarnessPiSession(input:{
+ phase:HarnessPhase;cwd:string;modelRuntime:ModelRuntime;model:Model<Api>;systemPrompt:string;
+ toolDefinitions?:ToolDefinition[];sessionManager?:SessionManager;signal:AbortSignal;hooks?:readonly HarnessHook[];businessScope?:unknown;
+}){
+ if(input.signal.aborted)throw new AgentStateError('RUN_CANCELLED');
+ const profile=getHarnessProfile(input.phase),definitions=input.toolDefinitions??[];
+ if(definitions.length!==profile.tools.length||definitions.some(t=>!profile.tools.includes(t.name))||
+  new Set(definitions.map(t=>t.name)).size!==definitions.length)throw new AgentStateError('ROLE_FORBIDDEN');
+ // Validate all mandatory/extra hooks before allocating SDK resources.
+ const gate=createCompletionGate(profile.tools,input.signal,[...createStageHooks(input.phase,input.businessScope),...(input.hooks??[])]);
+ const created=await createAgentSession({cwd:input.cwd,agentDir:join(input.cwd,`.isolated-${input.phase}`),
+  modelRuntime:input.modelRuntime,model:input.model,thinkingLevel:'off',resourceLoader:emptyResources(input.systemPrompt),
+  tools:profile.tools,customTools:definitions,sessionManager:input.sessionManager??SessionManager.inMemory(input.cwd),
+  settingsManager:SettingsManager.inMemory({retry:{enabled:false},compaction:{enabled:false}})});
+ const session=created.session,unsubscribe=session.subscribe(e=>gate.observe(e));
+ const dispose=()=>{unsubscribe();session.dispose();};
+ if(input.signal.aborted){dispose();throw new AgentStateError('RUN_CANCELLED');}
+ if(JSON.stringify(session.getCallableToolNames())!==JSON.stringify(profile.tools)){dispose();throw new AgentStateError('INTERNAL_ERROR');}
+ return {...created,gate,dispose};
+}

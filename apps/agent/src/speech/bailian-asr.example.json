@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "enabled": false,
+  "providerId": "bailian",
+  "modelId": "qwen3-asr-flash",
+  "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "credentialEnv": "INTERVIEW_BAILIAN_ASR_API_KEY",
+  "timeoutMs": 30000,
+  "authorization": { "allowLive": false, "expiresAt": 0 },
+  "budget": {
+    "maxCalls": 2,
+    "maxTotalAudioMs": 120000,
+    "maxCostMicros": 200000,
+    "reserveCostMicrosPerCall": 100000
+  }
+}

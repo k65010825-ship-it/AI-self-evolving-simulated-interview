@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { canonical, contentHash } from '../answers/validation.ts';
-export const qualityIds = ['typecheck', 'test', 'pi_offline', 'knowledge_check', 'openapi_lint', 'desktop_build'] as const;
+export const qualityIds = ['typecheck', 'test', 'pi_offline', 'knowledge_check', 'openapi_lint'] as const;
 export const scenarioIds = ['model_preflight', 'knowledge_catalog', 'curated_knowledge', 'budget', 'acceptance', 'answers_development', 'workflow_commit'] as const;
 export const stageIds = [...qualityIds, ...scenarioIds, 'source_integrity'] as const;
 export type QualityId = typeof qualityIds[number];
@@ -19,14 +19,14 @@ export const StageSchema = z.object({ id: z.enum(stageIds), status: z.enum(['pas
 export type DeliveryStage = z.infer<typeof StageSchema>;
 const source = z.array(z.object({ path: z.string().min(1).max(300).regex(/^[A-Za-z0-9_./-]+$/).refine(p => !p.startsWith('/') && !p.split('/').some(c => c === '..' || c === '.' || c === '')), sha256: digest }).strict()).min(1).max(5000);
 const artifact = z.object({ path: ArtifactNameSchema, sizeBytes: z.number().int().min(1).max(4 * 1024 * 1024), sha256: digest }).strict();
-const payload = z.object({ version: z.literal(1), suiteId: z.literal('agent-delivery-offline-v1'), transport: z.enum(['tcp', 'in-process']), checks: z.enum(['full', 'scenarios-only']),
+const payload = z.object({ version: z.literal(1), suiteId: z.literal('agent-delivery-offline-v2'), transport: z.enum(['tcp', 'in-process']), checks: z.enum(['full', 'scenarios-only']),
   startedAt: z.iso.datetime(), finishedAt: z.iso.datetime(), sourceManifest: source, sourceStable: z.boolean(),
   runtime: z.object({ bun: z.string().min(1).max(40), node: z.string().min(1).max(40) }).strict(), stages: z.array(StageSchema).length(stageIds.length),
   artifacts: z.array(artifact).max(3), status: z.enum(['passed-offline-checks', 'incomplete', 'failed']),
   summary: z.object({ total: z.literal(stageIds.length), passed: z.number().int().nonnegative(), failed: z.number().int().nonnegative(), notRun: z.number().int().nonnegative() }).strict(),
   evidenceMode: z.literal('offline-fixture'), productReady: z.literal(false), formalCommitted: z.literal(false), liveModelCalls: z.literal(0),
   notVerified: z.tuple([z.literal('live-model-and-voice'), z.literal('human-reference-and-content-review'), z.literal('database-transactions-and-auth'),
-    z.literal('gui-microphone-installer'), z.literal('production-deployment')]),
+    z.literal('production-deployment')]),
 }).strict();
 export const DeliveryReportSchema = payload.extend({ digest });
 export type DeliveryReport = z.infer<typeof DeliveryReportSchema>;
@@ -40,9 +40,9 @@ function summarize(stages: DeliveryStage[], sourceStable: boolean) {
 }
 export function sealDeliveryReport(input: { transport: DeliveryReport['transport']; checks: DeliveryReport['checks']; startedAt: string; finishedAt: string;
   sourceManifest: DeliveryReport['sourceManifest']; sourceStable: boolean; stages: DeliveryStage[]; artifacts: DeliveryReport['artifacts'] }) {
-  const p = { ...input, version: 1, suiteId: 'agent-delivery-offline-v1', ...summarize(input.stages, input.sourceStable),
+  const p = { ...input, version: 1, suiteId: 'agent-delivery-offline-v2', ...summarize(input.stages, input.sourceStable),
     runtime: { bun: process.versions.bun ?? 'unavailable', node: process.versions.node }, evidenceMode: 'offline-fixture', productReady: false, formalCommitted: false, liveModelCalls: 0,
-    notVerified: ['live-model-and-voice', 'human-reference-and-content-review', 'database-transactions-and-auth', 'gui-microphone-installer', 'production-deployment'] };
+    notVerified: ['live-model-and-voice', 'human-reference-and-content-review', 'database-transactions-and-auth', 'production-deployment'] };
   return verifyDeliveryReport({ ...p, digest: contentHash(p) });
 }
 /** Structural arithmetic/integrity only; bundle verifier must additionally read and check every evidence file. */

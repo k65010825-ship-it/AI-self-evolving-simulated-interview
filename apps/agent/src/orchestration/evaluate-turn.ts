@@ -6,10 +6,19 @@ import { AgentStateError, recordObservation, decideNextAction } from '../plannin
 import { createScoringExecutor } from '../tools/scoring-executor.ts';
 import { validateSpeechForTurn } from '../speech/validate-answer.ts';
 import { validateContentScope } from './validate-content-scope.ts';
+import type { TurnInput } from '../../../../packages/contracts/src/evaluation.ts';
+import type { ScoringResultSchema } from '../../../../packages/contracts/src/scoring.ts';
+import {ScoringContextSchema}from'../../../../packages/contracts/src/scoring.ts';
+import type {EvaluationDiagnosticSink,ScoringRejection}from'../../../../packages/contracts/src/evaluation-diagnostic.ts';
+import type {BindingInvalidDetail,BindingSpanConflict} from '../../../../packages/contracts/src/verification-binding.ts';
+import {diagnose}from'../evaluation/diagnostic.ts';
+import {evidenceFailureReason}from'../evaluation/evidence-diagnostic.ts';
+import {isExplicitNonAnswer,type EvidenceSupportRejection}from'../../../../packages/interview-domain/src/evidence-support.ts';
+export interface ValidatedInsufficientTurn{kind:'validated-insufficient-score';input:TurnInput;score:z.infer<typeof ScoringResultSchema>;at:number;}
 
 export interface EvaluationRequest {
   outputSchemaVersion: 1;
-  context: ReturnType<typeof buildInterviewContext>;
+  context: Pick<ReturnType<typeof buildInterviewContext>,'promptVersion'|'systemPrompt'|'userPrompt'>;
   question: { text: string; skillId: string; questionType: string; difficulty: number };
   rubric: z.infer<typeof TurnInputSchema>['rubric'];
 }
@@ -19,12 +28,13 @@ export interface EvaluationDependencies {
   signal?: AbortSignal;
   timeoutMs?: number;
   maxRequestCharacters?: number;
+  onDiagnostic?:EvaluationDiagnosticSink;
 }
 const OptionsSchema = z.object({ timeoutMs: z.number().int().min(1).max(60000).default(10000),
   maxRequestCharacters: z.number().int().min(1).max(100000).default(16000) });
 
 /** Produces a proposal only. API must independently check ownership, attempt lease and CAS before commit. */
-export async function evaluateTurn(rawInput: unknown, dependencies: EvaluationDependencies): Promise<TurnProposal> {
+export async function assessTurn(rawInput: unknown, dependencies: EvaluationDependencies,allowAbstention=false): Promise<TurnProposal|ValidatedInsufficientTurn> {
   const parsed = TurnInputSchema.safeParse(rawInput);
   const config = OptionsSchema.safeParse({ timeoutMs: dependencies.timeoutMs, maxRequestCharacters: dependencies.maxRequestCharacters });
   if (!parsed.success || !config.success || typeof dependencies.evaluate !== 'function') throw new AgentStateError('VALIDATION_ERROR');
@@ -49,9 +59,18 @@ export async function evaluateTurn(rawInput: unknown, dependencies: EvaluationDe
   validateContentScope(input);
   if(input.speech)validateSpeechForTurn(input.speech,{userId:input.context.userId,roleId:input.context.roleId,
     answer:input.answer,sessionStartedAt:input.state.startedAt,at:startedAt});
+  if(isExplicitNonAnswer(input.answer.text)){
+    diagnose(dependencies.onDiagnostic,'evidence','rejected','no-substantive-answer');
+    if(!allowAbstention)throw new AgentStateError('MODEL_OUTPUT_INVALID');
+    const compute=createScoringExecutor({...input.context,deadlineAt,answerId:input.answer.id,answerText:input.answer.text,evidence:[]},[input.rubric],{maxCalls:1,allowRequiredAbstention:true});
+    const receipt=await compute(input.observationId,{rubricId:input.rubric.id,rubricVersion:input.rubric.version,
+      criterionScores:input.rubric.criteria.map(c=>({criterionId:c.id,score:null,evidenceIds:[]}))},undefined,now);
+    const at=check();if(!receipt.data)throw new AgentStateError('MODEL_OUTPUT_INVALID');
+    return{kind:'validated-insufficient-score',input,score:receipt.data,at};
+  }
   const context = buildInterviewContext({ state: input.state, now: startedAt, goal: input.goal,
     phase: 'scoring', answer: input.answer.text, knowledge: input.knowledge });
-  const request: EvaluationRequest = { outputSchemaVersion: 1, context,
+  const request: EvaluationRequest = { outputSchemaVersion: 1, context:{promptVersion:context.promptVersion,systemPrompt:context.systemPrompt,userPrompt:context.userPrompt},
     question: { text: input.question.text, skillId: input.question.skillId,
       questionType: input.question.questionType, difficulty: input.question.difficulty }, rubric: input.rubric };
   // Include question/rubric and JSON escaping, not only the base interview prompt.
@@ -83,18 +102,32 @@ export async function evaluateTurn(rawInput: unknown, dependencies: EvaluationDe
   }
   check();
   const assessed = EvaluationOutputSchema.safeParse(rawOutput);
-  if (!assessed.success) throw new AgentStateError('MODEL_OUTPUT_INVALID');
+  if (!assessed.success) {diagnose(dependencies.onDiagnostic,'schema','rejected','invalid-schema');throw new AgentStateError('MODEL_OUTPUT_INVALID');}
+  if(allowAbstention&&assessed.data.criterionScores.length!==input.rubric.criteria.length){
+    diagnose(dependencies.onDiagnostic,'scoring','rejected','score-dimension-set-mismatch');
+    diagnose(dependencies.onDiagnostic,'scoring','rejected','invalid-score');throw new AgentStateError('MODEL_OUTPUT_INVALID');}
+  const scoringContext={...input.context,deadlineAt,answerId:input.answer.id,answerText:input.answer.text,evidence:assessed.data.evidence};
+  if(!ScoringContextSchema.safeParse(scoringContext).success){diagnose(dependencies.onDiagnostic,'evidence','rejected',evidenceFailureReason(input.answer.text,assessed.data.evidence));throw new AgentStateError('MODEL_OUTPUT_INVALID');}
+  diagnose(dependencies.onDiagnostic,'evidence','accepted','valid');check();
   let score;
   try {
-    const execute = createScoringExecutor({ ...input.context, deadlineAt, answerId: input.answer.id,
-      answerText: input.answer.text, evidence: assessed.data.evidence }, [input.rubric], { maxCalls: 1 });
+    const execute = createScoringExecutor(scoringContext, [input.rubric], { maxCalls: 1,allowRequiredAbstention:allowAbstention,
+      onScoringRejection:(reason:ScoringRejection,detail?:BindingInvalidDetail,conflict?:BindingSpanConflict)=>diagnose(dependencies.onDiagnostic,'scoring','rejected',reason,undefined,{...(detail?{bindingIssue:detail}:{}),...(conflict?{bindingConflict:conflict}:{})}),
+      onEvidenceRejection:(reason:EvidenceSupportRejection)=>diagnose(dependencies.onDiagnostic,'evidence','rejected',reason) });
     // Executor's wall-clock check uses the same host clock (see injected clock option).
     score = await execute(input.observationId, { rubricId: input.rubric.id, rubricVersion: input.rubric.version,
       criterionScores: assessed.data.criterionScores }, controller.signal, now);
-  } catch { throw new AgentStateError('MODEL_OUTPUT_INVALID'); }
+  } catch { check();diagnose(dependencies.onDiagnostic,'scoring','rejected','invalid-score');throw new AgentStateError('MODEL_OUTPUT_INVALID'); }
   const completedAt = check();
-  if (score.status !== 'ok' || !score.data?.complete || score.data.normalizedScore === null)
+  if(allowAbstention&&score.status!=='error'&&score.data&&!score.data.complete){
+    diagnose(dependencies.onDiagnostic,'scoring','rejected','incomplete-score');check();
+    return{kind:'validated-insufficient-score',input,score:score.data,at:completedAt};
+  }
+  if (score.status !== 'ok' || !score.data?.complete || score.data.normalizedScore === null){
+    diagnose(dependencies.onDiagnostic,'scoring','rejected','invalid-score');
     throw new AgentStateError('MODEL_OUTPUT_INVALID');
+  }
+  diagnose(dependencies.onDiagnostic,'scoring','accepted','valid');check();
   const nextState = recordObservation(input.state, { observationId: input.observationId,
     roleId: input.state.roleId, skillId: input.question.skillId, questionId: input.question.id,
     questionType: input.question.questionType, difficulty: input.question.difficulty,
@@ -104,4 +137,9 @@ export async function evaluateTurn(rawInput: unknown, dependencies: EvaluationDe
       attemptId: input.context.attemptId, answerId: input.answer.id, questionId: input.question.id },
     evaluation: score.data, evidence: assessed.data.evidence, feedback: assessed.data.feedback,
     nextState, nextAction: decideNextAction(nextState, completedAt,input.planningPolicy?.parameters??{}) });
+}
+/** Default strict entry point remains compatible with report/workflow replay. */
+export async function evaluateTurn(rawInput:unknown,dependencies:EvaluationDependencies):Promise<TurnProposal>{
+ const result=await assessTurn(rawInput,dependencies);
+ if(result.kind==='validated-insufficient-score')throw new AgentStateError('MODEL_OUTPUT_INVALID');return result;
 }

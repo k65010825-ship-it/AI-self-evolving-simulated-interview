@@ -23,11 +23,12 @@ export async function executeWorkflowJob(job:z.infer<typeof WorkflowJobSchema>,c
   stage('workflow_planning','正在规划会话题目');
   // Host wrap-up needs no model; missing dependency fails only if a query is actually required.
   const plan=deps.planForRole?.(context.roleId)??(async()=>{throw new AgentStateError('DEPENDENCY_UNAVAILABLE');});
-  const result=await planInterviewQuestion(snapshot,op.command,{...timing,plan});check();return result;
+  const deliver=deps.deliverForRole?.(context.roleId);
+  const result=await planInterviewQuestion(snapshot,op.command,{...timing,plan,...(deliver?{deliver,onPresent:()=>stage('presenting','正在准备会话承接语')}:{} )});check();return result;
  }
  if(op.action==='answer'){
   stage('workflow_evaluating','正在评估会话回答');
-  const result=await submitInterviewAnswer(snapshot,op.command,{...timing,evaluate:deps.evaluateForRole(context.roleId)});check();return result;
+  const result=await submitInterviewAnswer(snapshot,op.command,{...timing,evaluate:deps.evaluateForRole(context.roleId),...(deps.onDiagnostic?{onDiagnostic:deps.onDiagnostic}:{})});check();return result;
  }
  stage('workflow_closing','正在生成一致收尾候选');
  const result=await finishInterviewWorkflow(snapshot,op.command,timing);check();return result;

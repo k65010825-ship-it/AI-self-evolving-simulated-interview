@@ -1,0 +1,18 @@
+{
+  "authorization": { "enabled": false, "operatorApproved": false, "expiresAt": 0, "maxRuns": 2 },
+  "planning": "pi-knowledge",
+  "outputRepair": "none",
+  "evidenceGrounding": "model-offsets",
+  "questionDelivery": "canonical",
+  "recovery": { "httpMaxAttempts": 1, "maxModelRepairs": 0, "baseDelayMs": 250, "maxDelayMs": 3000 },
+  "profile": {
+    "profileId": "qianwen-smoke", "version": "2026-11-04", "mode": "live-service", "providerId": "qianwen",
+    "modelId": "qwen3.8-max", "apiFamily": "openai-completions",
+    "endpoint": "https://maas.qianwenaiapi.com/compatible-mode/v1",
+    "credentialSource": { "kind": "env-reference-only", "name": "INTERVIEW_QIANWEN_API_KEY" },
+    "limits": { "maxCalls": 3, "maxConcurrent": 1, "maxInputTokens": 12000, "maxOutputTokens": 1500,
+      "maxTotalTokens": 40500, "maxCostMicros": 1000000, "maxInputCharacters": 40000, "maxOutputCharacters": 16000, "timeoutMs": 60000 },
+    "pricing": { "id": "qianwen-host-declared", "version": "2026-11-04-console-recheck-required", "currency": "CNY", "provenance": "host-declared-unverified",
+      "rates": { "inputMicrosPerMillionTokens": 12000000, "outputMicrosPerMillionTokens": 36000000 } }
+  }
+}

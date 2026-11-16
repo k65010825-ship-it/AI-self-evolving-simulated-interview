@@ -1,0 +1,15 @@
+{
+  "id": "verification-alias-revision-1",
+  "origin": "assistant-authored-draft",
+  "scope": "literal-alias-additions-only",
+  "baselineArtifactDigest": "44436aa2411739b44c59bc6512feb9d6feb4b74f9b4e7827eab65dd45c6b572c",
+  "candidateArtifactDigest": "d90fc3217e7226f37a0a83746aae3b9d20ac36c02ce5ba69a3483520bbdb1a61",
+  "frozenCasesDigest": "5acf93e5fd8d3d15894f2cad307b60a11f78fcdf5a31c6b69f5ef3b2b8e4ea9a",
+  "supplementalCasesDigest": "569dfeabd61834c14bd92b4a54a75671889985fa29f915e586c6412389b84b94",
+  "labelCaveats": [
+    {
+      "caseId": "web-project-rendering-risk-1",
+      "reason": "绘制用时可能指浏览器绘制而非React渲染。原AI标签保留但待独立复核；不追加此观测别名，另用明确渲染用时补充样例。"
+    }
+  ]
+}

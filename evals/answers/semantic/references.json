@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "citation-support-draft-v1",
+  "origin": "assistant-authored-synthetic",
+  "reviewStatus": "draft",
+  "baseDatasetDigest": "de4b2e84f9188777cfa474c2a6f45f21fa35dbf369666086cf0e91511bd4f5cd",
+  "split": "development",
+  "claims": [
+    {
+      "id": "java-backend-complete-full",
+      "caseId": "java-technical-atomic-counter-complete",
+      "caseDigest": "bd02a908f03ea2e25635dc72a635b4c8362dfc40ddb8521f52ab622ec71df288",
+      "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 144
+        }
+      ],
+      "reference": {
+        "verdict": "supported",
+        "rationale": "草案：全文引文包含该正确性标准最高锚点的核心边界，提出支持；仍需独立人工核对。"
+      }
+    },
+    {
+      "id": "java-backend-misconception-full",
+      "caseId": "java-technical-atomic-counter-misconception",
+      "caseDigest": "703b5bb2f9b69f6793630220bfc537a824343dbe0af61ca8132698f6d74ca641",
+      "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 66
+        }
+      ],
+      "reference": {
+        "verdict": "contradicted",
+        "rationale": "草案：引文明确表达与正确性标准相反的技术断言，不能支持4分。"
+      }
+    },
+    {
+      "id": "java-backend-insufficient-full",
+      "caseId": "java-technical-atomic-counter-insufficient",
+      "caseDigest": "f321541e3422e31a4d0b9d1a1b78fc487c42e4ef38040d7d767f07d4a5d08f04",
+      "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 51
+        }
+      ],
+      "reference": {
+        "verdict": "insufficient",
+        "rationale": "草案：引文只声明不掌握，没有支持4分所需的技术解释；未解释不等于已经断言相反事实。"
+      }
+    },
+    {
+      "id": "java-backend-complete-wrong-citation",
+      "caseId": "java-technical-atomic-counter-complete",
+      "caseDigest": "bd02a908f03ea2e25635dc72a635b4c8362dfc40ddb8521f52ab622ec71df288",
+      "rubricDigest": "d69dc9c37c9b7804bc8a3c39111311cedce012b6522935ccf7017f41ad6949d2",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 98,
+          "end": 123
+        }
+      ],
+      "reference": {
+        "verdict": "insufficient",
+        "rationale": "草案：回答其他句子解释了核心边界，但当前只引验证步骤，未引用最高锚点所需边界；不能用未引用句子补足当前证据。"
+      }
+    },
+    {
+      "id": "web-frontend-complete-full",
+      "caseId": "web-technical-microtask-order-complete",
+      "caseDigest": "88fbadd0922ba7958e492da8f922274f8edff2b6ebb6f541ae463711ce5e6a3f",
+      "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 143
+        }
+      ],
+      "reference": {
+        "verdict": "supported",
+        "rationale": "草案：全文引文包含该正确性标准最高锚点的核心边界，提出支持；仍需独立人工核对。"
+      }
+    },
+    {
+      "id": "web-frontend-misconception-full",
+      "caseId": "web-technical-microtask-order-misconception",
+      "caseDigest": "d769fc3ee4384077d28391770ee0b579cb7201e28083cfda31181788c37bf993",
+      "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 81
+        }
+      ],
+      "reference": {
+        "verdict": "contradicted",
+        "rationale": "草案：引文明确表达与正确性标准相反的技术断言，不能支持4分。"
+      }
+    },
+    {
+      "id": "web-frontend-insufficient-full",
+      "caseId": "web-technical-microtask-order-insufficient",
+      "caseDigest": "6f749b8b2938b7eac6e5324886db3d4dbab306ee45d28b0defb90d5ad45dd660",
+      "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 0,
+          "end": 39
+        }
+      ],
+      "reference": {
+        "verdict": "insufficient",
+        "rationale": "草案：引文只声明不掌握，没有支持4分所需的技术解释；未解释不等于已经断言相反事实。"
+      }
+    },
+    {
+      "id": "web-frontend-complete-wrong-citation",
+      "caseId": "web-technical-microtask-order-complete",
+      "caseDigest": "88fbadd0922ba7958e492da8f922274f8edff2b6ebb6f541ae463711ce5e6a3f",
+      "rubricDigest": "6de9464b2c33783f8cc28e645a726e3121e9c156e50ed60e9c7ef9fc50c7d688",
+      "criterionId": "primary",
+      "claimedScore": 4,
+      "quotes": [
+        {
+          "start": 93,
+          "end": 122
+        }
+      ],
+      "reference": {
+        "verdict": "insufficient",
+        "rationale": "草案：回答其他句子解释了核心边界，但当前只引验证步骤，未引用最高锚点所需边界；不能用未引用句子补足当前证据。"
+      }
+    }
+  ]
+}

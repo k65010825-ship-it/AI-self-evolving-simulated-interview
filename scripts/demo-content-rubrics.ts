@@ -45,6 +45,8 @@ export async function runContentRubricsDemo(roleId:RoleId='java-backend'){
   scope:report.scope,questionTypes:report.assessments.map(a=>a.questionType),
   scopes:report.assessments.map(a=>a.evaluation.scope),scores:report.assessments.map(a=>a.evaluation.normalizedScore),
   criteria:report.assessments.map(a=>a.rubric.criteria.map(c=>({id:c.id,dimension:c.dimension,weight:c.weight}))),
+  feedbackSummary:report.assessments.map(a=>({answerId:a.answerId,criterionCards:a.criterionFeedback?.length??0,
+   scoredGaps:a.criterionFeedback?.filter(c=>c.status==='scored_gap').length??0,semanticSupport:'not_verified'})),
   report,reportInput:{state,generatedAt:report.generatedAt,policyVersion:policy.id,
     skillLabels:{'project-design':'项目论证','collaboration':'协作叙述'},turns}};
 }

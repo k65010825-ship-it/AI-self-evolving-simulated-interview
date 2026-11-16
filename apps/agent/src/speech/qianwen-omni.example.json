@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "enabled": false,
+  "providerId": "qianwen",
+  "modelId": "qwen3.8-omni-flash",
+  "endpoint": "https://cn-beijing.maas.qianwenaiapi.com/compatible-mode/v1",
+  "credentialEnv": "INTERVIEW_BAILIAN_ASR_API_KEY",
+  "timeoutMs": 30000,
+  "maxOutputTokens": 512,
+  "authorization": { "allowLive": false, "expiresAt": 0 },
+  "budget": { "maxCalls": 1, "maxTotalAudioMs": 10000, "maxCostMicros": 100000, "reserveCostMicrosPerCall": 100000 }
+}

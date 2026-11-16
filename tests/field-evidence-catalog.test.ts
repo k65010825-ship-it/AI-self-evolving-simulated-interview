@@ -1,0 +1,5 @@
+import { test, expect } from 'bun:test';
+import { createCatalogReviewBundle, fieldEvidenceReadiness } from '../evals/field-evidence/catalog.ts';
+import { loadKnowledgeWorkspace } from '../apps/agent/src/knowledge/catalog.ts';
+test('catalog export binds every real two-role item and source version without approving drafts',()=>{const w=loadKnowledgeWorkspace(),b=createCatalogReviewBundle();expect(b.privateManifest.tasks.length).toBe(w.items.length);expect(new Set(b.privateManifest.tasks.map(t=>t.item.roleId)).size).toBe(2);for(const t of b.privateManifest.tasks){expect(t.item.sourceReferences.length).toBeGreaterThan(0);expect(t.item.payload.authoringStatus).toBe('draft');}expect(w.reviews.length).toBe(loadKnowledgeWorkspace().reviews.length);});
+test('UI readiness returns actionable missing human-review/cohort requirements, never ready from catalog alone',()=>{const r=fieldEvidenceReadiness();expect(r.status).toBe('not_ready');expect(r.knowledge.pendingTasks).toBe(loadKnowledgeWorkspace().items.length);expect(r.actions.length).toBeGreaterThan(0);expect(r.qualityClaimEligible).toBe(false);expect(r.cohort.totalPairs).toBe(0);});

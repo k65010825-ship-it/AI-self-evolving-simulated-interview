@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { KnowledgeItemSchema, RoleIdSchema } from './tools.ts';
 import {consistentSkillScopes}from'./rubric-dimensions.ts';
+import {HistoryCompatibilityPolicySchema}from'./history-compatibility.ts';
 const id = z.string().trim().min(1).max(100);
 export const SkillSpecSchema = z.object({ skillId: id, relevance: z.number().min(0).max(1) }).strict();
 const skills = z.array(SkillSpecSchema).min(1).max(30).refine((items) => new Set(items.map((item) => item.skillId)).size === items.length,
   'Skill identifiers must be unique.');
 export const CreateInterviewStateSchema = z.object({
   sessionId: id, roleId: RoleIdSchema, durationMinutes: z.number().int().min(15).max(25), skills,
+  historyCompatibility:HistoryCompatibilityPolicySchema.optional(),
 }).strict();
 export const SkillObservationSchema = z.object({
   observationId: id, roleId: RoleIdSchema, skillId: id, questionId: id,
@@ -21,9 +23,11 @@ export const InterviewStateSchema = z.object({
   startedAt: z.number().int().nonnegative(), deadlineAt: z.number().int().nonnegative(), skills,
   observations: z.array(SkillObservationSchema).max(200), currentSkillId: id.nullable(),
   priorEvidence: z.array(HistoricalEvidenceSchema).max(4000).default([]),
+  historyCompatibility:HistoryCompatibilityPolicySchema.optional(),
   followupDepth: z.number().int().nonnegative(), difficulty: KnowledgeItemSchema.shape.difficulty,
 }).strict().superRefine((state, ctx) => {
   const ids = new Set(state.skills.map((skill) => skill.skillId));
+  if(state.historyCompatibility?.allowed.some(a=>!ids.has(a.skillId)))ctx.addIssue({code:'custom',message:'History rubric skill is not configured.'});
   let invalidHistory = false;
   const questionSkills = new Map<string, string>();
   state.priorEvidence.forEach((item,index) => {

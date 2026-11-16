@@ -14,7 +14,7 @@ export function benchmarkRubric(item: KnowledgeItem) {
   return RubricSchema.parse({ id: item.id, version: item.version, roleId: item.roleId,
     scope: item.questionType === 'behavioral' ? 'behavioral-content' : 'technical-content',
     criteria: item.rubric.map(c => ({ id: c.criterionId, maxScore: c.maxScore, weight: c.weight, required: false,
-      description: c.description, dimension: c.dimension, evidenceRule: c.evidenceRule, anchors: c.anchors })) });
+      description: c.description, dimension: c.dimension, evidenceRule: c.evidenceRule, anchors: c.anchors,...(c.verificationGoal?{verificationGoal:c.verificationGoal}:{}) })) });
 }
 function invalid(): never { throw new Error('ANSWER_DATASET_INVALID'); }
 export function compileAnswerDataset(raw: unknown, knowledge: KnowledgeWorkspace) {

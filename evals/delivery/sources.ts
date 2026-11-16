@@ -13,7 +13,7 @@ export async function collectDeliverySources(root: string): Promise<DeliveryRepo
     else if (stat.isFile()) {
       const name = rel.split(sep).join('/');
       // Fixed source formats only; never inspect nested .env files, PEMs or key stores.
-      if (!roots.includes(name) && (!/\.(ts|tsx|json|yaml|yml|md|html|css|svg|wav)$/.test(name) || name.split('/').some(part => part.startsWith('.')))) return;
+      if (!roots.includes(name) && (!/\.(ts|tsx|js|mjs|cjs|json|yaml|yml|md|html|css|svg|wav)$/.test(name) || name.split('/').some(part => part.startsWith('.')))) return;
       if (!/^[A-Za-z0-9_./-]+$/.test(name) || stat.size > 16 * 1024 * 1024 || result.length >= 5000) throw new Error('DELIVERY_SOURCE_INVALID');
       result.push({ path: name, sha256: createHash('sha256').update(await readFile(path)).digest('hex') });
     }

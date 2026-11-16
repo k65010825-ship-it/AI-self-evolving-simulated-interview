@@ -1,0 +1,334 @@
+[
+  {
+    "id": "java-valid",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数最多1。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数最多1",
+    "mode": "proposed",
+    "note": "相关假设程序，结构通过不代表充分。",
+    "observation": {
+      "metric": "成功数",
+      "value": "最多1",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-wrong-value",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数最多100。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数最多100",
+    "mode": "proposed",
+    "note": "相关但可能错误的预期，可依据量规评0，不能当缺证据。",
+    "observation": {
+      "metric": "成功数",
+      "value": "最多100",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-label-read",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数标签显示1。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数标签显示1",
+    "mode": "proposed",
+    "note": "标签中的数值读数不是标签样式。",
+    "observation": {
+      "metric": "成功数",
+      "value": "1",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-style-nonnumeric",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数标签颜色变蓝。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数标签颜色变蓝",
+    "mode": "proposed",
+    "note": "只改变指标标题样式。",
+    "observation": {
+      "metric": "成功数",
+      "value": "变蓝",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-style-numeric",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数标签字号增加2。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数标签字号增加2",
+    "mode": "proposed",
+    "note": "样式也有数字，不能冒充观测值。",
+    "observation": {
+      "metric": "成功数",
+      "value": "2",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-wrong-condition",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值10下并发申请容量计数器，预期成功数最多1。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数最多1",
+    "mode": "proposed",
+    "note": "明确条件不符合宿主场景。",
+    "observation": {
+      "metric": "成功数",
+      "value": "最多1",
+      "condition": "初值10"
+    }
+  },
+  {
+    "id": "java-cross-sentence",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数。其他读数2。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数。其他读数2",
+    "mode": "proposed",
+    "note": "指标与值来自不同句，不能机械拼接。",
+    "observation": {
+      "metric": "成功数",
+      "value": "2",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "java-missing-detail",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设初值99下并发申请容量计数器，预期成功数最多1。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数最多1",
+    "mode": "proposed",
+    "note": "回答有内容但未注入observation，模拟提取缺失；不是学生能力标签。"
+  },
+  {
+    "id": "java-condition-association-risk",
+    "itemId": "java-project-capacity",
+    "roleId": "java-backend",
+    "lane": "known-risk",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "初值99只是旧实验条件。另在未说明条件下并发申请容量计数器，预期成功数最多1。",
+    "action": "并发申请",
+    "target": "容量计数器",
+    "expectation": "预期成功数最多1",
+    "mode": "proposed",
+    "note": "已知风险：同一证据出现正确条件，但属于旧实验而非该预期；局部词法仍放行，需独立语义审核。",
+    "observation": {
+      "metric": "成功数",
+      "value": "最多1",
+      "condition": "初值99"
+    }
+  },
+  {
+    "id": "web-valid",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration下降20%。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration下降20%",
+    "mode": "proposed",
+    "note": "相关假设程序，结构通过不代表充分。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "下降20%",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-wrong-value",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration升高20%。我把这个耗时升高解释为更快。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration升高20%",
+    "mode": "proposed",
+    "note": "相关观测可以绑定；只有把耗时升高解释为更快的明确错误才可依量规评0，单纯性能变差不是答错。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "升高20%",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-label-read",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": true,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration面板读数10ms。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration面板读数10ms",
+    "mode": "proposed",
+    "note": "标签中的数值读数不是标签样式。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "10ms",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-style-nonnumeric",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration标题字号变大。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration标题字号变大",
+    "mode": "proposed",
+    "note": "只改变指标标题样式。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "变大",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-style-numeric",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration标题字体增加20%。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration标题字体增加20%",
+    "mode": "proposed",
+    "note": "样式也有数字，不能冒充观测值。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "增加20%",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-wrong-condition",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设不同交互下对照测量列表组件，预期actualDuration下降20%。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration下降20%",
+    "mode": "proposed",
+    "note": "明确条件不符合宿主场景。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "下降20%",
+      "condition": "不同交互"
+    }
+  },
+  {
+    "id": "web-cross-sentence",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration。其他读数10ms。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration。其他读数10ms",
+    "mode": "proposed",
+    "note": "指标与值来自不同句，不能机械拼接。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "10ms",
+      "condition": "相同交互"
+    }
+  },
+  {
+    "id": "web-missing-detail",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "regression",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "假设相同交互下对照测量列表组件，预期actualDuration下降20%。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration下降20%",
+    "mode": "proposed",
+    "note": "回答有内容但未注入observation，模拟提取缺失；不是学生能力标签。"
+  },
+  {
+    "id": "web-condition-association-risk",
+    "itemId": "web-project-rendering",
+    "roleId": "web-frontend",
+    "lane": "known-risk",
+    "expectedBound": false,
+    "labelOrigin": "assistant-authored-synthetic-development",
+    "text": "相同交互只是旧实验条件。另在未说明条件下对照测量列表组件，预期actualDuration下降20%。",
+    "action": "对照测量",
+    "target": "列表组件",
+    "expectation": "预期actualDuration下降20%",
+    "mode": "proposed",
+    "note": "已知风险：同一证据出现正确条件，但属于旧实验而非该预期；局部词法仍放行，需独立语义审核。",
+    "observation": {
+      "metric": "actualDuration",
+      "value": "下降20%",
+      "condition": "相同交互"
+    }
+  }
+]

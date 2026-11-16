@@ -5,10 +5,15 @@ import type{PlannerInput,PlannerResult}from'../../../../packages/contracts/src/k
 import{PlannerResultSchema}from'../../../../packages/contracts/src/knowledge-planner.ts';
 import{AgentStateError,decideNextAction}from'../planning/interview-state.ts';
 import{createMemory,startSessionFromMemory,appendMemory}from'../memory/session-memory.ts';
-import{evaluateTurn,type EvaluationDependencies}from'./evaluate-turn.ts';
+import{type EvaluationDependencies}from'./evaluate-turn.ts';
+import{evaluateTurnWithClarification,validateClarificationReceipt,validateClarificationContinuation}from'./clarify-turn.ts';
+import{ClarificationPolicySchema}from'../../../../packages/contracts/src/clarification.ts';
+import{validateSpeechForTurn}from'../speech/validate-answer.ts';
 import{selectNextQuestion}from'../planning/select-question.ts';
 import{buildInterviewReport}from'../reporting/build-report.ts';
 import{reflectSession}from'../reflection/reflect-session.ts';
+import{deliverQuestion}from'../questioning/deliver-question.ts';
+import type{BridgeGenerator}from'../../../../packages/contracts/src/question-delivery.ts';
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
 function retrieved(p:PlannerResult){
  const items=new Map<string,NonNullable<PlannerResult['receipts'][number]['data']>['items'][number]>();
@@ -21,6 +26,7 @@ function snapshot(raw:unknown){
  let text:string;try{text=JSON.stringify(raw);}catch{throw new AgentStateError('VALIDATION_ERROR');}
  if(typeof text!=='string')throw new AgentStateError('VALIDATION_ERROR');
  if(text.length>8*1024*1024)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');const s=parse(WorkflowSchema,raw);
+ validateAttempts(s);
  if(s.current){
   const verified=selectNextQuestion({state:s.state,now:s.currentIssuedAt!,knowledge:retrieved(s.lastPlan!),
    askedQuestionIds:s.askedQuestionIds.filter(id=>id!==s.current!.question.id),planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
@@ -28,6 +34,37 @@ function snapshot(raw:unknown){
  }
  return s;
 }
+function validateAttempts(s:InterviewWorkflow){
+ const attempts=s.clarificationAttempts??[],seenAnswers=new Set<string>(),seenRuns=new Set<string>();
+ for(const [index,a]of attempts.entries()){
+  const i=a.input,r=a.resolution,issued=s.issuedQuestions.find(q=>q.questionId===i.question.id),content=issued?.content;
+  validateClarificationReceipt(i,r);
+  if(i.speech)validateSpeechForTurn(i.speech,{userId:s.identity.userId,roleId:s.identity.roleId,answer:i.answer,sessionStartedAt:s.state.startedAt,at:r.issuedAt});
+  const prior=attempts.slice(0,index).filter(p=>p.input.question.id===i.question.id).at(-1);
+  const preceding=s.turns.filter(t=>s.askedQuestionIds.indexOf(t.input.question.id)<s.askedQuestionIds.indexOf(i.question.id));
+  const expected=preceding.at(-1)?.proposal.nextState??{...s.state,version:0,observations:[],currentSkillId:null,followupDepth:0,difficulty:2};
+  if(!issued||r.issuedAt<issued.issuedAt||!same(i.state,expected)||!same(i.planningPolicy,s.policy)||i.goal!==s.goal||i.context.userId!==s.identity.userId
+   ||i.context.roleId!==s.identity.roleId||!same(r.policy,ClarificationPolicySchema.parse({}))||seenAnswers.has(i.answer.id)||seenRuns.has(i.context.runId)
+   ||content&&(!same(i.question,content.question)||!same(i.rubric,content.rubric)||i.presentedText!==content.text)
+   ||!content||i.expectedVersion!==content.stateVersion||i.knowledge.length
+   ||index>0&&(s.askedQuestionIds.indexOf(attempts[index-1]!.input.question.id)>s.askedQuestionIds.indexOf(i.question.id)
+    ||attempts[index-1]!.resolution.issuedAt>r.issuedAt))throw new AgentStateError('VALIDATION_ERROR');
+  if(prior){try{validateClarificationContinuation(i,prior.resolution,r.issuedAt);}catch{throw new AgentStateError('VALIDATION_ERROR');}}
+  if(r.attempt!==(prior?.resolution.attempt??0)+(r.status==='needs_clarification'?1:0)
+   ||r.reason!==(r.remainingSeconds<r.policy.minRemainingSeconds?'time_budget':(prior?.resolution.attempt??0)>=r.policy.maxClarifications?'clarification_limit':'evidence_insufficient'))throw new AgentStateError('VALIDATION_ERROR');
+  seenAnswers.add(i.answer.id);seenRuns.add(i.context.runId);
+ }
+ for(const q of s.issuedQuestions){const latest=attempts.filter(a=>a.input.question.id===q.questionId).at(-1),turn=s.turns.find(t=>t.input.question.id===q.questionId);
+  const next=s.issuedQuestions[s.issuedQuestions.indexOf(q)+1];
+  if(next&&!turn&&latest?.resolution.status!=='abstained'||next&&latest&&latest.resolution.issuedAt>next.issuedAt)throw new AgentStateError('VALIDATION_ERROR');
+  if(!latest)continue;
+  if(turn){try{validateClarificationContinuation(turn.input,latest.resolution,turn.proposal.nextState.observations.at(-1)!.observedAt);}catch{throw new AgentStateError('VALIDATION_ERROR');}}
+  else if(latest.resolution.status==='needs_clarification'&&s.phase!=='completed'&&s.current?.question.id!==q.questionId)throw new AgentStateError('VALIDATION_ERROR');
+  if(latest.resolution.status==='abstained'&&(turn||s.current?.question.id===q.questionId))throw new AgentStateError('VALIDATION_ERROR');
+ }
+}
+function unscored(s:InterviewWorkflow){return(s.clarificationAttempts??[]).filter((a,index,all)=>
+ !s.turns.some(t=>t.input.question.id===a.input.question.id)&&!all.slice(index+1).some(next=>next.input.question.id===a.input.question.id));}
 function authorize(s:InterviewWorkflow,c:z.infer<typeof FinishWorkflowSchema>|z.infer<typeof PlanQuestionCommandSchema>|z.infer<typeof SubmitWorkflowAnswerSchema>){
  if(c.identity.userId!==s.identity.userId)throw new AgentStateError('FORBIDDEN');
  if(c.identity.roleId!==s.identity.roleId)throw new AgentStateError('ROLE_FORBIDDEN');
@@ -59,7 +96,7 @@ export function createInterviewWorkflow(raw:unknown):InterviewWorkflow{
  return snapshot({kind:'uncommitted-interview-session',revision:0,identity:c.identity,state,policy:c.policy,goal:c.goal,skillLabels:c.skillLabels,
   baseMemory:memory,allowDraftKnowledge:c.allowDraftKnowledge,phase:'ready_to_plan',turns:[],askedQuestionIds:[],issuedQuestions:[],current:null,currentIssuedAt:null,lastPlan:null,pendingReason:null,closeout:null});
 }
-export async function planInterviewQuestion(raw:unknown,command:unknown,deps:Timing&{plan:(input:PlannerInput,signal:AbortSignal)=>Promise<PlannerResult>}):Promise<InterviewWorkflow>{
+export async function planInterviewQuestion(raw:unknown,command:unknown,deps:Timing&{plan:(input:PlannerInput,signal:AbortSignal)=>Promise<PlannerResult>;deliver?:BridgeGenerator;onPresent?:()=>void}):Promise<InterviewWorkflow>{
  const s=snapshot(raw),c=parse(PlanQuestionCommandSchema,command);authorize(s,c);
  if(s.phase!=='ready_to_plan')throw new AgentStateError('VERSION_CONFLICT');
  return bounded(async(signal,check)=>{
@@ -72,22 +109,40 @@ export async function planInterviewQuestion(raw:unknown,command:unknown,deps:Tim
   if(p.selection.status!==verified.status||(p.selection.status==='selected'&&(verified.status!=='selected'||
    !same(p.selection.question,verified.question)||!same(p.selection.rubric,verified.rubric)||!same(p.selection.source,verified.source))))throw new AgentStateError('MODEL_OUTPUT_INVALID');
   if(p.selection.status!=='finished'&&!p.receipts.length)throw new AgentStateError('MODEL_OUTPUT_INVALID');
-  const selected=verified.status==='selected'?verified:null;
-  return snapshot({...s,revision:s.revision+1,lastPlan:{...p,selection:verified},current:selected,currentIssuedAt:selected?done:null,
-   issuedQuestions:selected?[...s.issuedQuestions,{questionId:selected.question.id,issuedAt:done}]:s.issuedQuestions,
+  let delivery;const previous=s.turns.at(-1)?.input.answer;
+  if(verified.status==='selected'&&deps.deliver&&previous){deps.onPresent?.();
+   delivery=await deliverQuestion({context:c.context,state:s.state,selection:verified,previousAnswer:previous,wrapUpSeconds:s.policy.parameters.wrapUpSeconds},
+    {generate:deps.deliver,signal,now:deps.now??Date.now});check();
+  }
+  const issuedAt=check(),fresh=selectNextQuestion({state:s.state,now:issuedAt,knowledge:retrieved(p),askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
+  if(fresh.status==='selected'&&(verified.status!=='selected'||!same(fresh.question,verified.question)||!same(fresh.rubric,verified.rubric)||!same(fresh.source,verified.source)))throw new AgentStateError('MODEL_OUTPUT_INVALID');
+  const selected=fresh.status==='selected'?fresh:null;
+  return snapshot({...s,revision:s.revision+1,lastPlan:{...p,selection:fresh},current:selected,currentIssuedAt:selected?issuedAt:null,
+   issuedQuestions:selected?[...s.issuedQuestions,{questionId:selected.question.id,issuedAt,content:{question:selected.question,rubric:selected.rubric,source:selected.source,
+    text:delivery?.text??selected.question.text,stateVersion:s.state.version,policyId:s.policy.id,planRunId:c.context.runId,planAttemptId:c.context.attemptId,...(delivery?{delivery}:{})}}]:s.issuedQuestions,
    askedQuestionIds:selected?[...s.askedQuestionIds,selected.question.id]:s.askedQuestionIds,
-   phase:selected?'awaiting_answer':'ready_to_close',pendingReason:selected?null:p.selection.status==='finished'?'plan_finished':'knowledge_gap'});
+   phase:selected?'awaiting_answer':'ready_to_close',pendingReason:selected?null:fresh.status==='finished'?'plan_finished':'knowledge_gap'});
  },deps,c.context.deadlineAt);
 }
-export async function submitInterviewAnswer(raw:unknown,command:unknown,deps:Timing&{evaluate:EvaluationDependencies['evaluate']}):Promise<InterviewWorkflow>{
+export async function submitInterviewAnswer(raw:unknown,command:unknown,deps:Timing&Pick<EvaluationDependencies,'evaluate'|'onDiagnostic'>):Promise<InterviewWorkflow>{
  const s=snapshot(raw),c=parse(SubmitWorkflowAnswerSchema,command);authorize(s,c);
  if(s.phase!=='awaiting_answer'||!s.current)throw new AgentStateError('VERSION_CONFLICT');
  return bounded(async(signal,check)=>{
   if(check()<s.currentIssuedAt!)throw new AgentStateError('VALIDATION_ERROR');
   const input={state:s.state,expectedVersion:s.state.version,observationId:c.observationId,goal:s.goal,context:c.context,
-   question:s.current!.question,answer:c.answer,quality:c.quality,rubric:s.current!.rubric,knowledge:[],planningPolicy:s.policy,...(c.speech?{speech:c.speech}:{})};
-  if(s.turns.some(t=>t.input.answer.id===c.answer.id||t.input.context.runId===c.context.runId))throw new AgentStateError('VERSION_CONFLICT');
-  const proposal=await evaluateTurn(input,{evaluate:deps.evaluate,signal,now:deps.now??Date.now});check();
+   question:s.current!.question,answer:c.answer,quality:c.quality,rubric:s.current!.rubric,knowledge:[],planningPolicy:s.policy,...(c.speech?{speech:c.speech}:{}),
+   ...(s.issuedQuestions.at(-1)?.content?{presentedText:s.issuedQuestions.at(-1)!.content!.text}:{})};
+  if([...s.turns,...(s.clarificationAttempts??[])].some(t=>t.input.answer.id===c.answer.id||t.input.context.runId===c.context.runId
+    ||t.input.observationId===c.observationId&&t.input.question.id!==input.question.id))throw new AgentStateError('VERSION_CONFLICT');
+  const previous=s.clarificationAttempts?.filter(a=>a.input.question.id===input.question.id).at(-1)?.resolution;
+  const resolution=await evaluateTurnWithClarification(input,{evaluate:deps.evaluate,signal,now:deps.now??Date.now,...(deps.onDiagnostic?{onDiagnostic:deps.onDiagnostic}:{})},previous?{previous}:{});const at=check();
+  if(resolution.status!=='scored'){
+   const finished=resolution.status==='abstained'&&decideNextAction(s.state,at,s.policy.parameters).action==='finish';
+   return snapshot({...s,revision:s.revision+1,clarificationAttempts:[...(s.clarificationAttempts??[]),{input,resolution,evidenceMode:c.evidenceMode}],
+    current:resolution.status==='needs_clarification'?s.current:null,currentIssuedAt:resolution.status==='needs_clarification'?s.currentIssuedAt:null,
+    phase:resolution.status==='needs_clarification'?'awaiting_answer':finished?'ready_to_close':'ready_to_plan',pendingReason:finished?'plan_finished':null});
+  }
+  const proposal=resolution.proposal;
   const finished=proposal.nextAction.action==='finish';
   return snapshot({...s,revision:s.revision+1,state:proposal.nextState,turns:[...s.turns,{input,proposal,evidenceMode:c.evidenceMode}],
    current:null,currentIssuedAt:null,phase:finished?'ready_to_close':'ready_to_plan',pendingReason:finished?'plan_finished':null});
@@ -96,7 +151,7 @@ export async function submitInterviewAnswer(raw:unknown,command:unknown,deps:Tim
 async function closeCandidates(s:InterviewWorkflow,c:z.infer<typeof FinishWorkflowSchema>,at:number,check:()=>number){
  const reason=c.mode==='user_stop'?'user_stop':s.pendingReason;
  if(!reason)throw new AgentStateError('VERSION_CONFLICT');
- const reportInput={state:s.state,generatedAt:at,policyVersion:s.policy.id,skillLabels:s.skillLabels,turns:s.turns};
+ const gaps=unscored(s),reportInput={state:s.state,generatedAt:at,policyVersion:s.policy.id,skillLabels:s.skillLabels,turns:s.turns,...(gaps.length?{unscoredTurns:gaps}:{})};
  const report=await buildInterviewReport(reportInput);check();
  const memoryCandidate=s.turns.length?await appendMemory(s.baseMemory,{...s.identity,expectedVersion:s.baseMemory.version,sessionStatus:'completed',now:at,reportInput}):s.baseMemory;check();
  const reflection=await reflectSession({reportInput,baselinePolicy:s.policy,generatedAt:at,sourceGroupId:c.sourceGroupId});check();
@@ -119,8 +174,8 @@ export async function restoreInterviewWorkflow(json:string,identity:unknown):Pro
  if(typeof json!=='string'||json.length>8*1024*1024)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');
  let raw:unknown;try{raw=JSON.parse(json);}catch{throw new AgentStateError('VALIDATION_ERROR');}
  const s=snapshot(raw);authorize(s,parse(FinishWorkflowSchema,{identity,expectedRevision:s.revision,sourceGroupId:'restore',mode:'automatic'}));
- if(s.turns.length)await buildInterviewReport({state:s.state,generatedAt:s.closeout?.generatedAt??Math.max(s.state.startedAt,s.state.observations.at(-1)!.observedAt),
-  policyVersion:s.policy.id,skillLabels:s.skillLabels,turns:s.turns});
+ if(s.turns.length||s.clarificationAttempts?.length)await buildInterviewReport({state:s.state,generatedAt:s.closeout?.generatedAt??Math.max(s.state.startedAt,s.state.observations.at(-1)?.observedAt??0,...(s.clarificationAttempts??[]).map(a=>a.resolution.issuedAt)),
+  policyVersion:s.policy.id,skillLabels:s.skillLabels,turns:s.turns,...(unscored(s).length?{unscoredTurns:unscored(s)}:{})});
  if(s.phase==='completed')return finishInterviewWorkflow(s,{identity:s.identity,expectedRevision:s.revision,mode:s.closeout!.requestMode,sourceGroupId:s.closeout!.sourceGroupId});
  return s;
 }

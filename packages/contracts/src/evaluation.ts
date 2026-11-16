@@ -12,8 +12,9 @@ export const TurnInputSchema = z.object({ state: InterviewStateSchema, expectedV
   answer: z.object({ id, text: z.string().min(1).max(10000) }).strict(),
   quality: z.number().positive().max(1), rubric: RubricSchema, knowledge: z.array(KnowledgeItemSchema).max(100),
   planningPolicy:PlanningPolicyVersionSchema.optional(),
-  speech:SpeechAnswerSchema.optional(),
-}).strict();
+  speech:SpeechAnswerSchema.optional(),presentedText:z.string().min(1).max(4200).optional(),
+}).strict().superRefine((i,ctx)=>{if(i.presentedText!==undefined&&i.presentedText!==i.question.text&&!i.presentedText.endsWith('\n'+i.question.text))
+ ctx.addIssue({code:'custom',message:'Presented text must retain the canonical question.'});});
 export const NextActionSchema = z.object({ action: z.enum(['deepen', 'switch_skill', 'adjust_difficulty', 'finish']), skillId: id.nullable(),
   difficulty: KnowledgeItemSchema.shape.difficulty, remainingSeconds: z.number().int().nonnegative(), reason: z.string().min(1) }).strict();
 /** The model proposes excerpts; the host must verify them against the actual answer. */

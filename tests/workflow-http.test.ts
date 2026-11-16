@@ -84,7 +84,13 @@ test('every remote operation revalidates pending receipt binding and create time
  planned.current!.question.text='篡改的题目';planned.lastPlan!.selection=planned.current!;
  const runtime=createRunManager({evaluateForRole:()=>async()=>({})}),app=createAgentApp({runtime,internalToken:token});
  const restore={...body,job:{type:'workflow',operation:{action:'restore',snapshot:planned}}};
- await app.request('/internal/v1/runs',{method:'POST',headers,body:JSON.stringify(restore)});await runtime.wait(body.context.runId);
+ // New content binds the question already at HTTP admission; no run is created.
+ expect((await app.request('/internal/v1/runs',{method:'POST',headers,body:JSON.stringify(restore)})).status).toBe(422);
+ expect(()=>runtime.snapshot(body.context.runId)).toThrow('NOT_FOUND');
+ // Legacy snapshots still need the runtime receipt validation, rather than bypassing it.
+ for(const issued of planned.issuedQuestions)delete issued.content;
+ expect((await app.request('/internal/v1/runs',{method:'POST',headers,body:JSON.stringify(restore)})).status).toBe(202);
+ await runtime.wait(body.context.runId);
  expect(runtime.snapshot(body.context.runId).error?.code).toBe('VALIDATION_ERROR');runtime.dispose();
  const future=request();future.job.operation.config.now=Date.now()+100000;
  const clock=createRunManager({evaluateForRole:()=>async()=>({})});clock.start(future);await clock.wait(future.context.runId);

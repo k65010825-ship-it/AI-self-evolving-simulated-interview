@@ -4,6 +4,7 @@ import { CreateInterviewStateSchema, InterviewStateSchema, SkillObservationSchem
 import type { ErrorCode } from '../../../../packages/contracts/src/tools.ts';
 import { rankSkills } from '../../../../packages/interview-domain/src/planning.ts';
 import {PlanningPolicySchema} from '../../../../packages/contracts/src/policy.ts';
+import {historyEligibility}from'../memory/history-compatibility.ts';
 
 export class AgentStateError extends Error {
   constructor(readonly code: ErrorCode) { super(code); this.name = 'AgentStateError'; }
@@ -24,7 +25,8 @@ export function createInterviewState(input: unknown, now: number): InterviewStat
   if (!Number.isSafeInteger(now) || now < 0) throw new AgentStateError('VALIDATION_ERROR');
   return parse(InterviewStateSchema, { schemaVersion: 1, sessionId: config.sessionId, roleId: config.roleId,
     version: 0, startedAt: now, deadlineAt: now + config.durationMinutes * 60000, skills: config.skills,
-    observations: [], currentSkillId: null, followupDepth: 0, difficulty: 2 });
+    observations: [], currentSkillId: null, followupDepth: 0, difficulty: 2,
+    ...(config.historyCompatibility?{historyCompatibility:config.historyCompatibility}:{}) });
 }
 
 export function recordObservation(rawState: unknown, rawObservation: unknown, expectedVersion: number, now: number): InterviewState {
@@ -55,11 +57,14 @@ export function recordObservation(rawState: unknown, rawObservation: unknown, ex
 /** Estimates are derived from evidence, so clocks/summaries cannot drift from a second stored truth. */
 export function estimateSkills(rawState: unknown, now: number) {
   const state = parse(InterviewStateSchema, rawState); clock(state, now);
+  const history=historyEligibility(state.priorEvidence,state.historyCompatibility),eligible=history.eligibleQuestionIds;
+  const historyQuestions=new Set(state.priorEvidence.map(e=>e.questionId));
   return state.skills.map((skill) => {
     const independent = new Map<string, SkillObservation>();
-    for (const item of [...state.priorEvidence,...state.observations]) if (item.skillId === skill.skillId && !independent.has(item.questionId))
+    for (const item of [...history.anchors.values(),...state.observations]) if (item.skillId === skill.skillId && !independent.has(item.questionId))
       independent.set(item.questionId, item);
-    const evidence = [...independent.values()];
+    // First establish question independence from the full history, then gate its original anchor.
+    const evidence = [...independent.values()].filter(e=>!historyQuestions.has(e.questionId)||eligible.has(e.questionId));
     if (!evidence.length) return { ...skill, mastery: null, confidence: 0, covered: false, independentQuestions: 0 };
     const quality = evidence.reduce((sum, item) => sum + item.quality, 0);
     const mastery = evidence.reduce((sum, item) => sum + item.score * item.quality, 0) / quality;

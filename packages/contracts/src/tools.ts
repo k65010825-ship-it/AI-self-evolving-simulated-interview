@@ -15,7 +15,7 @@ export const KnowledgeItemSchema = z.object({
   keyPoints: z.array(z.string().min(1)).min(1),
   rubric: z.array(z.object({ criterionId: z.string(), description: z.string(),
     maxScore: z.number().positive(), weight: z.number().positive(),...CriterionMetadata }).strict()
-    .refine(c=>validAnchors(c.maxScore,c.anchors),'Anchors must be ordered from zero to maxScore.')).min(1),
+    .refine(c=>(!c.verificationGoal||c.dimension==='verification')&&validAnchors(c.maxScore,c.anchors),'Anchors must be ordered from zero to maxScore.')).min(1),
   sourceIds: z.array(z.string().min(1)).min(1), version: z.string().min(1),
   reviewStatus: z.enum(['draft', 'reviewed']),
 }).strict();

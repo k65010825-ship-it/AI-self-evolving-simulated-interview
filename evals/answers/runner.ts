@@ -38,8 +38,8 @@ export async function runAnswerBenchmark(rawBundle: unknown, knowledge: Knowledg
       const now = Date.now(), state = createInterviewState({ sessionId: 'benchmark-session', roleId: sample.question.roleId,
         skills: [{ skillId: sample.question.skillId, relevance: 1 }], durationMinutes: 20 }, now);
       // This is the entire inference boundary: no sample IDs, variants, splits, guides or references.
-      const request: EvaluationRequest = { outputSchemaVersion: 1, context: buildInterviewContext({ state, now, goal: '评估当前回答内容',
-        phase: 'scoring', answer: sample.case.answer, knowledge: [] }),
+      const context=buildInterviewContext({state,now,goal:'评估当前回答内容',phase:'scoring',answer:sample.case.answer,knowledge:[]});
+      const request: EvaluationRequest = { outputSchemaVersion: 1, context:{promptVersion:context.promptVersion,systemPrompt:context.systemPrompt,userPrompt:context.userPrompt},
         question: { text: sample.question.text, skillId: sample.question.skillId, questionType: sample.question.questionType, difficulty: sample.question.difficulty },
         rubric: structuredClone(sample.rubric) };
       const stop = new Promise<never>((_resolve, reject) => {

@@ -1,0 +1,18 @@
+{
+  "authorization": { "enabled": false, "operatorApproved": false, "expiresAt": 0, "maxRuns": 2 },
+  "planning": "deterministic",
+  "outputRepair": "none",
+  "evidenceGrounding": "model-offsets",
+  "questionDelivery": "canonical",
+  "recovery": { "httpMaxAttempts": 1, "maxModelRepairs": 0, "baseDelayMs": 250, "maxDelayMs": 3000 },
+  "profile": {
+    "profileId": "bailian-starter", "version": "2026-11-04", "mode": "live-service", "providerId": "bailian",
+    "modelId": "qwen3.7-plus-2026-05-26", "apiFamily": "openai-completions",
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "credentialSource": { "kind": "env-reference-only", "name": "INTERVIEW_BAILIAN_API_KEY" },
+    "limits": { "maxCalls": 3, "maxConcurrent": 1, "maxInputTokens": 12000, "maxOutputTokens": 1500,
+      "maxTotalTokens": 40500, "maxCostMicros": 150000, "maxInputCharacters": 40000, "maxOutputCharacters": 16000, "timeoutMs": 20000 },
+    "pricing": { "id": "bailian-host-declared", "version": "verify-before-enabling", "currency": "CNY", "provenance": "host-declared-unverified",
+      "rates": { "inputMicrosPerMillionTokens": 2000000, "outputMicrosPerMillionTokens": 8000000 } }
+  }
+}

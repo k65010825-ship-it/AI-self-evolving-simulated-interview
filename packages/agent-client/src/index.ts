@@ -4,6 +4,7 @@ import{AgentRunRequestSchema,AgentRunSnapshotSchema,AgentRunEventSchema,AgentRun
 import{AgentClientError,clientError,normalize}from'./errors.ts';
 import{RequestScope,readJson,delay}from'./transport.ts';
 import{parseSse}from'./sse.ts';
+import{workflowCommitDigest}from'./commit-validation.ts';
 export{AgentClientError}from'./errors.ts';
 export { createWorkflowCommitTicket, prepareWorkflowCommit, WorkflowCommitError, workflowCommitDigest } from './workflow-commit.ts';
 export type{ClientErrorCode}from'./errors.ts';
@@ -125,12 +126,30 @@ export function createAgentClient(input:{baseUrl:string;internalToken:string;fet
   try{
    const accepted=await scope.race(startRun(request,{signal:scope.signal}));
    const result=await scope.race(waitForRun(accepted.runId,{...checked.data,signal:scope.signal}));
-   const kinds={turn:'uncommitted-turn-result',report:'uncommitted-report-result',workflow:'uncommitted-workflow-result',rsi:'uncommitted-workflow-rsi'}as const;
+    const kinds={turn:'uncommitted-turn-result',report:'uncommitted-report-result',workflow:'uncommitted-workflow-result',rsi:'uncommitted-workflow-rsi','closeout-preview':'uncommitted-closeout-preview'}as const;
    const expected=kinds[request.job.type];
-   if(result.inputSnapshotId!==request.inputSnapshotId||result.result?.kind!==expected||
-    (request.job.type==='workflow'&&result.result.kind==='uncommitted-workflow-result'&&result.result.action!==request.job.operation.action))throw clientError('PROTOCOL_ERROR');
+   const actual=result.result;if(!actual)throw clientError('PROTOCOL_ERROR');
+    if(request.job.type==='closeout-preview'&&actual.kind==='uncommitted-closeout-preview'){
+     const input=request.job.input,s=input.snapshot,b=actual.basedOn;
+     if(!s.closeout||b.reportDigest!==workflowCommitDigest(s.closeout.report)||b.snapshotDigest!==input.expectedSnapshotDigest||b.sessionId!==s.state.sessionId||b.workflowRevision!==s.revision||b.stateVersion!==s.state.version||actual.report.roleId!==request.context.roleId||
+      b.selections.length!==input.selections.length||b.selections.some((v,n)=>{const expected=input.selections[n]!,record=expected.history.records[expected.version-1];return v.answerId!==expected.answerId||v.historyDigest!==expected.history.digest||v.selectedVersion!==expected.version||v.headVersion!==expected.history.records.length||v.selectedSourceDigest!==(expected.version===0?expected.history.originSourceDigest:record?.sourceDigest)||v.revisionDigest!==record?.revisionDigest;}))throw clientError('PROTOCOL_ERROR');
+    }
+   const unscored=request.job.type==='turn'&&request.job.clarification!==undefined&&actual.kind==='uncommitted-unscored-turn-result';
+   if(result.inputSnapshotId!==request.inputSnapshotId||(!unscored&&actual.kind!==expected)||
+    (request.job.type==='workflow'&&actual.kind==='uncommitted-workflow-result'&&actual.action!==request.job.operation.action))throw clientError('PROTOCOL_ERROR');
+   if(unscored&&actual.kind==='uncommitted-unscored-turn-result'&&request.job.type==='turn'){
+    const b=actual.resolution.basedOn,i=request.job.input;
+    if(b.runId!==request.context.runId||b.attemptId!==request.context.attemptId||b.sessionId!==i.state.sessionId||b.sessionVersion!==i.expectedVersion
+      ||b.answerId!==i.answer.id||b.questionId!==i.question.id||actual.resolution.observationId!==i.observationId)throw clientError('PROTOCOL_ERROR');
+   }
+   if(request.job.type==='turn'&&actual.kind==='uncommitted-turn-result'&&actual.delivery){
+    const d=actual.delivery,b=d.basedOn,i=request.job.input,excerpt=d.excerpt;
+    if(b.runId!==request.context.runId||b.attemptId!==request.context.attemptId||b.sessionId!==i.state.sessionId||b.stateVersion!==i.expectedVersion+1||b.previousAnswerId!==i.answer.id
+     ||excerpt!==null&&(i.answer.text.indexOf(excerpt)<0||i.answer.text.indexOf(excerpt)!==i.answer.text.lastIndexOf(excerpt)))throw clientError('PROTOCOL_ERROR');
+   }
    scope.check();return result;
   }finally{scope.dispose();}
  }
  return{startRun,getRun,cancelRun,events,waitForRun,executeRun};
 }
+export * from './question-ack.ts';

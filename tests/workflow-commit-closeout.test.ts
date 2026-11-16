@@ -3,6 +3,7 @@ import { finishCommitFixture } from './helpers/finish-commit-fixture.ts';
 import { commitSource } from './helpers/commit-source.ts';
 import { createWorkflowCommitFixtureStore } from '../experiments/commit/fixture-store.ts';
 import type { AgentRunRequest } from '../packages/contracts/src/agent-run.ts';
+import { ContentReportSchema } from '../packages/contracts/src/report.ts';
 
 test('closeout session, profile and receipt apply together; simulated failure leaves no partial state', async () => {
   const f = await finishCommitFixture();
@@ -17,6 +18,17 @@ test('closeout session, profile and receipt apply together; simulated failure le
     expect(f.store.receiptCount()).toBe(count + 1);
   } finally { f.runtime.dispose(); }
 });
+test('new deterministic feedback is admitted but jointly forged card/action text is rejected',async()=>{
+ const f=await finishCommitFixture();
+ try{
+  const run=structuredClone(f.finish.run);if(run.result?.kind!=='uncommitted-workflow-result'||!run.result.snapshot.closeout)throw Error('Expected closeout');
+  const report=run.result.snapshot.closeout.report,ref=report.studyPlan.flatMap(p=>p.feedbackRefs??[])[0];if(!ref)throw Error('Expected feedback ref');
+  const card=report.assessments.find(a=>a.answerId===ref.answerId)!.criterionFeedback!.find(c=>c.criterionId===ref.criterionId)!;
+  card.action='共同篡改的建议文本';for(const p of report.studyPlan)for(const[i,r]of(p.feedbackRefs??[]).entries())if(r.answerId===ref.answerId&&r.criterionId===ref.criterionId)p.actions[i]=card.action;
+  expect(ContentReportSchema.safeParse(report).success).toBe(true);
+  expect(()=>f.store.prepare(f.finish.taskId,run,Date.now())).toThrow('COMMIT_TRANSITION_INVALID');
+ }finally{f.runtime.dispose();}
+});
 test('a profile changed by another session blocks the whole pending closeout', async () => {
   const f = await finishCommitFixture();
   try {
@@ -30,6 +42,20 @@ test('a profile changed by another session blocks the whole pending closeout', a
     expect(f.store.current().session!.workflow.phase).toBe('ready_to_close');
     expect(() => f.store.prepare(f.finish.taskId, f.finish.run, Date.now())).toThrow('COMMIT_MEMORY_CONFLICT');
   } finally { f.runtime.dispose(); }
+});
+
+test('closeout cannot drop publication metadata or rewrite visible feedback even with a valid report shape',async()=>{
+ const f=await finishCommitFixture();
+ try{
+  const changed=structuredClone(f.finish.run);if(changed.result?.kind!=='uncommitted-workflow-result'||!changed.result.snapshot.closeout)throw Error('closeout');
+  const a=changed.result.snapshot.closeout.report.assessments[0]!;delete a.feedbackPublication;
+  expect(ContentReportSchema.safeParse(changed.result.snapshot.closeout.report).success).toBe(true);
+  expect(()=>f.store.prepare(f.finish.taskId,changed,Date.now())).toThrow('COMMIT_TRANSITION_INVALID');
+  const text=structuredClone(f.finish.run);if(text.result?.kind!=='uncommitted-workflow-result'||!text.result.snapshot.closeout)throw Error('closeout');
+  text.result.snapshot.closeout.report.assessments[0]!.feedback.improvements[0]='篡改后的发布意见';
+  expect(ContentReportSchema.safeParse(text.result.snapshot.closeout.report).success).toBe(true);
+  expect(()=>f.store.prepare(f.finish.taskId,text,Date.now())).toThrow('COMMIT_TRANSITION_INVALID');
+ }finally{f.runtime.dispose();}
 });
 test('finish retry and restore keep workflow revision but advance storage CAS version for new operations', async () => {
   const f = await finishCommitFixture();

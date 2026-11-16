@@ -2,6 +2,7 @@ import { test, expect } from 'bun:test';
 import { commitSource } from './helpers/commit-source.ts';
 import { createWorkflowCommitFixtureStore } from '../experiments/commit/fixture-store.ts';
 import type { AgentRunRequest } from '../packages/contracts/src/agent-run.ts';
+import { WorkflowSchema } from '../packages/contracts/src/session-workflow.ts';
 
 async function fixture() {
   const f = await commitSource();
@@ -55,6 +56,7 @@ test('selected question and rubric must bind to the trusted role, skill and retr
   try {
     const request = planRequest(f, 'role-binding'), task = f.store.stage(request, { taskId: 'binding', operationId: 'binding-op', now: Date.now(), leaseMs: 30000 });
     const original = await f.execute(request);
+    expect(f.store.prepare(task, original, Date.now()).kind).toBe('uncommitted-workflow-commit-plan');
     for (const mode of ['role', 'skill', 'rubric'] as const) {
       const run = structuredClone(original);
       if (run.result?.kind !== 'uncommitted-workflow-result' || !run.result.snapshot.current || run.result.snapshot.lastPlan?.selection.status !== 'selected') throw new Error('Expected selected');
@@ -62,7 +64,17 @@ test('selected question and rubric must bind to the trusted role, skill and retr
       if (mode === 'role') { current.question.roleId = selected.question.roleId = 'web-frontend'; current.rubric.roleId = selected.rubric.roleId = 'web-frontend'; }
       if (mode === 'skill') { current.question.skillId = selected.question.skillId = 'foreign-skill'; current.plan.skillId = selected.plan.skillId = 'foreign-skill'; }
       if (mode === 'rubric') current.rubric.id = selected.rubric.id = 'foreign-rubric';
-      expect(() => f.store.prepare(task, run, Date.now())).toThrow('COMMIT_TRANSITION_INVALID');
+      // Full issuance content now rejects inconsistent question/rubric bindings at schema admission.
+      expect(() => f.store.prepare(task, run, Date.now())).toThrow('COMMIT_VALIDATION_ERROR');
     }
+    // Internally consistent content still cannot replace the trusted retrieved skill.
+    const forged = structuredClone(original);
+    if (forged.result?.kind !== 'uncommitted-workflow-result' || !forged.result.snapshot.current || forged.result.snapshot.lastPlan?.selection.status !== 'selected') throw new Error('Expected selected');
+    const s = forged.result.snapshot, selected = forged.result.snapshot.lastPlan.selection;
+    s.current!.question.skillId = selected.question.skillId = 'foreign-skill';
+    s.current!.plan.skillId = selected.plan.skillId = 'foreign-skill';
+    s.issuedQuestions.at(-1)!.content!.question.skillId = 'foreign-skill';
+    expect(WorkflowSchema.safeParse(s).success).toBe(true);
+    expect(() => f.store.prepare(task, forged, Date.now())).toThrow('COMMIT_TRANSITION_INVALID');
   } finally { f.runtime.dispose(); }
 });
