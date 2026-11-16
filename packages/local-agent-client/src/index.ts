@@ -1,5 +1,7 @@
+import type {z} from 'zod';
+import {LocalAnswerPageSchema,LocalReportViewSchema,type LocalReadPageOptions} from '../../contracts/src/local-presentation.ts';
 import {spawn} from 'node:child_process';import {randomUUID} from 'node:crypto';import {isAbsolute} from 'node:path';
-import {LocalRequestSchema,LocalResponseSchema,LocalNotificationSchema,type LocalRequest,type LocalEvent} from '../../contracts/src/local-runtime.ts';
+import {LocalRequestSchema,LocalResponseSchema,LocalNotificationSchema,LocalSessionViewSchema,type LocalRequest,type LocalEvent} from '../../contracts/src/local-runtime.ts';
 import {createMainCredentialBroker,type LocalCredentialResolver} from './credential-broker.ts';
 import {LOCAL_CREDENTIAL_CAPABILITY} from '../../contracts/src/local-credential.ts';
 import {LocalSpeechGrantSchema} from '../../contracts/src/local-speech.ts';
@@ -43,7 +45,12 @@ export async function spawnLocalAgent(options:{executable:string;entry:string;da
   if(method==='live.revoke'||method==='speech.revoke'){const input=params as {sessionId:string;capability?:string},sessionId=input.sessionId+(method==='speech.revoke'?':'+input.capability:''),prior=sessionGrants.get(sessionId);if(prior)broker.revoke(prior);sessionGrants.delete(sessionId);}
   return result;
  }
+ function validated<T>(schema:z.ZodType<T>,raw:unknown):T{const result=schema.safeParse(raw);if(!result.success)throw new LocalAgentClientError('LOCAL_RESPONSE_INVALID');return result.data;}
  return{request,
+  getSession:async(sessionId:string)=>validated(LocalSessionViewSchema,await request('session.get',{sessionId})),
+  listSessions:async(options:{offset?:number;limit?:number}={})=>validated(LocalSessionViewSchema.array().max(100),await request('session.list',options)),
+  getAnswerPage:async(sessionId:string,options:LocalReadPageOptions={})=>validated(LocalAnswerPageSchema,await request('session.answers',{...options,sessionId})),
+  getReport:async(sessionId:string,options:LocalReadPageOptions={})=>validated(LocalReportViewSchema.nullable(),await request('session.report',{...options,sessionId})),
   subscribe(fn:(event:LocalEvent)=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
   async waitForJob(jobId:string){const end=Date.now()+30000;for(;;){const value=await request('job.get',{jobId}) as {status:string};if(!['queued','running'].includes(value.status))return value;if(Date.now()>=end)throw new LocalAgentClientError('LOCAL_JOB_TIMEOUT');await new Promise(r=>setTimeout(r,20));}},
   async close(){if(closed)return;if(closing){await exited;return;}closing=true;

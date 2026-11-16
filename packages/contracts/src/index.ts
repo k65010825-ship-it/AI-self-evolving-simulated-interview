@@ -61,3 +61,5 @@ export * from './local-acceptance.ts';
 export * from './scoring-quality.ts';
 export * from './scoring-stability.ts';
 export * from './verification-candidates.ts';
+
+export * from './local-presentation.ts';

@@ -1,3 +1,4 @@
+import {LOCAL_PRESENTATION_CAPABILITY} from '../../../../packages/contracts/src/local-presentation.ts';
 import {z} from 'zod';import {LocalRequestSchema,LocalCommandSchemas,LocalNotificationSchema,type LocalCommand} from '../../../../packages/contracts/src/local-runtime.ts';
 import {RoleIdSchema} from '../../../../packages/contracts/src/tools.ts';import {createLocalHost} from './host.ts';import {LocalError} from './profile-store.ts';
 import {write as writeFd} from 'node:fs';
@@ -24,7 +25,7 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
  const unsubscribe=host.subscribe(event=>{try{void send(LocalNotificationSchema.parse({protocolVersion:1,type:'event',event})).catch(()=>{failed=true;process.stdin.destroy();});}catch{failed=true;process.stdin.destroy();}});
  const empty=z.object({}).strict(),id=z.string().min(1).max(80).regex(/^[A-Za-z0-9_.-]+$/);
  async function dispatch(method:string,raw:unknown){if(!initialized&&method!=='runtime.initialize'&&method!=='runtime.shutdown')throw new LocalError('LOCAL_NOT_INITIALIZED');
-  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_CREDENTIAL_CAPABILITY],liveModelCalls:0};}
+  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_PRESENTATION_CAPABILITY,LOCAL_CREDENTIAL_CAPABILITY],liveModelCalls:0};}
   if(method==='runtime.shutdown'){empty.parse(raw);await stop();return{stopped:true};}
   if(method==='runtime.status'){empty.parse(raw);return host.status();}
   if(method==='live.authorize'){if(!credentialEnabled)throw new LocalError('CREDENTIAL_NOT_NEGOTIATED');return host.authorize(raw);}
@@ -36,6 +37,8 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
   if(method==='roles.list'){empty.parse(raw);return[{id:'java-backend',label:'Java 后端'},{id:'web-frontend',label:'Web 前端'}];}
   if(method==='session.list'){const p=z.object({offset:z.number().int().min(0).max(1000000).default(0),limit:z.number().int().min(1).max(100).default(100)}).strict().parse(raw);return host.list(p.offset,p.limit);}
   if(method==='session.get')return host.session(z.object({sessionId:id}).strict().parse(raw).sessionId);
+  if(method==='session.answers')return host.answerPage(raw);
+  if(method==='session.report')return host.report(raw);
   if(method==='memory.get')return host.memory(z.object({roleId:RoleIdSchema}).strict().parse(raw).roleId);
   if(method==='job.get'||method==='job.cancel'){const p=z.object({jobId:id}).strict().parse(raw);return method==='job.get'?host.job(p.jobId):host.cancel(p.jobId);}
   if(method==='job.events'){const p=z.object({jobId:id,afterSeq:z.number().int().nonnegative().default(0)}).strict().parse(raw);return host.events(p.jobId,p.afterSeq);}

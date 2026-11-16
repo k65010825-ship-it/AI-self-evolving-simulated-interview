@@ -1,5 +1,5 @@
 import {z} from 'zod';import {RoleIdSchema} from './tools.ts';
-import {PilotReportSchema} from './workbench.ts';
+import {LocalReadPageOptionsSchema,LocalSessionPresentationSchema,LocalReportViewSchema} from './local-presentation.ts';
 import {LiveServiceConfigSchema} from './live-model.ts';
 import {LocalSpeechPolicySchema} from './local-speech.ts';
 import {LocalSpeechCommandSchemas} from './local-speech-api.ts';
@@ -14,7 +14,7 @@ export const LocalCommandSchemas={
  'session.complete':z.object(mutation).strict(),
 };
 export type LocalCommand=keyof typeof LocalCommandSchemas;
-export const LocalMethodSchema=z.enum(['runtime.initialize','runtime.status','runtime.shutdown','live.authorize','live.revoke','live.budget','live.reconcile','roles.list','session.create','session.nextQuestion','session.answer','session.complete','session.list','session.get','memory.get','job.get','job.cancel','job.events',...Object.keys(LocalSpeechCommandSchemas) as (keyof typeof LocalSpeechCommandSchemas)[]]);
+export const LocalMethodSchema=z.enum(['runtime.initialize','runtime.status','runtime.shutdown','live.authorize','live.revoke','live.budget','live.reconcile','roles.list','session.create','session.nextQuestion','session.answer','session.complete','session.list','session.get','session.answers','session.report','memory.get','job.get','job.cancel','job.events',...Object.keys(LocalSpeechCommandSchemas) as (keyof typeof LocalSpeechCommandSchemas)[]]);
 export const LocalRequestSchema=z.object({protocolVersion:z.literal(1),type:z.literal('request'),id:LocalId,method:LocalMethodSchema,params:z.unknown()}).strict();
 export const LocalResponseSchema=z.discriminatedUnion('ok',[
  z.object({protocolVersion:z.literal(1),type:z.literal('response'),id:LocalId,ok:z.literal(true),result:z.unknown()}).strict(),
@@ -27,6 +27,7 @@ export const LocalNotificationSchema=z.object({protocolVersion:z.literal(1),type
 export const LocalJobViewSchema=z.object({jobId:LocalId,operationId:LocalId,sessionId:LocalId,status:z.enum(['queued','running','completed','failed','cancelled','interrupted']),errorCode:z.string().nullable()}).strict();
 export type LocalRequest=z.infer<typeof LocalRequestSchema>;
 export type LocalEvent=z.infer<typeof LocalEventSchema>;
-export const LocalSessionViewSchema=z.object({sessionId:LocalId,roleId:RoleIdSchema,revision:z.number().int(),phase:z.string(),deadlineAt:z.number().int(),mode:z.enum(['offline-fixture','live']),authorizationStatus:z.enum(['not-required','required','authorized']),
- question:z.object({id:z.string(),text:z.string()}).strict().nullable(),answeredCount:z.number().int().nonnegative(),priorEvidenceCount:z.number().int().nonnegative(),report:PilotReportSchema.nullable(),
+export const LocalReadPageSchema=LocalReadPageOptionsSchema.extend({sessionId:LocalId}).strict();
+export const LocalSessionViewSchema=z.object({...LocalSessionPresentationSchema.shape,viewKind:z.enum(['full','summary']),startedAt:z.number().int().nonnegative(),hasReport:z.boolean(),sessionId:LocalId,roleId:RoleIdSchema,revision:z.number().int(),phase:z.string(),deadlineAt:z.number().int(),mode:z.enum(['offline-fixture','live']),authorizationStatus:z.enum(['not-required','required','authorized']),
+ question:z.object({id:z.string(),text:z.string()}).strict().nullable(),answeredCount:z.number().int().nonnegative(),priorEvidenceCount:z.number().int().nonnegative(),report:LocalReportViewSchema.nullable(),
  lastOperation:LocalJobViewSchema.nullable()}).strict();

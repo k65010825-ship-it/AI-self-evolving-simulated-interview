@@ -1,5 +1,5 @@
 import { test,expect } from 'bun:test';
-import { mkdtemp,writeFile,readFile,readdir,rm } from 'node:fs/promises';
+import { mkdtemp,writeFile,readFile,readdir,rm,mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runSemanticBenchmark } from '../evals/answers/semantic/runner.ts';
@@ -11,6 +11,7 @@ test('comparison CLI creates isolated artifacts, verifies readonly and preserves
  try{
   const report=await runSemanticBenchmark({judge:async()=>({verdict:'supported'})}),ledger=createReviewLedger(1000);
   const reportText=JSON.stringify(report),ledgerText=JSON.stringify(ledger);await writeFile(rp,reportText);await writeFile(lp,ledgerText);
+  await mkdir(cache,{recursive:true}); // A fresh checkout must not depend on caches from earlier runs.
   const before=new Set(await readdir(cache));expect(await semanticMain(['--compare',rp,lp])).toBe(0);
   const created=(await readdir(cache)).filter(n=>n.startsWith('comparison-')&&!before.has(n));expect(created.length).toBe(1);
   const path=join(cache,created[0]!,'comparison.json'),text=await readFile(path,'utf8');
