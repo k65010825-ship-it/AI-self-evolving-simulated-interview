@@ -132,3 +132,19 @@ RSI首版只允许声明的单步追问深度调整，其余策略参数必须�
 回答的 `assistance={kind:'hint-assisted',issueId,hintVersion,receiptIds}` 只能由宿主从持久回执注入，文字与确认语音走相同提交协调器；renderer不传自报“未辅助”。提示后的澄清可增加辅助回执，不能删除/替换已有回执。逐题反馈保留练习分和辅助标签，能力画像、跨会话独立能力证据、难度递进、复测校准及RSI候选依据排除辅助回答；报告不把辅助分声称为独立成绩。旧数据缺标记保持旧语义，不追认为已经验证独立性。
 
 `feature/agent`已提供核心状态机、宿主/RPC和repository注入接线；默认随包入口尚未接入正式repository，不宣称提示产品可用。数据库负责人按[数据库交接](database.md#84-限次提示-repository-契约)实现同profile连接上的持久化与迁移，联合验收后启用 `limited-hints-v1` 能力。桌面UI、真实用户体验和非开发机安装另行验收。
+
+## 9. 本地子进程故障诊断与恢复
+
+主进程SDK支持 `client.diagnostics()` 读取最近64个受限诊断事件，也可给 `spawnLocalAgent` 传 `onDiagnostic(event)`。传输故障的 `LocalAgentClientError` 保持原code/message，附加 `diagnostic={schemaVersion,lastClient,lastRuntime,discarded}`；不存在可用阶段时对应字段null，不猜测原因。诊断只含枚举阶段/原因、RPC方法、相对耗时、退出码与信号，不含答案、路径、凭证、模型输出或原始stderr。它用于主进程排障，不能直接转发任意依赖日志给renderer。
+
+| 故障 | 宿主接入方处理 |
+| --- | --- |
+| PROCESS_EXIT已记录，stdout尚未关闭 | SDK停止接新请求，但继续读取尾部合法响应；等close确认通道收尾，不把exit直接当响应丢失 |
+| LOCAL_REQUEST_TIMEOUT | SDK拒绝该连接的全部等待请求、撤销凭证代理并终止自有子进程；不自动重试或补发收费动作 |
+| LOCAL_PROTOCOL_INVALID | 包括半截JSON/UTF-8尾部和非法帧；连接失效，不把残缺响应当成功 |
+| STARTUP_FAILED＋LOCAL_PATH_INVALID等受限原因 | 检查数据/安装目录与运行环境，保留路径安全限制；不能通过清库、换profile或取消校验来“恢复” |
+| LOCAL_SHUTDOWN_INCOMPLETE | 并发close调用共享同一有界结果；保留失败，不假称子进程和占用已释放 |
+
+公开stdio协议版本与业务错误响应不变。诊断stderr为私有旁路，只接收完整白名单帧；其余文本丢弃、超长行丢弃，回调抛错不影响通信，无自动落盘/上传。启动阶段缺失或退出信号只能缩小范围，不能单凭重跑通过宣布偶发故障根除。
+
+主进程须保留原业务operationId。进程死亡/超时后，使用原profile重新启动并查询既有任务/回执；已提交结果重放、未完成任务按原恢复规则，已派发无usage继续unknown。超时不等于模型未调用，不新建operationId绕过幂等或费用；数据库迁移与真实用户恢复仍按各自验收要求执行。
