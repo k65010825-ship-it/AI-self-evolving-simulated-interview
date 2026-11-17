@@ -51,7 +51,7 @@ export const PairRetestSchema=LearningIdentitySchema.extend({prediction:Predicti
  retestAnswerId:id,questionIssuedAt:time,answerSubmittedAt:time,now:time,dataMode:DataModeSchema,reference:ReferenceScoreSchema.optional()}).strict();
 export const PairReasonSchema=z.enum(['learning_not_verified','learning_outside_window','prediction_after_retest_exposure','prediction_expired',
  'question_repeated','session_reused','role_mismatch','skill_mismatch','difficulty_mismatch','rubric_mismatch','reference_missing','reference_mismatch',
- 'reference_unverified','data_mode_mismatch','unverified_data_mode','model_source_unverified']);
+ 'reference_unverified','assisted_answer','data_mode_mismatch','unverified_data_mode','model_source_unverified']);
 export const PerformancePairSchema=LearningIdentitySchema.extend({kind:z.literal('uncommitted-performance-pair'),predictionId:id,skillId:id,
  status:z.enum(['eligible','ineligible']),reasons:z.array(PairReasonSchema),dataMode:DataModeSchema,predictorVersion:id,target,
  sourceSessionId:id,retestSessionId:id,retestAnswerId:id,retestQuestionId:id,predictedTargetScore:z.number().min(0).max(1),

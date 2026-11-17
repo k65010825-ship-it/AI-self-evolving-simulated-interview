@@ -22,7 +22,7 @@ export async function buildInterviewReport(rawInput: unknown): Promise<ContentRe
     if(i.state.sessionId!==state.sessionId||i.state.roleId!==state.roleId||i.context.roleId!==state.roleId||i.state.startedAt!==state.startedAt||i.state.deadlineAt!==state.deadlineAt
      ||!same(i.state.observations,state.observations.slice(0,i.expectedVersion))||!same(i.state.skills,state.skills)||r.issuedAt>generatedAt
      ||i.planningPolicy?.id!==policyVersion||turns.some(t=>t.input.question.id===i.question.id||t.input.answer.id===i.answer.id))return invalid();
-    return{answerId:i.answer.id,questionId:i.question.id,skillId:i.question.skillId,status:r.status,reason:r.reason,normalizedScore:null,
+    return{...(i.assistance?{assistance:i.assistance}:{}),answerId:i.answer.id,questionId:i.question.id,skillId:i.question.skillId,status:r.status,reason:r.reason,normalizedScore:null,
       missingCriterionIds:r.missingCriterionIds,evidenceMode:t.evidenceMode};
   });
   if(new Set(unscoredAnswers.map(a=>a.questionId)).size!==unscoredAnswers.length
@@ -84,14 +84,14 @@ export async function buildInterviewReport(rawInput: unknown): Promise<ContentRe
     try {
       replay = recordObservation(input.state, { observationId: input.observationId, roleId: state.roleId,
         skillId: input.question.skillId, questionId: input.question.id, questionType: input.question.questionType,
-        difficulty: input.question.difficulty, score: score.data.normalizedScore, quality: input.quality,
+        difficulty: input.question.difficulty,...(input.assistance?{assistance:input.assistance}:{}),score: score.data.normalizedScore, quality: input.quality,
         observedAt: observation.observedAt }, input.expectedVersion, observation.observedAt);
     } catch { return invalid(); }
     if (!same(replay, proposal.nextState) || !same(replay.observations.at(-1), observation)) return invalid();
     previous = replay;
     const publication=projectFeedbackPublication(input,proposal);
     assessments.push({ observationId: observation.observationId, answerId: input.answer.id, questionId: input.question.id,
-      skillId: input.question.skillId, questionType:input.question.questionType,questionText: input.question.text,
+      skillId: input.question.skillId,...(input.assistance?{assistance:input.assistance}:{}),questionType:input.question.questionType,questionText: input.question.text,
       ...(input.presentedText!==undefined?{presentedText:input.presentedText,presentationReview:input.presentedText===input.question.text?'not-applicable' as const:'pending' as const}:{}),difficulty: input.question.difficulty,
       rubricId: input.rubric.id, rubricVersion: input.rubric.version, rubric: input.rubric, evaluation: score.data,
       evidence: proposal.evidence, feedback: publication.feedback,feedbackPublication:publication.publication, feedbackVerification:'not_verified',evidenceMode: turn.evidenceMode });

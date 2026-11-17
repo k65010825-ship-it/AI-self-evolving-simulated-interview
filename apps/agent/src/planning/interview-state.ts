@@ -64,7 +64,7 @@ export function estimateSkills(rawState: unknown, now: number) {
     for (const item of [...history.anchors.values(),...state.observations]) if (item.skillId === skill.skillId && !independent.has(item.questionId))
       independent.set(item.questionId, item);
     // First establish question independence from the full history, then gate its original anchor.
-    const evidence = [...independent.values()].filter(e=>!historyQuestions.has(e.questionId)||eligible.has(e.questionId));
+    const evidence = [...independent.values()].filter(e=>!e.assistance&&(!historyQuestions.has(e.questionId)||eligible.has(e.questionId)));
     if (!evidence.length) return { ...skill, mastery: null, confidence: 0, covered: false, independentQuestions: 0 };
     const quality = evidence.reduce((sum, item) => sum + item.quality, 0);
     const mastery = evidence.reduce((sum, item) => sum + item.score * item.quality, 0) / quality;
@@ -108,7 +108,7 @@ export function decideNextAction(rawState: unknown, now: number, rawPolicy: unkn
       independent.set(o.questionId, o);
     const recent = [...independent.values()].slice(-2);
     if (recent.length === 2 && new Set(recent.map(o => o.questionType)).size === 2
-      && recent.every(o => o.score >= 0.8 && o.quality >= 0.8 && o.difficulty >= state.difficulty))
+      && recent.every(o => !o.assistance && o.score >= 0.8 && o.quality >= 0.8 && o.difficulty >= state.difficulty))
       return { action: 'adjust_difficulty', skillId: chosen.skillId, difficulty: state.difficulty + 1, remainingSeconds, reason: 'strong_independent_evidence' };
   }
   return { action: 'deepen', skillId: chosen.skillId, difficulty: state.difficulty, remainingSeconds,

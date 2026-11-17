@@ -1,3 +1,4 @@
+import {HintAssistanceSchema} from './hints.ts';
 import { z } from 'zod';
 import { InterviewStateSchema } from './interview-state.ts';
 import { RoleIdSchema,KnowledgeItemSchema } from './tools.ts';
@@ -41,7 +42,7 @@ export const ContentReportSchema = z.object({ schemaVersion: z.literal(1), kind:
   coverage: z.object({ totalSkills: z.number().int().nonnegative(), observedSkills: z.number().int().nonnegative(),
     totalAnswers: z.number().int().nonnegative(), independentQuestions: z.number().int().nonnegative(),
     scoredAnswers:z.number().int().nonnegative().optional(),unscoredAnswers:z.number().int().nonnegative().optional() }).strict(),
-  unscoredAnswers:z.array(z.object({answerId:id,questionId:id,skillId:id,status:z.enum(['needs_clarification','abstained']),
+  unscoredAnswers:z.array(z.object({assistance:HintAssistanceSchema.optional(),answerId:id,questionId:id,skillId:id,status:z.enum(['needs_clarification','abstained']),
     reason:z.enum(['evidence_insufficient','clarification_limit','time_budget']),normalizedScore:z.null(),missingCriterionIds:z.array(id),
     evidenceMode:z.enum(['offline-fixture','live-model','unverified'])}).strict()).max(200).optional(),
   skills: z.array(z.object({ skillId: id, label: z.string(), mastery: z.number().min(0).max(1).nullable(),
@@ -49,7 +50,7 @@ export const ContentReportSchema = z.object({ schemaVersion: z.literal(1), kind:
     rubricVersions: z.array(z.object({ id, version: id }).strict()) }).strict()),
   assessments: z.array(z.object({ observationId: id, answerId: id, questionId: id, skillId: id,
     questionType:KnowledgeItemSchema.shape.questionType.optional(),
-    questionText: z.string(),presentedText:z.string().min(1).max(4200).optional(),presentationReview:z.enum(['pending','not-applicable']).optional(), difficulty: z.number().int().min(1).max(5), rubricId: id, rubricVersion: id,
+    assistance:HintAssistanceSchema.optional(),questionText: z.string(),presentedText:z.string().min(1).max(4200).optional(),presentationReview:z.enum(['pending','not-applicable']).optional(), difficulty: z.number().int().min(1).max(5), rubricId: id, rubricVersion: id,
     rubric: RubricSchema, evaluation: ScoringResultSchema, evidence: ScoringContextSchema.shape.evidence,
     feedback: DisplayFeedbackSchema,feedbackPublication:FeedbackPublicationSchema.optional(), feedbackVerification:z.literal('not_verified').optional(), evidenceMode: EvidenceModeSchema,
     criterionFeedback:z.array(CriterionFeedbackSchema).max(20).optional() }).strict()),

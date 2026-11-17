@@ -6,6 +6,7 @@ import {createRuntimeCredentialBroker} from './credential-broker.ts';
 import {LOCAL_CREDENTIAL_CAPABILITY,LocalCredentialError} from '../../../../packages/contracts/src/local-credential.ts';
 import {LocalLiveReconciliationSchema} from '../../../../packages/contracts/src/local-live.ts';
 import {LocalSpeechCommandSchemas,type LocalSpeechCommand} from '../../../../packages/contracts/src/local-speech-api.ts';
+import {HintError} from '../hints/limited-hints.ts';
 const MAX=1024*1024;
 export async function serveLocalStdio(options:Parameters<typeof createLocalHost>[0]){
  let credentialEnabled=false,initialized=false,shutting=false,failed=false,queued=0;let writes=Promise.resolve();
@@ -25,8 +26,10 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
  const unsubscribe=host.subscribe(event=>{try{void send(LocalNotificationSchema.parse({protocolVersion:1,type:'event',event})).catch(()=>{failed=true;process.stdin.destroy();});}catch{failed=true;process.stdin.destroy();}});
  const empty=z.object({}).strict(),id=z.string().min(1).max(80).regex(/^[A-Za-z0-9_.-]+$/);
  async function dispatch(method:string,raw:unknown){if(!initialized&&method!=='runtime.initialize'&&method!=='runtime.shutdown')throw new LocalError('LOCAL_NOT_INITIALIZED');
-  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_PRESENTATION_CAPABILITY,LOCAL_CREDENTIAL_CAPABILITY],liveModelCalls:0};}
+  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_PRESENTATION_CAPABILITY,LOCAL_CREDENTIAL_CAPABILITY,...(host.hintsAvailable?['limited-hints-v1']:[])],liveModelCalls:0};}
   if(method==='runtime.shutdown'){empty.parse(raw);await stop();return{stopped:true};}
+  if(method==='hint.status')return host.hintStatus(raw);
+  if(method==='hint.request')return host.hint(raw);
   if(method==='runtime.status'){empty.parse(raw);return host.status();}
   if(method==='live.authorize'){if(!credentialEnabled)throw new LocalError('CREDENTIAL_NOT_NEGOTIATED');return host.authorize(raw);}
   if(method==='live.revoke')return host.revoke(z.object({sessionId:id,expectedVersion:z.number().int().nonnegative()}).strict().parse(raw));
@@ -53,7 +56,7 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
   }const request=p.data;
   const base={protocolVersion:1,type:'response',id:request.id};
   try{const result=await dispatch(request.method,request.params);enqueue({...base,ok:true,result});}
-  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
+  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError||e instanceof HintError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
  }
  const signal=()=>{void stop().then(()=>{process.stdin.destroy();},()=>{failed=true;process.stdin.destroy();});};
  process.once('SIGTERM',signal);process.once('SIGINT',signal);

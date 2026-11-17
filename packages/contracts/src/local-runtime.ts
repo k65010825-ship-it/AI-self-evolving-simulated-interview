@@ -14,7 +14,7 @@ export const LocalCommandSchemas={
  'session.complete':z.object(mutation).strict(),
 };
 export type LocalCommand=keyof typeof LocalCommandSchemas;
-export const LocalMethodSchema=z.enum(['runtime.initialize','runtime.status','runtime.shutdown','live.authorize','live.revoke','live.budget','live.reconcile','roles.list','session.create','session.nextQuestion','session.answer','session.complete','session.list','session.get','session.answers','session.report','memory.get','job.get','job.cancel','job.events',...Object.keys(LocalSpeechCommandSchemas) as (keyof typeof LocalSpeechCommandSchemas)[]]);
+export const LocalMethodSchema=z.enum(['runtime.initialize','runtime.status','runtime.shutdown','live.authorize','live.revoke','live.budget','live.reconcile','roles.list','hint.status','hint.request','session.create','session.nextQuestion','session.answer','session.complete','session.list','session.get','session.answers','session.report','memory.get','job.get','job.cancel','job.events',...Object.keys(LocalSpeechCommandSchemas) as (keyof typeof LocalSpeechCommandSchemas)[]]);
 export const LocalRequestSchema=z.object({protocolVersion:z.literal(1),type:z.literal('request'),id:LocalId,method:LocalMethodSchema,params:z.unknown()}).strict();
 export const LocalResponseSchema=z.discriminatedUnion('ok',[
  z.object({protocolVersion:z.literal(1),type:z.literal('response'),id:LocalId,ok:z.literal(true),result:z.unknown()}).strict(),

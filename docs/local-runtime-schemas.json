@@ -1,4 +1,396 @@
 {
+  "hints": {
+    "request": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "issueId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "operationId",
+        "sessionId",
+        "issueId",
+        "expectedRevision"
+      ],
+      "additionalProperties": false
+    },
+    "statusInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "sessionId"
+      ],
+      "additionalProperties": false
+    },
+    "status": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean",
+              "const": false
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "HINT_STORAGE_UNAVAILABLE",
+                "NO_CURRENT_QUESTION"
+              ]
+            },
+            "issueId": {
+              "type": "null"
+            },
+            "used": {
+              "type": "null"
+            },
+            "remaining": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "available",
+            "reason",
+            "issueId",
+            "used",
+            "remaining"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "available": {
+              "type": "boolean",
+              "const": true
+            },
+            "reason": {
+              "type": "null"
+            },
+            "issueId": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "used": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "remaining": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "reserved": {
+              "type": "boolean"
+            },
+            "hintVersion": {
+              "type": "string",
+              "const": "coaching-v1"
+            }
+          },
+          "required": [
+            "available",
+            "reason",
+            "issueId",
+            "used",
+            "remaining",
+            "reserved",
+            "hintVersion"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "receipt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "issueId": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "questionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "hintVersion": {
+          "type": "string",
+          "const": "coaching-v1"
+        },
+        "assisted": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "operationId",
+        "sessionId",
+        "issueId",
+        "questionId",
+        "level",
+        "remaining",
+        "text",
+        "hintVersion",
+        "assisted"
+      ],
+      "additionalProperties": false
+    },
+    "journal": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "binding": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "roleId": {
+              "type": "string",
+              "enum": [
+                "java-backend",
+                "web-frontend"
+              ]
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "issueId": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "issuedAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "userId",
+            "roleId",
+            "sessionId",
+            "issueId",
+            "questionId",
+            "issuedAt"
+          ],
+          "additionalProperties": false
+        },
+        "limit": {
+          "type": "number",
+          "const": 2
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "entries": {
+          "maxItems": 128,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "reservedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "updatedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "status": {
+                    "type": "string",
+                    "const": "reserved"
+                  }
+                },
+                "required": [
+                  "operationId",
+                  "level",
+                  "reservedAt",
+                  "updatedAt",
+                  "status"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "reservedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "updatedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "status": {
+                    "type": "string",
+                    "const": "released"
+                  }
+                },
+                "required": [
+                  "operationId",
+                  "level",
+                  "reservedAt",
+                  "updatedAt",
+                  "status"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "operationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2
+                  },
+                  "reservedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "updatedAt": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "status": {
+                    "type": "string",
+                    "const": "committed"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "hintVersion": {
+                    "type": "string",
+                    "const": "coaching-v1"
+                  }
+                },
+                "required": [
+                  "operationId",
+                  "level",
+                  "reservedAt",
+                  "updatedAt",
+                  "status",
+                  "text",
+                  "hintVersion"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "binding",
+        "limit",
+        "version",
+        "entries"
+      ],
+      "additionalProperties": false
+    }
+  },
   "request": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -28,6 +420,8 @@
           "live.budget",
           "live.reconcile",
           "roles.list",
+          "hint.status",
+          "hint.request",
           "session.create",
           "session.nextQuestion",
           "session.answer",
@@ -774,6 +1168,40 @@
         "items": {
           "type": "object",
           "properties": {
+            "assistance": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "hint-assisted"
+                },
+                "issueId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "hintVersion": {
+                  "type": "string",
+                  "const": "coaching-v1"
+                },
+                "receiptIds": {
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "issueId",
+                "hintVersion",
+                "receiptIds"
+              ],
+              "additionalProperties": false
+            },
             "questionId": {
               "type": "string",
               "minLength": 1,
@@ -1091,6 +1519,40 @@
         "items": {
           "type": "object",
           "properties": {
+            "assistance": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "hint-assisted"
+                },
+                "issueId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "hintVersion": {
+                  "type": "string",
+                  "const": "coaching-v1"
+                },
+                "receiptIds": {
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "issueId",
+                "hintVersion",
+                "receiptIds"
+              ],
+              "additionalProperties": false
+            },
             "questionId": {
               "type": "string",
               "minLength": 1,
@@ -1555,6 +2017,40 @@
           {
             "type": "object",
             "properties": {
+              "assistance": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "hint-assisted"
+                  },
+                  "issueId": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "hintVersion": {
+                    "type": "string",
+                    "const": "coaching-v1"
+                  },
+                  "receiptIds": {
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "issueId",
+                  "hintVersion",
+                  "receiptIds"
+                ],
+                "additionalProperties": false
+              },
               "questionId": {
                 "type": "string",
                 "minLength": 1,
@@ -1953,6 +2449,40 @@
                 "items": {
                   "type": "object",
                   "properties": {
+                    "assistance": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "hint-assisted"
+                        },
+                        "issueId": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "hintVersion": {
+                          "type": "string",
+                          "const": "coaching-v1"
+                        },
+                        "receiptIds": {
+                          "minItems": 1,
+                          "maxItems": 2,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          }
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "issueId",
+                        "hintVersion",
+                        "receiptIds"
+                      ],
+                      "additionalProperties": false
+                    },
                     "questionId": {
                       "type": "string",
                       "minLength": 1,

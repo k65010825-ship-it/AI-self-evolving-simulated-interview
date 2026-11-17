@@ -38,14 +38,14 @@ export const RecallMemorySchema = MemoryIdentitySchema.extend({ now:z.number().i
   policy:MemoryRecallPolicySchema.default({maxItems:6,maxPerSkill:2,maxAgeDays:90}) }).strict();
 export const MemoryRecallSchema = z.object({ kind:z.literal('uncommitted-memory-recall'),
   selected:z.array(HistoricalEvidenceSchema).max(30), askedQuestionIds:z.array(id).max(4000), sourceCount:z.number().int().min(0).max(4000),
-  excluded:z.array(z.object({sessionId:id,observationId:id,reason:z.enum(['duplicate','age','irrelevant_skill','per_skill_limit','item_limit','rubric_incompatible'])}).strict()).max(4000),
+  excluded:z.array(z.object({sessionId:id,observationId:id,reason:z.enum(['duplicate','age','irrelevant_skill','per_skill_limit','item_limit','rubric_incompatible','assisted_evidence'])}).strict()).max(4000),
 }).strict();
 /** Safe count-only audit; business evidence references remain in the host. */
 export const MemoryContextAuditSchema=z.object({strategy:z.literal('whole-evidence-projection-v1'),
  sourceCount:z.number().int().min(0).max(4000),selectedCount:z.number().int().min(0).max(30),includedCount:z.number().int().min(0).max(30),
  excludedCount:z.number().int().min(0).max(4000),reasonCounts:z.object({duplicate:z.number().int().nonnegative().optional(),age:z.number().int().nonnegative().optional(),
  irrelevant_skill:z.number().int().nonnegative().optional(),per_skill_limit:z.number().int().nonnegative().optional(),item_limit:z.number().int().nonnegative().optional(),
- context_budget:z.number().int().nonnegative().optional(),scoring_isolation:z.number().int().nonnegative().optional(),rubric_incompatible:z.number().int().nonnegative().optional()}).strict()}).strict().superRefine((a,ctx)=>{
+ context_budget:z.number().int().nonnegative().optional(),scoring_isolation:z.number().int().nonnegative().optional(),rubric_incompatible:z.number().int().nonnegative().optional(),assisted_evidence:z.number().int().nonnegative().optional()}).strict()}).strict().superRefine((a,ctx)=>{
  if(a.sourceCount!==a.includedCount+a.excludedCount||a.includedCount>a.selectedCount||a.selectedCount>a.sourceCount
   ||(a.reasonCounts.context_budget??0)+(a.reasonCounts.scoring_isolation??0)!==a.selectedCount-a.includedCount
   ||Object.values(a.reasonCounts).reduce<number>((n,v)=>n+(v??0),0)!==a.excludedCount)

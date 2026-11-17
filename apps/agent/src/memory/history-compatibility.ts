@@ -11,10 +11,11 @@ export function historyEligibility(evidence:Evidence[],policy?:HistoryCompatibil
  const anchors=new Map<string,Evidence>();
  // Existing unpinned sessions keep their original first-row estimate semantics.
  for(const e of policy?sortHistoricalEvidence(evidence):evidence)if(!anchors.has(e.questionId))anchors.set(e.questionId,e);
- const eligibleQuestionIds=new Set([...anchors].filter(([,e])=>!policy||allowed.has(JSON.stringify([e.skillId,e.rubricId,e.rubricVersion]))).map(([id])=>id));
+ const eligibleQuestionIds=new Set([...anchors].filter(([,e])=>!e.assistance&&(!policy||allowed.has(JSON.stringify([e.skillId,e.rubricId,e.rubricVersion])))).map(([id])=>id));
  const eligibleCount=evidence.filter(e=>eligibleQuestionIds.has(e.questionId)).length;
+ const assistedExcludedCount=evidence.filter(e=>anchors.get(e.questionId)?.assistance).length;
  const audit=HistoryCompatibilityAuditSchema.parse({mode:policy?'strict':'legacy-unchecked',policyId:policy?.id??null,
-  sourceCount:evidence.length,eligibleCount,excludedCount:evidence.length-eligibleCount,authority:'host-declared-unverified',compatibilityVerified:false});
+  sourceCount:evidence.length,eligibleCount,excludedCount:evidence.length-eligibleCount,...(assistedExcludedCount?{assistedExcludedCount}:{}),authority:'host-declared-unverified',compatibilityVerified:false});
  return{eligibleQuestionIds,anchors,audit};
 }
 export const describeHistoryCompatibility=(state:InterviewState)=>historyEligibility(state.priorEvidence,state.historyCompatibility).audit;

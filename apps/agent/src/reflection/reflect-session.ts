@@ -36,7 +36,9 @@ export async function reflectSession(rawInput:unknown):Promise<SessionReflection
  if(mismatches.length)findings.push({code:'plan_mismatch',observationIds:mismatches});
  if(observations.length<3)findings.push({code:'insufficient_evidence',observationIds:observations.map(o=>o.observationId)});
  const depth=baselinePolicy.parameters.maxFollowupDepth;
- const shouldAdjust=observations.length>=3&&mismatches.length===0&&skillCoverage.value!==null&&skillCoverage.value<0.75&&depth>1&&longestSkillRun>=depth+1;
+ const assisted=observations.filter(o=>o.assistance);
+ if(assisted.length)findings.push({code:'assisted_evidence',observationIds:assisted.map(o=>o.observationId)});
+ const shouldAdjust=!assisted.length&&!reportInput.unscoredTurns?.some(t=>t.input.assistance)&&observations.length>=3&&mismatches.length===0&&skillCoverage.value!==null&&skillCoverage.value<0.75&&depth>1&&longestSkillRun>=depth+1;
  const candidateId=`depth-${depth-1}-${createHash('sha256').update(JSON.stringify([baselinePolicy,depth-1])).digest('hex').slice(0,16)}`;
  const candidate=shouldAdjust?{id:candidateId,baselineId:baselinePolicy.id,roleId:baselinePolicy.roleId,
   sourceSessionId:report.sessionId,sourceGroupId,createdAt:generatedAt,evidenceMode:report.evidenceMode,

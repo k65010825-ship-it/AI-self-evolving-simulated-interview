@@ -1,9 +1,9 @@
-import {z} from 'zod';
+import {z} from 'zod';import {HintAssistanceSchema} from './hints.ts';
 import {PilotReportSchema} from './workbench.ts';
 const id=z.string().min(1).max(100),count=z.number().int().nonnegative().max(200);
 export const LOCAL_PRESENTATION_CAPABILITY='session-presentation-v1' as const;
 export const LocalReadPageOptionsSchema=z.object({offset:count.default(0),limit:z.number().int().min(1).max(5).default(5),expectedRevision:z.number().int().min(-1).optional()}).strict();
-export const LocalAnswerViewSchema=z.object({questionId:id,questionText:z.string().max(4200),answerId:id,
+export const LocalAnswerViewSchema=z.object({assistance:HintAssistanceSchema.optional(),questionId:id,questionText:z.string().max(4200),answerId:id,
  status:z.enum(['scored','needs_clarification','abstained']),reason:z.enum(['evidence_insufficient','clarification_limit','time_budget']).nullable(),
  rubricVersion:id,scope:z.enum(['technical-content','behavioral-content']),semanticSupport:z.literal('not_verified'),
  normalizedScore:z.number().min(0).max(1).nullable(),evidenceMode:z.enum(['offline-fixture','live-model','unverified']),

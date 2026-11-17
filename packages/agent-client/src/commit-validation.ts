@@ -1,3 +1,4 @@
+import {isAssistanceContinuation} from '../../contracts/src/hints.ts';
 import {inspectVerificationBinding} from '@interview/interview-domain/verification-binding';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -50,7 +51,7 @@ function scoreChecks(turn: InterviewWorkflow['turns'][number]) {
 }
 function receiptChecks(attempt:NonNullable<InterviewWorkflow['clarificationAttempts']>[number],previous:NonNullable<InterviewWorkflow['clarificationAttempts']>[number]|undefined,now:number){
  const {input:i,resolution:r}=attempt,{digest,...body}=r,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
- const {answer,context,speech,...frozen}=i;
+ const {answer,context,speech,assistance,...frozen}=i;
  if(digest!==hash(JSON.stringify(body))||r.inputDigest!==hash(JSON.stringify({...frozen,userId:context.userId,roleId:context.roleId}))
   ||r.answerDigest!==hash(i.answer.text)||r.answerCharacters!==i.answer.text.length||r.observationId!==i.observationId||r.issuedAt>now
   ||!validClarificationPrompt(i,r)
@@ -128,13 +129,13 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     if (before.phase !== 'awaiting_answer' || !before.current) reject('COMMIT_TRANSITION_INVALID');
     const attempts=before.clarificationAttempts??[],nextAttempts=after.clarificationAttempts??[],c=op.command;
     const expectedInput={ state: before.state, expectedVersion: before.state.version, observationId: c.observationId, goal: before.goal, context: c.context,
-      question: before.current.question, answer: c.answer, quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
+      question: before.current.question, answer: c.answer,...(c.assistance?{assistance:c.assistance}:{}),quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
       ...(before.issuedQuestions.at(-1)?.content?{presentedText:before.issuedQuestions.at(-1)!.content!.text}:{}) };
     const previous=attempts.filter(a=>a.input.question.id===before.current!.question.id).at(-1);
     if([...before.turns,...attempts].some(t=>t.input.answer.id===c.answer.id||t.input.context.runId===c.context.runId))reject('COMMIT_TRANSITION_INVALID');
     if(previous){const p=previous.resolution,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
-      if(p.status!=='needs_clarification'||c.observationId!==p.observationId||!equal({...expectedInput,answer:previous.input.answer,context:previous.input.context,speech:previous.input.speech},
-        {...previous.input,speech:previous.input.speech})||c.answer.text.length<=p.answerCharacters||!c.answer.text.slice(p.answerCharacters).trim()
+      if(!isAssistanceContinuation(previous.input.assistance,c.assistance)||p.status!=='needs_clarification'||c.observationId!==p.observationId||!equal({...expectedInput,assistance:previous.input.assistance,answer:previous.input.answer,context:previous.input.context,speech:previous.input.speech},
+        {...previous.input,assistance:previous.input.assistance,speech:previous.input.speech})||c.answer.text.length<=p.answerCharacters||!c.answer.text.slice(p.answerCharacters).trim()
         ||hash(c.answer.text.slice(0,p.answerCharacters))!==p.answerDigest)reject('COMMIT_TRANSITION_INVALID');
     }
     if(after.turns.length===before.turns.length){
@@ -155,7 +156,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     requireEqual(after.turns.slice(0, -1), before.turns);
     const turn = after.turns.at(-1)!;
     requireEqual(turn.input, { state: before.state, expectedVersion: before.state.version, observationId: c.observationId, goal: before.goal, context: c.context,
-      question: before.current.question, answer: c.answer, quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
+      question: before.current.question, answer: c.answer,...(c.assistance?{assistance:c.assistance}:{}),quality: c.quality, rubric: before.current.rubric, knowledge: [], planningPolicy: before.policy, ...(c.speech ? { speech: c.speech } : {}),
       ...(before.issuedQuestions.at(-1)?.content?{presentedText:before.issuedQuestions.at(-1)!.content!.text}:{}) });
     if (turn.evidenceMode !== c.evidenceMode) reject('COMMIT_TRANSITION_INVALID');
     requireEqual(turn.proposal.basedOn, { sessionId: before.state.sessionId, sessionVersion: before.state.version, runId: c.context.runId, attemptId: c.context.attemptId,
@@ -165,7 +166,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     if (observation.observedAt < before.currentIssuedAt! || observation.observedAt > now) reject('COMMIT_TRANSITION_INVALID');
     requireEqual(observation, { observationId: c.observationId, roleId: before.identity.roleId, skillId: before.current.question.skillId,
       questionId: before.current.question.id, questionType: before.current.question.questionType, difficulty: before.current.question.difficulty,
-      score: turn.proposal.evaluation.normalizedScore, quality: c.quality, observedAt: observation.observedAt });
+      ...(c.assistance?{assistance:c.assistance}:{}),score: turn.proposal.evaluation.normalizedScore, quality: c.quality, observedAt: observation.observedAt });
     requireEqual(after.state, { ...before.state, version: before.state.version + 1, observations: [...before.state.observations, observation],
       currentSkillId: observation.skillId, followupDepth: before.state.currentSkillId === observation.skillId ? before.state.followupDepth + 1 : 0, difficulty: observation.difficulty });
     const finished = turn.proposal.nextAction.action === 'finish';

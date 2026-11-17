@@ -10,7 +10,7 @@ export async function createPrediction(rawInput:unknown):Promise<Prediction>{
  if(input.sourceReportInput.state.roleId!==input.roleId||input.target.rubric.roleId!==input.roleId)throw new AgentStateError('ROLE_FORBIDDEN');
  if(input.sourceReportInput.turns.some(t=>t.input.context.userId!==input.userId))throw new AgentStateError('FORBIDDEN');
  const report=await buildInterviewReport(input.sourceReportInput),source=report.assessments.find(a=>a.answerId===input.sourceAnswerId);
- if(!source||source.skillId!==input.progress.skillId||source.evaluation.normalizedScore===null)throw new AgentStateError('VALIDATION_ERROR');
+ if(!source||source.assistance||source.skillId!==input.progress.skillId||source.evaluation.normalizedScore===null)throw new AgentStateError('VALIDATION_ERROR');
  return parseLearning(PredictionSchema,{kind:'frozen-learning-prediction',userId:input.userId,roleId:input.roleId,assignmentId:input.assignmentId,
   predictionId:input.predictionId,skillId:input.progress.skillId,dataMode:input.progress.dataMode,issuedAt:input.issuedAt,validUntil:input.validUntil,
   predictedTargetScore:input.predictedTargetScore,predictorVersion:input.predictorVersion,target:input.target,expectedExerciseIds:input.progress.requiredExerciseIds,
@@ -36,6 +36,7 @@ export async function pairRetest(rawInput:unknown):Promise<PerformancePair>{
  if(prediction.issuedAt>=input.questionIssuedAt)reasons.push('prediction_after_retest_exposure');
  if(input.answerSubmittedAt>prediction.validUntil)reasons.push('prediction_expired');
  const retestInput=input.retestReportInput.turns.find(t=>t.input.answer.id===assessment.answerId)!.input;
+ if(assessment.assistance)reasons.push('assisted_answer');
  if(prediction.sourceQuestionIds.includes(assessment.questionId)||[...retestInput.state.priorEvidence,...retestInput.state.observations]
   .some(o=>o.questionId===assessment.questionId))reasons.push('question_repeated');
  if(prediction.sourceSessionId===report.sessionId)reasons.push('session_reused');

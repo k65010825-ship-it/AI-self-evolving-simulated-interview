@@ -11,6 +11,7 @@ import{TurnInputSchema}from'./evaluation.ts';
 import{SpeechAnswerSchema}from'./speech.ts';
 import{QuestionDeliverySchema}from'./question-delivery.ts';
 import{WorkflowClarificationAttemptSchema}from'./workflow-clarification.ts';
+import {HintAssistanceSchema,isAssistanceContinuation} from './hints.ts';
 const id=z.string().min(1).max(100);
 const selected=QuestionSelectionSchema.options[2];
 export const IssuedQuestionContentSchema=z.object({question:TurnInputSchema.shape.question,rubric:selected.shape.rubric,source:selected.shape.source,
@@ -34,6 +35,7 @@ export const WorkflowSchema=z.object({kind:z.literal('uncommitted-interview-sess
  phase:z.enum(['ready_to_plan','awaiting_answer','ready_to_close','completed']),
  turns:ReportInputSchema.shape.turns,clarificationAttempts:z.array(WorkflowClarificationAttemptSchema).max(600).optional(),askedQuestionIds:z.array(id).max(200),
  issuedQuestions:z.array(IssuedQuestionRecordSchema).max(200),
+ hintAssistance:z.array(z.object({questionId:id,assistance:HintAssistanceSchema}).strict()).max(200).optional(),
  current:QuestionSelectionSchema.options[2].nullable(),currentIssuedAt:z.number().int().nonnegative().nullable(),lastPlan:PlannerResultSchema.nullable(),
  pendingReason:z.enum(['plan_finished','knowledge_gap','user_stop']).nullable(),closeout:CloseoutSchema.nullable(),
 }).strict().superRefine((s,ctx)=>{
@@ -54,6 +56,10 @@ export const WorkflowSchema=z.object({kind:z.literal('uncommitted-interview-sess
   (s.closeout&&(s.closeout.requestRevision+1!==s.revision||s.closeout.sessionId!==s.state.sessionId||s.closeout.sessionVersion!==s.state.version||
    s.closeout.report.sessionVersion!==s.state.version||s.closeout.report.sessionId!==s.state.sessionId||
    s.closeout.reflection.sessionId!==s.state.sessionId||!same(s.closeout.reflection.baselinePolicy,s.policy)));
+ if(new Set(s.hintAssistance?.map(h=>h.questionId)).size!==(s.hintAssistance?.length??0)||s.hintAssistance?.some(h=>!s.askedQuestionIds.includes(h.questionId)))invalid=true;
+ for(const h of s.hintAssistance??[]){const turn=s.turns.find(t=>t.input.question.id===h.questionId);
+  if(turn&&!same(turn.input.assistance,h.assistance)||(s.clarificationAttempts??[]).some(t=>t.input.question.id===h.questionId&&!isAssistanceContinuation(t.input.assistance,h.assistance)))invalid=true;
+ }
  for(const[qIndex,issued]of s.issuedQuestions.entries()){
   const c=issued.content,t=s.turns.find(t=>t.input.question.id===issued.questionId);
   if(!c){if(t?.input.presentedText!==undefined)invalid=true;continue;}
@@ -70,6 +76,6 @@ export const WorkflowSchema=z.object({kind:z.literal('uncommitted-interview-sess
 export const WorkflowCommandSchema=z.object({identity:MemoryIdentitySchema,expectedRevision:z.number().int().nonnegative()}).strict();
 export const PlanQuestionCommandSchema=WorkflowCommandSchema.extend({context:ToolContextSchema}).strict();
 export const SubmitWorkflowAnswerSchema=WorkflowCommandSchema.extend({context:ToolContextSchema,observationId:id,answer:TurnInputSchema.shape.answer,
- quality:z.number().positive().max(1),speech:SpeechAnswerSchema.optional(),evidenceMode:z.enum(['offline-fixture','live-model','unverified'])}).strict();
+ assistance:TurnInputSchema.shape.assistance,quality:z.number().positive().max(1),speech:SpeechAnswerSchema.optional(),evidenceMode:z.enum(['offline-fixture','live-model','unverified'])}).strict();
 export const FinishWorkflowSchema=WorkflowCommandSchema.extend({mode:z.enum(['automatic','user_stop']).default('automatic'),sourceGroupId:id}).strict();
 export type InterviewWorkflow=z.infer<typeof WorkflowSchema>;

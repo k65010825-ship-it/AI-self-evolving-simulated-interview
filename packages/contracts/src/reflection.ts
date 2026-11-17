@@ -16,7 +16,7 @@ export const ReflectionInputSchema=z.object({reportInput:ReportInputSchema,basel
 export const ReflectionSchema=z.object({kind:z.literal('uncommitted-session-reflection'),sessionId:id,roleId:RoleIdSchema,
  generatedAt:z.number().int().nonnegative(),sourceGroupId:id,evidenceMode:EvidenceModeSchema,baselinePolicy:PlanningPolicyVersionSchema,
  metrics:z.object({skillCoverage:RatioSchema,repeatRate:RatioSchema,planAdherence:RatioSchema,longestSkillRun:z.number().int().nonnegative()}).strict(),
- findings:z.array(z.object({code:z.enum(['coverage_gap','repeated_question','plan_mismatch','insufficient_evidence']),observationIds:z.array(id)}).strict()),
+ findings:z.array(z.object({code:z.enum(['coverage_gap','repeated_question','plan_mismatch','insufficient_evidence','assisted_evidence']),observationIds:z.array(id)}).strict()),
  calibration:z.object({status:z.literal('awaiting_eligible_retest'),mae:z.null(),sampleCount:z.literal(0)}).strict(),
  candidate:PolicyCandidateSchema.nullable()}).strict();
 const LabelSchema=z.object({action:NextActionSchema.shape.action,skillId:id.nullable()}).strict();

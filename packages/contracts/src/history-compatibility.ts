@@ -5,7 +5,7 @@ export const HistoryCompatibilityPolicySchema=z.object({id,mode:z.literal('stric
  allowed:z.array(z.object({skillId:id,rubricId:id,rubricVersion:id}).strict()).max(200)
   .refine(a=>new Set(a.map(r=>JSON.stringify([r.skillId,r.rubricId,r.rubricVersion]))).size===a.length)}).strict();
 export const HistoryCompatibilityAuditSchema=z.object({mode:z.enum(['strict','legacy-unchecked']),policyId:id.nullable(),
- sourceCount:count,eligibleCount:count,excludedCount:count,authority:z.literal('host-declared-unverified'),compatibilityVerified:z.literal(false)}).strict()
+ sourceCount:count,eligibleCount:count,excludedCount:count,assistedExcludedCount:count.optional(),authority:z.literal('host-declared-unverified'),compatibilityVerified:z.literal(false)}).strict()
  .superRefine((a,ctx)=>{if(a.sourceCount!==a.eligibleCount+a.excludedCount||(a.mode==='strict')!==(a.policyId!==null)
-  ||a.mode==='legacy-unchecked'&&a.excludedCount!==0)ctx.addIssue({code:'custom',message:'Invalid history compatibility counts or policy.'});});
+  ||(a.assistedExcludedCount??0)>a.excludedCount||a.mode==='legacy-unchecked'&&a.excludedCount!==(a.assistedExcludedCount??0))ctx.addIssue({code:'custom',message:'Invalid history compatibility counts or policy.'});});
 export type HistoryCompatibilityPolicy=z.infer<typeof HistoryCompatibilityPolicySchema>;

@@ -312,6 +312,40 @@
                         "minimum": 1,
                         "maximum": 5
                       },
+                      "assistance": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "hint-assisted"
+                          },
+                          "issueId": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "hintVersion": {
+                            "type": "string",
+                            "const": "coaching-v1"
+                          },
+                          "receiptIds": {
+                            "minItems": 1,
+                            "maxItems": 2,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "issueId",
+                          "hintVersion",
+                          "receiptIds"
+                        ],
+                        "additionalProperties": false
+                      },
                       "score": {
                         "type": "number",
                         "minimum": 0,
@@ -549,6 +583,40 @@
                   "minimum": 1,
                   "maximum": 5
                 },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
+                },
                 "score": {
                   "type": "number",
                   "minimum": 0,
@@ -633,6 +701,40 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 5
+                },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
                 },
                 "score": {
                   "type": "number",
@@ -956,6 +1058,40 @@
                         "minimum": 1,
                         "maximum": 5
                       },
+                      "assistance": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "hint-assisted"
+                          },
+                          "issueId": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "hintVersion": {
+                            "type": "string",
+                            "const": "coaching-v1"
+                          },
+                          "receiptIds": {
+                            "minItems": 1,
+                            "maxItems": 2,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "issueId",
+                          "hintVersion",
+                          "receiptIds"
+                        ],
+                        "additionalProperties": false
+                      },
                       "score": {
                         "type": "number",
                         "minimum": 0,
@@ -1160,6 +1296,40 @@
                             "minimum": 1,
                             "maximum": 5
                           },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
+                          },
                           "score": {
                             "type": "number",
                             "minimum": 0,
@@ -1244,6 +1414,40 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 5
+                          },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
                           },
                           "score": {
                             "type": "number",
@@ -1958,6 +2162,40 @@
                     ],
                     "additionalProperties": false
                   }
+                },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
                 },
                 "planningPolicy": {
                   "type": "object",
@@ -3101,6 +3339,40 @@
                             "minimum": 1,
                             "maximum": 5
                           },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
+                          },
                           "score": {
                             "type": "number",
                             "minimum": 0,
@@ -3185,6 +3457,40 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 5
+                          },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
                           },
                           "score": {
                             "type": "number",
@@ -3507,6 +3813,40 @@
                             "minimum": 1,
                             "maximum": 5
                           },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
+                          },
                           "score": {
                             "type": "number",
                             "minimum": 0,
@@ -3591,6 +3931,40 @@
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 5
+                          },
+                          "assistance": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "hint-assisted"
+                              },
+                              "issueId": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                              },
+                              "hintVersion": {
+                                "type": "string",
+                                "const": "coaching-v1"
+                              },
+                              "receiptIds": {
+                                "minItems": 1,
+                                "maxItems": 2,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "issueId",
+                              "hintVersion",
+                              "receiptIds"
+                            ],
+                            "additionalProperties": false
                           },
                           "score": {
                             "type": "number",
@@ -4305,6 +4679,40 @@
                     ],
                     "additionalProperties": false
                   }
+                },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
                 },
                 "planningPolicy": {
                   "type": "object",
@@ -5640,6 +6048,59 @@
           "required": [
             "questionId",
             "issuedAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "hintAssistance": {
+        "maxItems": 200,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "questionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "assistance": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "hint-assisted"
+                },
+                "issueId": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "hintVersion": {
+                  "type": "string",
+                  "const": "coaching-v1"
+                },
+                "receiptIds": {
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "issueId",
+                "hintVersion",
+                "receiptIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "questionId",
+            "assistance"
           ],
           "additionalProperties": false
         }
@@ -7034,6 +7495,11 @@
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
+                          },
+                          "assisted_evidence": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
                           }
                         },
                         "additionalProperties": false
@@ -7082,6 +7548,11 @@
                         "maximum": 4000
                       },
                       "excludedCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 4000
+                      },
+                      "assistedExcludedCount": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 4000
@@ -7295,6 +7766,40 @@
                     "items": {
                       "type": "object",
                       "properties": {
+                        "assistance": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "hint-assisted"
+                            },
+                            "issueId": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "hintVersion": {
+                              "type": "string",
+                              "const": "coaching-v1"
+                            },
+                            "receiptIds": {
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              }
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "issueId",
+                            "hintVersion",
+                            "receiptIds"
+                          ],
+                          "additionalProperties": false
+                        },
                         "answerId": {
                           "type": "string",
                           "minLength": 1,
@@ -7461,6 +7966,40 @@
                             "scenario",
                             "behavioral"
                           ]
+                        },
+                        "assistance": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "hint-assisted"
+                            },
+                            "issueId": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "hintVersion": {
+                              "type": "string",
+                              "const": "coaching-v1"
+                            },
+                            "receiptIds": {
+                              "minItems": 1,
+                              "maxItems": 2,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              }
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "issueId",
+                            "hintVersion",
+                            "receiptIds"
+                          ],
+                          "additionalProperties": false
                         },
                         "questionText": {
                           "type": "string"
@@ -9215,6 +9754,40 @@
                                 "minimum": 1,
                                 "maximum": 5
                               },
+                              "assistance": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "hint-assisted"
+                                  },
+                                  "issueId": {
+                                    "type": "string",
+                                    "pattern": "^[a-f0-9]{64}$"
+                                  },
+                                  "hintVersion": {
+                                    "type": "string",
+                                    "const": "coaching-v1"
+                                  },
+                                  "receiptIds": {
+                                    "minItems": 1,
+                                    "maxItems": 2,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "issueId",
+                                  "hintVersion",
+                                  "receiptIds"
+                                ],
+                                "additionalProperties": false
+                              },
                               "score": {
                                 "type": "number",
                                 "minimum": 0,
@@ -9525,7 +10098,8 @@
                             "coverage_gap",
                             "repeated_question",
                             "plan_mismatch",
-                            "insufficient_evidence"
+                            "insufficient_evidence",
+                            "assisted_evidence"
                           ]
                         },
                         "observationIds": {
@@ -10955,6 +11529,40 @@
         ],
         "additionalProperties": false
       },
+      "assistance": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "hint-assisted"
+          },
+          "issueId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "hintVersion": {
+            "type": "string",
+            "const": "coaching-v1"
+          },
+          "receiptIds": {
+            "minItems": 1,
+            "maxItems": 2,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "issueId",
+          "hintVersion",
+          "receiptIds"
+        ],
+        "additionalProperties": false
+      },
       "quality": {
         "type": "number",
         "exclusiveMinimum": 0,
@@ -11717,6 +12325,40 @@
             "items": {
               "type": "object",
               "properties": {
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
+                },
                 "answerId": {
                   "type": "string",
                   "minLength": 1,
@@ -11883,6 +12525,40 @@
                     "scenario",
                     "behavioral"
                   ]
+                },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
                 },
                 "questionText": {
                   "type": "string"
@@ -13637,6 +14313,40 @@
                         "minimum": 1,
                         "maximum": 5
                       },
+                      "assistance": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "hint-assisted"
+                          },
+                          "issueId": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "hintVersion": {
+                            "type": "string",
+                            "const": "coaching-v1"
+                          },
+                          "receiptIds": {
+                            "minItems": 1,
+                            "maxItems": 2,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "issueId",
+                          "hintVersion",
+                          "receiptIds"
+                        ],
+                        "additionalProperties": false
+                      },
                       "score": {
                         "type": "number",
                         "minimum": 0,
@@ -13947,7 +14657,8 @@
                     "coverage_gap",
                     "repeated_question",
                     "plan_mismatch",
-                    "insufficient_evidence"
+                    "insufficient_evidence",
+                    "assisted_evidence"
                   ]
                 },
                 "observationIds": {

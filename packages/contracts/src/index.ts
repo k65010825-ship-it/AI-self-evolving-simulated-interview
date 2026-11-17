@@ -63,3 +63,4 @@ export * from './scoring-stability.ts';
 export * from './verification-candidates.ts';
 
 export * from './local-presentation.ts';
+export * from './hints.ts';

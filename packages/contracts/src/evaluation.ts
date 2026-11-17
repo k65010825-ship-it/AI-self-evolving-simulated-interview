@@ -1,3 +1,4 @@
+import {HintAssistanceSchema} from './hints.ts';
 import { z } from 'zod';
 import { InterviewStateSchema } from './interview-state.ts';
 import { KnowledgeItemSchema, ToolContextSchema, RoleIdSchema } from './tools.ts';
@@ -11,7 +12,7 @@ export const TurnInputSchema = z.object({ state: InterviewStateSchema, expectedV
     questionType: KnowledgeItemSchema.shape.questionType, difficulty: KnowledgeItemSchema.shape.difficulty }).strict(),
   answer: z.object({ id, text: z.string().min(1).max(10000) }).strict(),
   quality: z.number().positive().max(1), rubric: RubricSchema, knowledge: z.array(KnowledgeItemSchema).max(100),
-  planningPolicy:PlanningPolicyVersionSchema.optional(),
+  assistance:HintAssistanceSchema.optional(),planningPolicy:PlanningPolicyVersionSchema.optional(),
   speech:SpeechAnswerSchema.optional(),presentedText:z.string().min(1).max(4200).optional(),
 }).strict().superRefine((i,ctx)=>{if(i.presentedText!==undefined&&i.presentedText!==i.question.text&&!i.presentedText.endsWith('\n'+i.question.text))
  ctx.addIssue({code:'custom',message:'Presented text must retain the canonical question.'});});

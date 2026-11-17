@@ -141,6 +141,40 @@
                   "minimum": 1,
                   "maximum": 5
                 },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
+                },
                 "score": {
                   "type": "number",
                   "minimum": 0,
@@ -225,6 +259,40 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 5
+                },
+                "assistance": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "hint-assisted"
+                    },
+                    "issueId": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "hintVersion": {
+                      "type": "string",
+                      "const": "coaching-v1"
+                    },
+                    "receiptIds": {
+                      "minItems": 1,
+                      "maxItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "issueId",
+                    "hintVersion",
+                    "receiptIds"
+                  ],
+                  "additionalProperties": false
                 },
                 "score": {
                   "type": "number",

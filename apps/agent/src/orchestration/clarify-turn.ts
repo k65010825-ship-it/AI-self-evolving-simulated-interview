@@ -6,7 +6,7 @@ import { assessTurn,type EvaluationDependencies } from './evaluate-turn.ts';
 import { AgentStateError } from '../planning/interview-state.ts';
 const prompt=NEUTRAL_CLARIFICATION_PROMPT;
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
-function binding(i:TurnInput){const{answer,context,speech,...frozen}=i;return hash(JSON.stringify({...frozen,userId:context.userId,roleId:context.roleId}));}
+function binding(i:TurnInput){const{answer,context,speech,assistance,...frozen}=i;return hash(JSON.stringify({...frozen,userId:context.userId,roleId:context.roleId}));}
 /** Integrity/replay check only. Ownership and retention/CAS remain host responsibilities. */
 export function validateClarificationReceipt(i:TurnInput,r:UnscoredTurn){
  const {digest,...body}=r;

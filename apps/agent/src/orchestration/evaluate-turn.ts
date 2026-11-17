@@ -131,7 +131,7 @@ export async function assessTurn(rawInput: unknown, dependencies: EvaluationDepe
   const nextState = recordObservation(input.state, { observationId: input.observationId,
     roleId: input.state.roleId, skillId: input.question.skillId, questionId: input.question.id,
     questionType: input.question.questionType, difficulty: input.question.difficulty,
-    score: score.data.normalizedScore, quality: input.quality, observedAt: completedAt }, input.expectedVersion, completedAt);
+    ...(input.assistance?{assistance:input.assistance}:{}),score: score.data.normalizedScore, quality: input.quality, observedAt: completedAt }, input.expectedVersion, completedAt);
   return TurnProposalSchema.parse({ kind: 'uncommitted-turn-proposal',
     basedOn: { sessionId: input.state.sessionId, sessionVersion: input.expectedVersion, runId: input.context.runId,
       attemptId: input.context.attemptId, answerId: input.answer.id, questionId: input.question.id },

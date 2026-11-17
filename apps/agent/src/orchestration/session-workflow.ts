@@ -1,3 +1,4 @@
+import {isAssistanceContinuation} from '../../../../packages/contracts/src/hints.ts';
 import{z}from'zod';
 import{CreateWorkflowSchema,WorkflowSchema,PlanQuestionCommandSchema,SubmitWorkflowAnswerSchema,FinishWorkflowSchema,
  CloseoutSchema,type InterviewWorkflow}from'../../../../packages/contracts/src/session-workflow.ts';
@@ -49,6 +50,7 @@ function validateAttempts(s:InterviewWorkflow){
    ||!content||i.expectedVersion!==content.stateVersion||i.knowledge.length
    ||index>0&&(s.askedQuestionIds.indexOf(attempts[index-1]!.input.question.id)>s.askedQuestionIds.indexOf(i.question.id)
     ||attempts[index-1]!.resolution.issuedAt>r.issuedAt))throw new AgentStateError('VALIDATION_ERROR');
+  if(prior&&!isAssistanceContinuation(prior.input.assistance,i.assistance))throw new AgentStateError('VALIDATION_ERROR');
   if(prior){try{validateClarificationContinuation(i,prior.resolution,r.issuedAt);}catch{throw new AgentStateError('VALIDATION_ERROR');}}
   if(r.attempt!==(prior?.resolution.attempt??0)+(r.status==='needs_clarification'?1:0)
    ||r.reason!==(r.remainingSeconds<r.policy.minRemainingSeconds?'time_budget':(prior?.resolution.attempt??0)>=r.policy.maxClarifications?'clarification_limit':'evidence_insufficient'))throw new AgentStateError('VALIDATION_ERROR');
@@ -58,7 +60,7 @@ function validateAttempts(s:InterviewWorkflow){
   const next=s.issuedQuestions[s.issuedQuestions.indexOf(q)+1];
   if(next&&!turn&&latest?.resolution.status!=='abstained'||next&&latest&&latest.resolution.issuedAt>next.issuedAt)throw new AgentStateError('VALIDATION_ERROR');
   if(!latest)continue;
-  if(turn){try{validateClarificationContinuation(turn.input,latest.resolution,turn.proposal.nextState.observations.at(-1)!.observedAt);}catch{throw new AgentStateError('VALIDATION_ERROR');}}
+  if(turn){try{if(!isAssistanceContinuation(latest.input.assistance,turn.input.assistance))throw new AgentStateError('VALIDATION_ERROR');validateClarificationContinuation(turn.input,latest.resolution,turn.proposal.nextState.observations.at(-1)!.observedAt);}catch{throw new AgentStateError('VALIDATION_ERROR');}}
   else if(latest.resolution.status==='needs_clarification'&&s.phase!=='completed'&&s.current?.question.id!==q.questionId)throw new AgentStateError('VALIDATION_ERROR');
   if(latest.resolution.status==='abstained'&&(turn||s.current?.question.id===q.questionId))throw new AgentStateError('VALIDATION_ERROR');
  }
@@ -127,14 +129,18 @@ export async function planInterviewQuestion(raw:unknown,command:unknown,deps:Tim
 export async function submitInterviewAnswer(raw:unknown,command:unknown,deps:Timing&Pick<EvaluationDependencies,'evaluate'|'onDiagnostic'>):Promise<InterviewWorkflow>{
  const s=snapshot(raw),c=parse(SubmitWorkflowAnswerSchema,command);authorize(s,c);
  if(s.phase!=='awaiting_answer'||!s.current)throw new AgentStateError('VERSION_CONFLICT');
+ const pinnedAssistance=s.hintAssistance?.find(h=>h.questionId===s.current!.question.id)?.assistance;
+ if(pinnedAssistance&&!same(pinnedAssistance,c.assistance))throw new AgentStateError('VERSION_CONFLICT');
  return bounded(async(signal,check)=>{
   if(check()<s.currentIssuedAt!)throw new AgentStateError('VALIDATION_ERROR');
   const input={state:s.state,expectedVersion:s.state.version,observationId:c.observationId,goal:s.goal,context:c.context,
-   question:s.current!.question,answer:c.answer,quality:c.quality,rubric:s.current!.rubric,knowledge:[],planningPolicy:s.policy,...(c.speech?{speech:c.speech}:{}),
+   question:s.current!.question,answer:c.answer,...(c.assistance?{assistance:c.assistance}:{}),quality:c.quality,rubric:s.current!.rubric,knowledge:[],planningPolicy:s.policy,...(c.speech?{speech:c.speech}:{}),
    ...(s.issuedQuestions.at(-1)?.content?{presentedText:s.issuedQuestions.at(-1)!.content!.text}:{})};
   if([...s.turns,...(s.clarificationAttempts??[])].some(t=>t.input.answer.id===c.answer.id||t.input.context.runId===c.context.runId
     ||t.input.observationId===c.observationId&&t.input.question.id!==input.question.id))throw new AgentStateError('VERSION_CONFLICT');
-  const previous=s.clarificationAttempts?.filter(a=>a.input.question.id===input.question.id).at(-1)?.resolution;
+  const previousAttempt=s.clarificationAttempts?.filter(a=>a.input.question.id===input.question.id).at(-1);
+  if(!isAssistanceContinuation(previousAttempt?.input.assistance,c.assistance))throw new AgentStateError('VERSION_CONFLICT');
+  const previous=previousAttempt?.resolution;
   const resolution=await evaluateTurnWithClarification(input,{evaluate:deps.evaluate,signal,now:deps.now??Date.now,...(deps.onDiagnostic?{onDiagnostic:deps.onDiagnostic}:{})},previous?{previous}:{});const at=check();
   if(resolution.status!=='scored'){
    const finished=resolution.status==='abstained'&&decideNextAction(s.state,at,s.policy.parameters).action==='finish';

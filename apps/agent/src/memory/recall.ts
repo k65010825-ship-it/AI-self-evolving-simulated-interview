@@ -16,6 +16,7 @@ function select(evidence: Evidence[], skillIds: string[], now: number, rawPolicy
   for (const e of ordered) {
     if (seen.has(e.questionId)) { exclude(e,'duplicate'); continue; } seen.add(e.questionId);
     if (!ids.has(e.skillId)) { exclude(e,'irrelevant_skill'); continue; }
+    if(e.assistance){exclude(e,'assisted_evidence');continue;}
     if(!eligible.has(e.questionId)){exclude(e,'rubric_incompatible');continue;}
     if (now-e.observedAt > policy.maxAgeDays*86400000) { exclude(e,'age'); continue; }
     groups.get(e.skillId)!.push(e);

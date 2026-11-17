@@ -1,3 +1,4 @@
+import {HintAssistanceSchema} from './hints.ts';
 import { z } from 'zod';
 import { KnowledgeItemSchema, RoleIdSchema } from './tools.ts';
 import {consistentSkillScopes}from'./rubric-dimensions.ts';
@@ -13,7 +14,7 @@ export const CreateInterviewStateSchema = z.object({
 export const SkillObservationSchema = z.object({
   observationId: id, roleId: RoleIdSchema, skillId: id, questionId: id,
   questionType: KnowledgeItemSchema.shape.questionType, difficulty: KnowledgeItemSchema.shape.difficulty,
-  score: z.number().min(0).max(1), quality: z.number().positive().max(1), observedAt: z.number().int().nonnegative(),
+  assistance:HintAssistanceSchema.optional(),score: z.number().min(0).max(1), quality: z.number().positive().max(1), observedAt: z.number().int().nonnegative(),
 }).strict();
 export type SkillObservation = z.infer<typeof SkillObservationSchema>;
 export const HistoricalEvidenceSchema = SkillObservationSchema.extend({ sessionId: id, rubricId: id, rubricVersion: id,

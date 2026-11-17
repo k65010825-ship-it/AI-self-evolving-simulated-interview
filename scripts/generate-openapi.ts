@@ -1,4 +1,5 @@
 import {LocalAnswerPageSchema,LocalReportViewSchema} from '../packages/contracts/src/local-presentation.ts';
+import {HintRequestSchema,HintStatusInputSchema,HintStatusSchema,HintReceiptSchema,HintJournalSchema} from '../packages/contracts/src/hints.ts';
 import { writeFile } from 'node:fs/promises';
 import { stringify } from 'yaml';
 import { z } from 'zod';
@@ -191,7 +192,7 @@ await writeFile(new URL('../docs/speech-schemas.json',import.meta.url),JSON.stri
   speechExpression:z.toJSONSchema(SpeechExpressionSchema),speechTranscript:z.toJSONSchema(SpeechTranscriptSchema),
   confirmSpeech:z.toJSONSchema(ConfirmSpeechSchema),speechAnswer:z.toJSONSchema(SpeechAnswerSchema),
 },null,2)+'\n');
-await writeFile('docs/local-runtime-schemas.json',JSON.stringify({request:z.toJSONSchema(LocalRequestSchema),response:z.toJSONSchema(LocalResponseSchema),notification:z.toJSONSchema(LocalNotificationSchema),
+await writeFile('docs/local-runtime-schemas.json',JSON.stringify({hints:{request:z.toJSONSchema(HintRequestSchema),statusInput:z.toJSONSchema(HintStatusInputSchema),status:z.toJSONSchema(HintStatusSchema),receipt:z.toJSONSchema(HintReceiptSchema),journal:z.toJSONSchema(HintJournalSchema)},request:z.toJSONSchema(LocalRequestSchema),response:z.toJSONSchema(LocalResponseSchema),notification:z.toJSONSchema(LocalNotificationSchema),
  readPage:z.toJSONSchema(LocalReadPageSchema),answerPage:z.toJSONSchema(LocalAnswerPageSchema),reportView:z.toJSONSchema(LocalReportViewSchema),sessionView:z.toJSONSchema(LocalSessionViewSchema),jobView:z.toJSONSchema(LocalJobViewSchema),commands:Object.fromEntries(Object.entries(LocalCommandSchemas).map(([key,value])=>[key,z.toJSONSchema(value)])),liveGrant:z.toJSONSchema(LocalLiveGrantInputSchema),liveReconciliation:z.toJSONSchema(LocalLiveReconciliationSchema),sessionBudget:z.toJSONSchema(LocalSessionBudgetSchema),privateCredentialFrames:{request:z.toJSONSchema(LocalCredentialRequestSchema),response:z.toJSONSchema(LocalCredentialResponseSchema),cancel:z.toJSONSchema(LocalCredentialCancelSchema)}},null,2)+'\n');
 await writeFile('docs/local-acceptance-schemas.json',JSON.stringify({batch:z.toJSONSchema(LocalAcceptanceBatchSchema),authorization:z.toJSONSchema(LocalAcceptanceAuthorizationSchema)},null,2)+'\n');
 await writeFile('docs/scoring-quality-schemas.json',JSON.stringify({batch:z.toJSONSchema(ScoringQualityBatchSchema),authorization:z.toJSONSchema(ScoringQualityAuthorizationSchema),report:z.toJSONSchema(ScoringQualityReportSchema),stability:z.toJSONSchema(ScoringStabilityComparisonSchema),verificationCandidates:z.toJSONSchema(VerificationCandidateCatalogSchema),candidateEvaluation:z.toJSONSchema(CandidateEvaluationSchema)},null,2)+'\n');
