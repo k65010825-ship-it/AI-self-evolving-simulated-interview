@@ -12,6 +12,8 @@
 
 ## 2. 帧、任务与状态
 
+新建本地会话从当前实际使用的种子知识目录固定历史量规精确兼容清单，作为已有workflow JSON中的historyCompatibility保存；旧会话保留原策略，不补写或清空历史，无数据库版本升级、新表或新RPC。priorEvidenceCount仍为保留的原始历史总量，不代表全部参与能力估计；不兼容记录仍保留并用于避免重复考题。精确版本匹配只是宿主声明，不代表内容已经人工审核、不同量规具有测量等价性或来源模式已经获真人认证。
+
 新建会话固定local-v2规划策略，增加可选difficultyProgression标记；旧会话保留原策略与历史结果。profile版本仍为v3，既有workflow JSON读写即可保存，不新增DDL或repository接口，桌面不传该参数。Agent负责解释具体决策与校验；页面使用已提交问题和状态。题库不足时不承诺每次计划升难都能选到精确难度的题目。
 
 UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显示给学生。单帧≤1MiB，回答≤10000 字符，最多 8 个在途请求。
