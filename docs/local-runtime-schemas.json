@@ -1,4 +1,512 @@
 {
+  "processDiagnostics": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "type": "number",
+        "const": 1
+      },
+      "events": {
+        "maxItems": 64,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "client",
+                "runtime"
+              ]
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "startup",
+                "rpc",
+                "input",
+                "output",
+                "shutdown",
+                "process"
+              ]
+            },
+            "code": {
+              "type": "string",
+              "enum": [
+                "BOOTSTRAP_STARTED",
+                "HOST_READY",
+                "STARTUP_FAILED",
+                "REQUEST_RECEIVED",
+                "INPUT_CLOSED",
+                "INPUT_INVALID",
+                "OUTPUT_FAILED",
+                "OUTPUT_TIMEOUT",
+                "SHUTDOWN_STARTED",
+                "SHUTDOWN_COMPLETED",
+                "SHUTDOWN_FAILED",
+                "PROCESS_SPAWNED",
+                "PROCESS_EXIT",
+                "PROCESS_CLOSED",
+                "PROCESS_ERROR",
+                "REQUEST_SENT",
+                "RESPONSE_RECEIVED",
+                "REQUEST_TIMEOUT",
+                "PIPE_ERROR",
+                "PROTOCOL_INVALID",
+                "FORCED_TERMINATION"
+              ]
+            },
+            "seq": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "elapsedMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "method": {
+              "type": "string",
+              "enum": [
+                "runtime.initialize",
+                "runtime.status",
+                "runtime.shutdown",
+                "live.authorize",
+                "live.revoke",
+                "live.budget",
+                "live.reconcile",
+                "roles.list",
+                "hint.status",
+                "hint.request",
+                "session.create",
+                "session.nextQuestion",
+                "session.answer",
+                "session.complete",
+                "session.list",
+                "session.get",
+                "session.answers",
+                "session.report",
+                "memory.get",
+                "job.get",
+                "job.cancel",
+                "job.events",
+                "speech.upload.begin",
+                "speech.upload.chunk",
+                "speech.upload.finish",
+                "speech.asr.start",
+                "speech.task.get",
+                "speech.confirm",
+                "speech.answer.retry",
+                "speech.tts.start",
+                "speech.audio.read",
+                "speech.audio.release",
+                "speech.authorize",
+                "speech.revoke",
+                "speech.budget",
+                "speech.reconcile"
+              ]
+            },
+            "failureCode": {
+              "type": "string",
+              "enum": [
+                "LOCAL_PROFILE_BUSY",
+                "LOCAL_OWNER_LOST",
+                "LOCAL_SCHEMA_UNSUPPORTED",
+                "LOCAL_PATH_INVALID",
+                "LOCAL_CONFIG_INVALID",
+                "LOCAL_CLOCK_INVALID",
+                "LOCAL_DATA_INVALID"
+              ]
+            },
+            "exitCode": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signal": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "SIGTERM",
+                    "SIGKILL",
+                    "SIGINT",
+                    "SIGABRT",
+                    "SIGSEGV"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "source",
+            "stage",
+            "code",
+            "seq",
+            "elapsedMs"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "discarded": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "events",
+      "discarded"
+    ],
+    "additionalProperties": false
+  },
+  "processFailureContext": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "type": "number",
+        "const": 1
+      },
+      "lastClient": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "runtime"
+                ]
+              },
+              "stage": {
+                "type": "string",
+                "enum": [
+                  "startup",
+                  "rpc",
+                  "input",
+                  "output",
+                  "shutdown",
+                  "process"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "BOOTSTRAP_STARTED",
+                  "HOST_READY",
+                  "STARTUP_FAILED",
+                  "REQUEST_RECEIVED",
+                  "INPUT_CLOSED",
+                  "INPUT_INVALID",
+                  "OUTPUT_FAILED",
+                  "OUTPUT_TIMEOUT",
+                  "SHUTDOWN_STARTED",
+                  "SHUTDOWN_COMPLETED",
+                  "SHUTDOWN_FAILED",
+                  "PROCESS_SPAWNED",
+                  "PROCESS_EXIT",
+                  "PROCESS_CLOSED",
+                  "PROCESS_ERROR",
+                  "REQUEST_SENT",
+                  "RESPONSE_RECEIVED",
+                  "REQUEST_TIMEOUT",
+                  "PIPE_ERROR",
+                  "PROTOCOL_INVALID",
+                  "FORCED_TERMINATION"
+                ]
+              },
+              "seq": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "elapsedMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "runtime.initialize",
+                  "runtime.status",
+                  "runtime.shutdown",
+                  "live.authorize",
+                  "live.revoke",
+                  "live.budget",
+                  "live.reconcile",
+                  "roles.list",
+                  "hint.status",
+                  "hint.request",
+                  "session.create",
+                  "session.nextQuestion",
+                  "session.answer",
+                  "session.complete",
+                  "session.list",
+                  "session.get",
+                  "session.answers",
+                  "session.report",
+                  "memory.get",
+                  "job.get",
+                  "job.cancel",
+                  "job.events",
+                  "speech.upload.begin",
+                  "speech.upload.chunk",
+                  "speech.upload.finish",
+                  "speech.asr.start",
+                  "speech.task.get",
+                  "speech.confirm",
+                  "speech.answer.retry",
+                  "speech.tts.start",
+                  "speech.audio.read",
+                  "speech.audio.release",
+                  "speech.authorize",
+                  "speech.revoke",
+                  "speech.budget",
+                  "speech.reconcile"
+                ]
+              },
+              "failureCode": {
+                "type": "string",
+                "enum": [
+                  "LOCAL_PROFILE_BUSY",
+                  "LOCAL_OWNER_LOST",
+                  "LOCAL_SCHEMA_UNSUPPORTED",
+                  "LOCAL_PATH_INVALID",
+                  "LOCAL_CONFIG_INVALID",
+                  "LOCAL_CLOCK_INVALID",
+                  "LOCAL_DATA_INVALID"
+                ]
+              },
+              "exitCode": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 4294967295
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signal": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "SIGTERM",
+                      "SIGKILL",
+                      "SIGINT",
+                      "SIGABRT",
+                      "SIGSEGV"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "stage",
+              "code",
+              "seq",
+              "elapsedMs"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "lastRuntime": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "client",
+                  "runtime"
+                ]
+              },
+              "stage": {
+                "type": "string",
+                "enum": [
+                  "startup",
+                  "rpc",
+                  "input",
+                  "output",
+                  "shutdown",
+                  "process"
+                ]
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "BOOTSTRAP_STARTED",
+                  "HOST_READY",
+                  "STARTUP_FAILED",
+                  "REQUEST_RECEIVED",
+                  "INPUT_CLOSED",
+                  "INPUT_INVALID",
+                  "OUTPUT_FAILED",
+                  "OUTPUT_TIMEOUT",
+                  "SHUTDOWN_STARTED",
+                  "SHUTDOWN_COMPLETED",
+                  "SHUTDOWN_FAILED",
+                  "PROCESS_SPAWNED",
+                  "PROCESS_EXIT",
+                  "PROCESS_CLOSED",
+                  "PROCESS_ERROR",
+                  "REQUEST_SENT",
+                  "RESPONSE_RECEIVED",
+                  "REQUEST_TIMEOUT",
+                  "PIPE_ERROR",
+                  "PROTOCOL_INVALID",
+                  "FORCED_TERMINATION"
+                ]
+              },
+              "seq": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "elapsedMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "runtime.initialize",
+                  "runtime.status",
+                  "runtime.shutdown",
+                  "live.authorize",
+                  "live.revoke",
+                  "live.budget",
+                  "live.reconcile",
+                  "roles.list",
+                  "hint.status",
+                  "hint.request",
+                  "session.create",
+                  "session.nextQuestion",
+                  "session.answer",
+                  "session.complete",
+                  "session.list",
+                  "session.get",
+                  "session.answers",
+                  "session.report",
+                  "memory.get",
+                  "job.get",
+                  "job.cancel",
+                  "job.events",
+                  "speech.upload.begin",
+                  "speech.upload.chunk",
+                  "speech.upload.finish",
+                  "speech.asr.start",
+                  "speech.task.get",
+                  "speech.confirm",
+                  "speech.answer.retry",
+                  "speech.tts.start",
+                  "speech.audio.read",
+                  "speech.audio.release",
+                  "speech.authorize",
+                  "speech.revoke",
+                  "speech.budget",
+                  "speech.reconcile"
+                ]
+              },
+              "failureCode": {
+                "type": "string",
+                "enum": [
+                  "LOCAL_PROFILE_BUSY",
+                  "LOCAL_OWNER_LOST",
+                  "LOCAL_SCHEMA_UNSUPPORTED",
+                  "LOCAL_PATH_INVALID",
+                  "LOCAL_CONFIG_INVALID",
+                  "LOCAL_CLOCK_INVALID",
+                  "LOCAL_DATA_INVALID"
+                ]
+              },
+              "exitCode": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 4294967295
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "signal": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "SIGTERM",
+                      "SIGKILL",
+                      "SIGINT",
+                      "SIGABRT",
+                      "SIGSEGV"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "stage",
+              "code",
+              "seq",
+              "elapsedMs"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "discarded": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "lastClient",
+      "lastRuntime",
+      "discarded"
+    ],
+    "additionalProperties": false
+  },
   "hints": {
     "request": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",

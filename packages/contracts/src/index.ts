@@ -64,3 +64,4 @@ export * from './verification-candidates.ts';
 
 export * from './local-presentation.ts';
 export * from './hints.ts';
+export * from './local-process.ts';
