@@ -113,3 +113,22 @@ live.reconcile的预算写入与唯一对账回执在同一事务：任一步失
 复测要排除原记录中答过但未评分/弃评的题，不能因没有分数就当作新题。冻结记录保存完整历史/本场已评分及报告内未评分题ID，最多4400条，不截断；仅展示未作答的题仍须由宿主完整已发题清单排除。已有冻结记录不自动补写，缺来源信息的旧记录不能因此追认为独立复测证据。点击或自报完成不等于核验完成，模拟配对不能混入真人校准。
 
 RSI首版只允许声明的单步追问深度调整，其余策略参数必须完全不变；评估、激活候选和实验快照恢复使用相同约束。正式策略发布/客户端采用仍未验收，离线实验结果不可冒充已上线或真实教学改善。本轮补强的是Agent核心规则，尚无本地学习/复测/实验RPC与对应存储接线，前端不能自行构造方法名或用模拟成功代替交付。
+
+## 8. 每题限次提示与辅助作答
+
+学生端通过 `hint.status {sessionId}` 获取当前已发题的 `issueId/used/remaining/reserved`；`hint.request {operationId,sessionId,issueId,expectedRevision}` 返回固定版本的一级/二级引导、原操作回执及当时剩余次数。每题最多2次成功提交，不扣金币、不调用模型；提示按technical/project/scenario/behavioral提供拆题及边界/取舍引导，不承诺提示内容已经人工质量审核。没有当前题、缺旧题内容或过期请求须明确拒绝。
+
+提示计次按profile/session/稳定发题绑定，不能用workflow revision作计数键：澄清会改revision但不换题。成功提示原子保存回执及宿主持有的辅助标记，并递增workflow revision/storage version；客户端提示后刷新session再提交答案。旧operationId重放返回原回执（即使已用两次、换题、收尾、重启），不重新生成、不退次，响应中的remaining是该次提交时的值，当前值以status为准。并发预占返回HINT_BUSY，释放/中断操作需新operationId；已提交ID不得复用为面试或语音操作。
+
+| 场景 | 对外行为 |
+| --- | --- |
+| 未接入持久repository | status `available=false/reason=HINT_STORAGE_UNAVAILABLE`；request同码拒绝，不用内存次数替代 |
+| 两次已提交 | HINT_LIMIT_REACHED；原成功operationId仍可重放 |
+| 旧revision/旧issue | VERSION_CONFLICT/HINT_ISSUE_MISMATCH，不消耗成功次数 |
+| 回执写入失败/启动时仅有预占 | 事务回滚/释放预占，保留已提交次数；不自动重试模型 |
+| 本地提示历史与宿主标记不一致 | HINT_BINDING_MISMATCH，禁止以新空journal清零 |
+| 模型预算unknown | 新提示请求阻断；原提示回执可只读重放，不结算或清除unknown |
+
+回答的 `assistance={kind:'hint-assisted',issueId,hintVersion,receiptIds}` 只能由宿主从持久回执注入，文字与确认语音走相同提交协调器；renderer不传自报“未辅助”。提示后的澄清可增加辅助回执，不能删除/替换已有回执。逐题反馈保留练习分和辅助标签，能力画像、跨会话独立能力证据、难度递进、复测校准及RSI候选依据排除辅助回答；报告不把辅助分声称为独立成绩。旧数据缺标记保持旧语义，不追认为已经验证独立性。
+
+`feature/agent`已提供核心状态机、宿主/RPC和repository注入接线；默认随包入口尚未接入正式repository，不宣称提示产品可用。数据库负责人按[数据库交接](database.md#84-限次提示-repository-契约)实现同profile连接上的持久化与迁移，联合验收后启用 `limited-hints-v1` 能力。桌面UI、真实用户体验和非开发机安装另行验收。
