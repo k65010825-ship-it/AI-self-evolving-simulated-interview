@@ -16,6 +16,8 @@
 
 UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显示给学生。单帧≤1MiB，回答≤10000 字符，最多 8 个在途请求。
 
+澄清补答沿用session.answer：text必须保留clarification.previousText的完整原文前缀，并在末尾追加非空补充；使用当前revision和新的operationId。宿主从该题已提交回执沿用观测ID，回答/运行ID仍为新值，客户端不传这些内部ID。相同operationId同内容可并发或跨重启重放，异内容拒绝；ACK丢失先查询/重放，不新建另一份补答。弃评仍为null，不是0分；结束时未评分题只进入报告缺口，不增加能力观测或成长记忆。语音确认也走同一宿主提交路径，不另发session.answer。
+
 ```json
 {"protocolVersion":1,"type":"request","id":"req-1","method":"session.get","params":{"sessionId":"session-id"}}
 ```
