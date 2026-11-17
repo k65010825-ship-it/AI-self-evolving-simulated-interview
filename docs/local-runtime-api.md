@@ -93,6 +93,10 @@ LLM/ASR/TTS 使用各自 grantId/credentialRef 和子额度，共受会话总额
 
 ## 6. 客户端必须处理的失败
 
+启动初始化失败会释放本次已取得的profile资源和租约，保留原始错误与预算记录；这不表示会自动修复损坏数据，也不能释放其他owner/fence的占用。持久候选恢复仍须通过原期限、版本、grant和预算校验；失败任务保持interrupted，errorCode可保留COMMIT_LEASE_EXPIRED、COMMIT_VERSION_CONFLICT等格式受限原因，未识别异常仍为INTERRUPTED。页面先查询原操作，不按错误自动重发收费命令。
+
+live.reconcile的预算写入与唯一对账回执在同一事务：任一步失败都回滚，unknown及占用继续保留；成功后同内容可跨重启重放，异内容拒绝，不重复计费。对账不重开终态任务、不自动提交旧模型候选或增加额度；authority仍为宿主提供usage，不能标作供应商账单已核验。
+
 | 情况 | 接线行为 |
 | --- | --- |
 | VERSION_CONFLICT | 重新查询正式 revision/原操作，不能覆盖或重复奖励 |
