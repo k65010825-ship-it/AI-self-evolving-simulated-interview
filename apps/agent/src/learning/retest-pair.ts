@@ -14,8 +14,9 @@ export async function createPrediction(rawInput:unknown):Promise<Prediction>{
  return parseLearning(PredictionSchema,{kind:'frozen-learning-prediction',userId:input.userId,roleId:input.roleId,assignmentId:input.assignmentId,
   predictionId:input.predictionId,skillId:input.progress.skillId,dataMode:input.progress.dataMode,issuedAt:input.issuedAt,validUntil:input.validUntil,
   predictedTargetScore:input.predictedTargetScore,predictorVersion:input.predictorVersion,target:input.target,expectedExerciseIds:input.progress.requiredExerciseIds,
-  sourceSessionId:report.sessionId,sourceAnswerId:source.answerId,sourceQuestionIds:[...new Set([...input.sourceReportInput.state.priorEvidence,
-   ...input.sourceReportInput.state.observations].filter(o=>o.skillId===source.skillId).map(o=>o.questionId))],
+  sourceSessionId:report.sessionId,sourceAnswerId:source.answerId,sourceQuestionIds:[...new Set([
+   ...input.sourceReportInput.state.priorEvidence.map(o=>o.questionId),...input.sourceReportInput.state.observations.map(o=>o.questionId),
+   ...(report.unscoredAnswers??[]).map(a=>a.questionId)])],
   sourceModelScore:source.evaluation.normalizedScore,sourceEvidenceMode:report.evidenceMode});
 }
 export async function pairRetest(rawInput:unknown):Promise<PerformancePair>{

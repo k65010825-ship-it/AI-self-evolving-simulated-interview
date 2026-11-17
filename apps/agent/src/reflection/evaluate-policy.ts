@@ -1,5 +1,6 @@
 import{PolicyEvaluationInputSchema,PolicyEvaluationSchema,type PolicyEvaluation}from'../../../../packages/contracts/src/reflection.ts';
 import{AgentStateError,decideNextAction,type NextAction}from'../planning/interview-state.ts';
+import{isOneStepDepthReduction}from'../../../../packages/contracts/src/policy.ts';
 const invalid=():never=>{throw new AgentStateError('VALIDATION_ERROR');};
 export function evaluatePolicyCandidate(rawInput:unknown):PolicyEvaluation{
  const parsed=PolicyEvaluationInputSchema.safeParse(rawInput);if(!parsed.success)return invalid();
@@ -8,9 +9,10 @@ export function evaluatePolicyCandidate(rawInput:unknown):PolicyEvaluation{
   throw new AgentStateError('ROLE_FORBIDDEN');
  if(candidate.baselineId!==baseline.id)throw new AgentStateError('VERSION_CONFLICT');
  const change=candidate.changes[0]!;
- if(candidate.id===baseline.id||candidate.parameters.maxFollowupDepth!==baseline.parameters.maxFollowupDepth-1
-  ||candidate.parameters.maxFollowupDepth<1||candidate.parameters.wrapUpSeconds!==baseline.parameters.wrapUpSeconds
-  ||candidate.parameters.maxTurns!==baseline.parameters.maxTurns||change.from!==baseline.parameters.maxFollowupDepth
+ // Both objects are normalized by PlanningPolicySchema. Bind every parameter, including
+ // optional/new fields, rather than maintaining a list that silently misses additions.
+ if(candidate.id===baseline.id||!isOneStepDepthReduction(baseline.parameters,candidate.parameters)
+  ||change.from!==baseline.parameters.maxFollowupDepth
   ||change.to!==candidate.parameters.maxFollowupDepth)return invalid();
  const development=new Set([...developmentGroupIds,candidate.sourceGroupId]);
  const sourceSessions=new Set([...developmentSessionIds,candidate.sourceSessionId]);

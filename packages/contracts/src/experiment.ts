@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {RoleIdSchema} from './tools.ts';
-import {PlanningPolicyVersionSchema} from './policy.ts';
+import {PlanningPolicyVersionSchema,isOneStepDepthReduction} from './policy.ts';
 import {PolicyEvaluationInputSchema,PolicyEvaluationSchema} from './reflection.ts';
 const id=z.string().min(1).max(100);
 const policyId=PlanningPolicyVersionSchema.shape.id;
@@ -44,8 +44,7 @@ export const ExperimentRegistrySchema=z.object({schemaVersion:z.literal(1),kind:
     const before=policies.get(active),after=policies.get(o.resultPolicyId);
     if(e.status!=='eligible_for_offline_experiment'||e.candidateId!==o.resultPolicyId||total<4||e.groups<2||e.delta<=0||e.regressions
      ||e.reasons.length||e.baseline.constraintViolations||e.candidate.constraintViolations||!before||!after
-     ||after.parameters.maxFollowupDepth!==before.parameters.maxFollowupDepth-1||after.parameters.maxFollowupDepth<1
-     ||after.parameters.maxTurns!==before.parameters.maxTurns||after.parameters.wrapUpSeconds!==before.parameters.wrapUpSeconds
+     ||!isOneStepDepthReduction(before.parameters,after.parameters)
      ||(parents.has(o.resultPolicyId)&&parents.get(o.resultPolicyId)!==active))invalid=true;
     parents.set(o.resultPolicyId,active);known.add(o.resultPolicyId);
    }else if(e.status!=='rejected'||o.resultPolicyId!==active||!e.reasons.length)invalid=true;

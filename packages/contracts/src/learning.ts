@@ -37,7 +37,7 @@ export const LearningSummarySchema=z.object({status:z.enum(['not_started','in_pr
 const target=z.object({difficulty:z.number().int().min(1).max(5),rubric:RubricSchema}).strict();
 export const PredictionSchema=LearningIdentitySchema.extend({kind:z.literal('frozen-learning-prediction'),predictionId:id,skillId:id,dataMode:DataModeSchema,
  issuedAt:time,validUntil:time,predictedTargetScore:z.number().min(0).max(1),predictorVersion:id,target,
- expectedExerciseIds:z.array(id).min(1).max(10),sourceSessionId:id,sourceAnswerId:id,sourceQuestionIds:z.array(id).min(1).max(4200),
+ expectedExerciseIds:z.array(id).min(1).max(10),sourceSessionId:id,sourceAnswerId:id,sourceQuestionIds:z.array(id).min(1).max(4400),
  sourceModelScore:z.number().min(0).max(1),sourceEvidenceMode:EvidenceModeSchema}).strict().superRefine((p,ctx)=>{
  if(p.validUntil<=p.issuedAt||p.validUntil-p.issuedAt>7*86400000||p.target.rubric.roleId!==p.roleId
   ||new Set(p.expectedExerciseIds).size!==p.expectedExerciseIds.length||new Set(p.sourceQuestionIds).size!==p.sourceQuestionIds.length)

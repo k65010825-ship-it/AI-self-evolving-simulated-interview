@@ -1,5 +1,13 @@
 # 学习完成证据与复测配对
 
+## 完整答题排除与证据边界
+
+新createPrediction从已核验源报告保留全部priorEvidence/本场观测题ID，以及unscoredAnswers中的缺证据/弃评题ID。未评分题只进入排除集合，不新增能力观测、评分或学习完成证据。sourceQuestionIds上限4400对应公开报告4000历史+200评分+200未评分；不裁掉记录来凑预算。planRetestQuestion和pairRetest共用冻结排除集合，保持不同题资格一致。
+
+仅展示未提交的题不在报告答案中，宿主仍须提供完整askedQuestionIds；冻结对象不因升级自动回填。缺来源的旧预测不能追认为已经排除了所有曝光题，应保留原件并由受信宿主以原始来源重新安排合法的新预测/任务，不能在复测曝光后改旧预测制造先验。核心函数、离线示例和用户页面可用仍分开；本地学习RPC/存储尚未接入。
+
+dataMode与源报告/参考依据继续交叉检查：模拟配对只进入模拟统计，不能靠把任务标签改为consented或参考basis改为human-reviewed把离线来源升级成真人证据。schema校验不能证明宿主上传标签与审核身份真实，独立人工审核仍需实际执行。
+
 实现范围：Agent侧宿主函数、结构化学习事件、冻结预测、报告核验后的复测合格性与分组描述统计。没有学习HTTP/数据库/代码判题器/真人审核界面；artifact、参考评分与时间戳须由后端可信记录提供，schema通过不证明外部事件真实发生。
 
 契约：packages/contracts/src/learning.ts。实现：learning/progress.ts、learning/retest-pair.ts。机器定义在evaluation-schemas.json中。所有输入均为已授权宿主数据，不是模型可自报身份或完成状态的工具。

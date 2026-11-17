@@ -1,5 +1,11 @@
 # 会话收尾与 RSI 离线实验
 
+## 单维变更与恢复一致性
+
+isOneStepDepthReduction在共享契约中约束已归一化参数：候选必须精确等于baseline.parameters仅将maxFollowupDepth降低1，且结果至少1。候选评估与ExperimentRegistrySchema审计链恢复共用该规则，新增可选参数也不能被旧逐项白名单漏掉；difficultyProgression的额外添加/删除均拒绝，基线与候选相同固定值则保留。
+
+合法旧单维实验记录可恢复；含未声明变更的旧记录会拒绝，不静默修复/覆盖原件。约束检查不是数字签名，也不证明整个快照来自可信操作者；源会话、分组、版本与参考数据仍由受信宿主校验。输出继续offline-experiment、synthetic、productionPublished=false，下一场pin仍是预览，不改变已开始会话或完成正式发布。
+
 本模块把完整会话的反思候选送入可重复的策略实验，返回审计、解释与下一场策略固定值预览。入口是 `evaluateWorkflowRsi`，也可通过内部 runs 的 `rsi` 任务调用。输出始终是 `uncommitted-workflow-rsi`、`scope=offline-experiment`、`productionPublished=false`；业务 API 的正式策略发布、事务和存储仍待实现。
 
 ## 开发与演示
