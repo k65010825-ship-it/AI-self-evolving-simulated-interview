@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';import type {Database} from 'bun:sqlite';
-import {openLocalProfile,LocalError} from './profile-store.ts';
+import {openLocalProfile,LocalError,type LocalProfile} from './profile-store.ts';
 import {LocalCommandSchemas,LocalReadPageSchema,LocalJobViewSchema,LocalSessionViewSchema,LocalEventSchema,type LocalCommand,type LocalEvent} from '../../../../packages/contracts/src/local-runtime.ts';
 import {RoleIdSchema,type RoleId} from '../../../../packages/contracts/src/tools.ts';
 import {AgentRunRequestSchema,AgentRunSnapshotSchema,type AgentRunRequest,type AgentRunSnapshot} from '../../../../packages/contracts/src/agent-run.ts';
@@ -24,8 +24,15 @@ type Session={session_id:string;role_id:RoleId;storage_version:number;workflow:s
 const labels:Record<RoleId,Record<string,string>>={'java-backend':{'spring-transactions':'Spring事务','java-concurrency':'Java并发','project-design':'项目设计','collaboration':'协作表达'},'web-frontend':{'async-state':'React异步状态','javascript':'JavaScript基础','project-design':'项目设计','collaboration':'协作表达'}};
 function fail(code:string):never{throw new LocalError(code);}
 function safeCode(error:unknown){const c=(error as {code?:unknown}|null)?.code;return typeof c==='string'&&/^[A-Z_]{1,80}$/.test(c)?c:'DEPENDENCY_UNAVAILABLE';}
-export async function createLocalHost(options:{dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void}){
- const profile=openLocalProfile(options),clock=options.now??Date.now,live=createLocalLiveStore(profile,{now:clock});let closing=false,closed=false,executionStarts=0,modelHttpAttempts=0;
+type LocalHostOptions={dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void};
+export async function createLocalHost(options:LocalHostOptions){
+ const profile=openLocalProfile(options),cleanup=[()=>profile.close()];
+ try{return initializeLocalHost(profile,options,cleanup);}
+ catch(error){for(const dispose of cleanup.reverse())try{dispose();}catch{/* Preserve the original initialization failure. */}throw error;}
+}
+/** Startup only recovers local records; provider dispatch starts after a command is accepted. */
+function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,cleanup:(()=>void)[]){
+ const clock=options.now??Date.now,live=createLocalLiveStore(profile,{now:clock});let closing=false,closed=false,executionStarts=0,modelHttpAttempts=0;
  const authorizedSessions=new Set<string>();
  const listeners=new Set<(event:LocalEvent)=>void>(),queue:string[]=[],pending=new Map<string,{done:Promise<void>;resolve:()=>void}>();
  const active=new Map<string,{manager?:ReturnType<typeof createRunManager>;cancelled:boolean;controller:AbortController}>();
@@ -56,7 +63,7 @@ export async function createLocalHost(options:{dataDir:string;assetsRoot:string;
  function sessionRowRead(id:string){return profile.read(db=>workflow(sessionRow(db,row(db,id).session_id))?.phase);}
  // Recovery is observation/commit only: never recreate providers or repeat an interrupted call.
  const interrupted=profile.read(db=>db.query("SELECT * FROM local_jobs WHERE status IN ('queued','running') ORDER BY created_at").all()as Job[]);
- for(const j of interrupted){try{if(j.status==='running'&&j.snapshot&&JSON.parse(j.snapshot).status==='completed')commit(j.job_id);else terminate(j.job_id,'interrupted','INTERRUPTED');}catch{terminate(j.job_id,'interrupted','INTERRUPTED');}}
+ for(const j of interrupted){try{if(j.status==='running'&&j.snapshot&&JSON.parse(j.snapshot).status==='completed')commit(j.job_id);else terminate(j.job_id,'interrupted','INTERRUPTED');}catch(error){const code=safeCode(error);terminate(j.job_id,'interrupted',code==='DEPENDENCY_UNAVAILABLE'?'INTERRUPTED':code);}}
  function deferred(id:string){let p=pending.get(id);if(!p){let resolve!:()=>void;const done=new Promise<void>(r=>{resolve=r;});p={done,resolve};pending.set(id,p);}return p;}
  function checkpoint(id:string,snapshot:AgentRunSnapshot){let event!:LocalEvent;
   profile.write(db=>{const j=row(db,id);if(j.status!=='running')fail('RUN_CANCELLED');db.query('UPDATE local_jobs SET snapshot=? WHERE job_id=?').run(JSON.stringify(snapshot),id);
@@ -130,7 +137,7 @@ export async function createLocalHost(options:{dataDir:string;assetsRoot:string;
  function session(id:string,summary=false){return profile.read(db=>{const s=sessionRow(db,id),w=workflow(s),last=db.query('SELECT job_id FROM local_jobs WHERE session_id=? ORDER BY rowid DESC LIMIT 1').get(id)as {job_id:string}|null,lastOperation=last?job(last.job_id):null;return LocalSessionViewSchema.parse({...localSessionPresentation(w,summary),viewKind:summary?'summary':'full',startedAt:w?.state.startedAt??s.created_at,hasReport:!!w?.closeout,sessionId:id,roleId:s.role_id,revision:w?.revision??-1,phase:w?.phase??(lastOperation&&!['queued','running'].includes(lastOperation.status)?lastOperation.status:'creating'),deadlineAt:s.deadline_at,
   question:!summary&&w?.current?{id:w.current.question.id,text:w.issuedQuestions.at(-1)?.content?.text??w.current.question.text}:null,answeredCount:w?.turns.length??0,priorEvidenceCount:w?.state.priorEvidence.length??0,
   report:!summary&&w?localReport(w):null,lastOperation,mode:live.budget(id)?'live':'offline-fixture',authorizationStatus:live.budget(id)?(authorizedSessions.has(id)&&(live.activeGrant(id)?.expiresAt??0)>clock()?'authorized':'required'):'not-required'});});}
- const heartbeat=setInterval(()=>{try{profile.renew();}catch{closing=true;for(const a of active.values()){a.cancelled=true;a.controller.abort();a.manager?.dispose();}}},Math.max(1,Math.floor(profile.leaseMs/3)));heartbeat.unref();
+ const heartbeat=setInterval(()=>{try{profile.renew();}catch{closing=true;for(const a of active.values()){a.cancelled=true;a.controller.abort();a.manager?.dispose();}}},Math.max(1,Math.floor(profile.leaseMs/3)));cleanup.push(()=>clearInterval(heartbeat));heartbeat.unref();
  return{command:(method:LocalCommand,raw:unknown)=>command(method,raw),session,
   answerPage:(raw:unknown)=>{const p=LocalReadPageSchema.safeParse(raw);if(!p.success)fail('VALIDATION_ERROR');return profile.read(db=>localAnswerPage(workflow(sessionRow(db,p.data.sessionId)),{offset:p.data.offset,limit:p.data.limit,...(p.data.expectedRevision!==undefined?{expectedRevision:p.data.expectedRevision}:{})},p.data.sessionId));},
   report:(raw:unknown)=>{const p=LocalReadPageSchema.safeParse(raw);if(!p.success)fail('VALIDATION_ERROR');return profile.read(db=>localReport(workflow(sessionRow(db,p.data.sessionId)),{offset:p.data.offset,limit:p.data.limit,...(p.data.expectedRevision!==undefined?{expectedRevision:p.data.expectedRevision}:{})}));},

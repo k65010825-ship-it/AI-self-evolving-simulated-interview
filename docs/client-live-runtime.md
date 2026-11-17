@@ -1,5 +1,11 @@
 # 本地真实模型与凭证代理接入设计
 
+## 对账事务与恢复验收边界
+
+local-live-store的reconcile在同一profile事务内更新完整预算checkpoint并插入唯一对账回执。回执写入失败时，版本/unknown/占用/消耗一起回滚；受控修复故障后仍可按原版本提交。成功回执按原session/job/run/attempt/call与usage/evidence绑定跨重启幂等返回，不能二次扣费或改历史用量；任务终态不变，花费的调用次数不返还。
+
+tests/local-reconciliation-atomic.test.ts使用测试库触发器注入写入失败，证明原子性和重放；现有恢复回归继续验证unknown阻断、grant续期不重置额度、旧owner不能写入。全部为工程fixture，不读取真实凭证，不证明供应商账单或收费请求物理恰好一次。
+
 2026-11-13。承接已确认的[本地运行时设计](client-runtime.md)。**用户已于2026-11-13确认并进入实施：本地live文字执行、私有凭证代理与v2迁移已落地，验收采用注入HTTP和合成凭证。** 本轮不读取真实Key、不发付费调用、不修改桌面或既有用户数据库。
 
 ## 1. 选定边界
