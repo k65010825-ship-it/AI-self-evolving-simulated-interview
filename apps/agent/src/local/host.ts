@@ -112,7 +112,13 @@ export async function createLocalHost(options:{dataDir:string;assetsRoot:string;
    let operation:unknown;
    if(method==='session.create'){const create=LocalCommandSchemas['session.create'].parse(c);operation={action:'create',config:{identity,session:{sessionId,roleId:s.role_id,durationMinutes:create.durationMinutes,skills:Object.keys(labels[s.role_id]).map((skillId,i)=>({skillId,relevance:1-i*.05}))},policy:{id:'local-v2-'+s.role_id,roleId:s.role_id,parameters:{maxFollowupDepth:create.pressure?2:1,maxTurns:6,wrapUpSeconds:45,difficultyProgression:'independent-evidence-v1'}},goal:create.goal,skillLabels:labels[s.role_id],memory,allowDraftKnowledge:true,now:at}};}
    else if(method==='session.nextQuestion')operation={action:'plan',snapshot:w,command:{identity,expectedRevision:w!.revision,context}};
-   else if(method==='session.answer'){const answer=LocalCommandSchemas['session.answer'].parse(c);operation={action:'answer',snapshot:w,command:{identity,expectedRevision:w!.revision,context,observationId:randomUUID(),answer:source?source.speech.answer:{id:randomUUID(),text:answer.text},...(source?{speech:source.speech}:{}),quality:1,evidenceMode:liveBudget?'live-model':'offline-fixture'}};}
+   else if(method==='session.answer'){
+    const answer=LocalCommandSchemas['session.answer'].parse(c);
+    // The current question's committed receipt owns observation identity across clarification.
+    // Each submission still gets its own answer/run identity, task and idempotency receipt.
+    const previous=w!.clarificationAttempts?.filter(a=>a.input.question.id===w!.current?.question.id).at(-1)?.resolution;
+    const observationId=previous?.status==='needs_clarification'?previous.observationId:randomUUID();
+    operation={action:'answer',snapshot:w,command:{identity,expectedRevision:w!.revision,context,observationId,answer:source?source.speech.answer:{id:randomUUID(),text:answer.text},...(source?{speech:source.speech}:{}),quality:1,evidenceMode:liveBudget?'live-model':'offline-fixture'}};}
    else operation={action:'finish',snapshot:w,command:{identity,expectedRevision:w!.revision,mode:'user_stop',sourceGroupId:'local-'+sessionId}};
    const request=AgentRunRequestSchema.parse({inputSnapshotId:'input-'+id,context,job:{type:'workflow',operation}}),ticket=createWorkflowCommitTicket({identity,request,operationId:c.operationId,taskId:id,leaseVersion:profile.fence,expectedStorageVersion:w?s.storage_version:null,expectedMemoryVersion:memory.version,issuedAt:at,leaseUntil:context.deadlineAt});
    db.query('INSERT INTO local_jobs VALUES(?,?,?,?,?,?,?,?,NULL,NULL,NULL,?)').run(id,c.operationId,sessionId,s.role_id,hash,JSON.stringify(request),JSON.stringify(ticket),'queued',at);
