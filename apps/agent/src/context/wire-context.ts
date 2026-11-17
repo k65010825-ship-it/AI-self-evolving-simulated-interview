@@ -5,6 +5,7 @@ export interface WireContextPolicy{enabled:boolean;windowTokens:number;triggerRa
 export interface WireCompactor{id:string;compactMemory:(memory:readonly unknown[])=>unknown[];}
 export const defaultWireCompactors:readonly WireCompactor[]=[
  {id:'deduplicate-optional-memory',compactMemory:memory=>memory.filter((v,i)=>memory.findIndex(x=>JSON.stringify(x)===JSON.stringify(v))===i)},
+ {id:'halve-optional-memory',compactMemory:memory=>memory.slice(0,Math.ceil(memory.length/2))},
  {id:'drop-optional-memory',compactMemory:()=>[]},
 ];
 /** Conservative byte estimate, not a tokenizer or a vendor context guarantee. */

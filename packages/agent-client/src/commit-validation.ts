@@ -72,7 +72,8 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
       .sort((a, b) => a.observedAt - b.observedAt || (a.sessionId < b.sessionId ? -1 : a.sessionId > b.sessionId ? 1 : 0));
     requireEqual(after, { kind: 'uncommitted-interview-session', revision: 0, identity: c.identity,
       state: { schemaVersion: 1, sessionId: c.session.sessionId, roleId: c.session.roleId, version: 0, startedAt: c.now,
-        deadlineAt: c.now + c.session.durationMinutes * 60000, skills: c.session.skills, observations: [], currentSkillId: null, followupDepth: 0, difficulty: 2, priorEvidence },
+        deadlineAt: c.now + c.session.durationMinutes * 60000, skills: c.session.skills, observations: [], currentSkillId: null, followupDepth: 0, difficulty: 2, priorEvidence,
+        ...(c.session.historyCompatibility?{historyCompatibility:c.session.historyCompatibility}:{}) },
       policy: c.policy, goal: c.goal, skillLabels: c.skillLabels, baseMemory: c.memory, allowDraftKnowledge: c.allowDraftKnowledge,
       phase: 'ready_to_plan', turns: [], askedQuestionIds: [], issuedQuestions: [], current: null, currentIssuedAt: null, lastPlan: null, pendingReason: null, closeout: null });
     return;

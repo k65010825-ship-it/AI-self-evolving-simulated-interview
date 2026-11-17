@@ -4,8 +4,19 @@ import webSeed from '../../../../knowledge/web-frontend/seed.json' with { type: 
 import { KnowledgeItemSchema, KnowledgeQuerySchema, ToolContextSchema, ToolReceiptSchema,
   type ErrorCode, type ToolContext, type ToolReceipt, type KnowledgeItem } from '../../../../packages/contracts/src/tools.ts';
 import { describeError } from '../../../../packages/contracts/src/errors.ts';
+import {createHash} from 'node:crypto';
+import {HistoryCompatibilityPolicySchema} from '../../../../packages/contracts/src/history-compatibility.ts';
 
 const seed = z.array(KnowledgeItemSchema).parse([...javaSeed, ...webSeed]);
+/** Metadata from the exact retrieval catalog; compatibility is not human content approval. */
+export function seedHistoryCompatibility(roleId:ToolContext['roleId'],skillIds:readonly string[]){
+  const skills=new Set(skillIds);
+  const allowed=seed.filter(item=>item.roleId===roleId&&skills.has(item.skillId))
+    .map(item=>({skillId:item.skillId,rubricId:item.id,rubricVersion:item.version}))
+    .sort((a,b)=>{const x=JSON.stringify(a),y=JSON.stringify(b);return x<y?-1:x>y?1:0;});
+  const digest=createHash('sha256').update(JSON.stringify([roleId,allowed])).digest('hex').slice(0,20);
+  return HistoryCompatibilityPolicySchema.parse({id:'local-seed-'+digest,mode:'strict',allowed});
+}
 /** Development seed adapter; draft records are explicit, never a production repository. */
 export function createKnowledgeExecutor(context: ToolContext, options: { maxCalls?: number; includeDrafts?: boolean; catalog?: KnowledgeItem[] } = {}) {
   const ctx = ToolContextSchema.parse(context);

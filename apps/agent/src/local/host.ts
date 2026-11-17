@@ -13,6 +13,7 @@ import {createLocalSpeechHost,validateLocalSpeechSource,type SpeechSource} from 
 import type {LocalSpeechCommand} from '../../../../packages/contracts/src/local-speech-api.ts';
 import type {LocalSpeechDependencies} from './speech-executor.ts';
 import {createRunManager} from '../runtime/run-manager.ts';
+import {seedHistoryCompatibility} from '../tools/knowledge-executor.ts';
 import {createLocalLiveStore} from './live-store.ts';
 import {LocalLiveGrantInputSchema,type LocalLiveGrant} from '../../../../packages/contracts/src/local-live.ts';
 import type {LocalCredentialBinding} from '../../../../packages/contracts/src/local-credential.ts';
@@ -110,7 +111,7 @@ export async function createLocalHost(options:{dataDir:string;assetsRoot:string;
    const memory=memoryIn(db,s.role_id,at);db.query('INSERT INTO local_memory VALUES(?,?) ON CONFLICT DO NOTHING').run(s.role_id,JSON.stringify(memory));
    const context={userId:profile.profileId,roleId:s.role_id,runId:id,attemptId:'attempt-1',deadlineAt:Math.min(s.deadline_at,at+30000)},identity={userId:profile.profileId,roleId:s.role_id};
    let operation:unknown;
-   if(method==='session.create'){const create=LocalCommandSchemas['session.create'].parse(c);operation={action:'create',config:{identity,session:{sessionId,roleId:s.role_id,durationMinutes:create.durationMinutes,skills:Object.keys(labels[s.role_id]).map((skillId,i)=>({skillId,relevance:1-i*.05}))},policy:{id:'local-v2-'+s.role_id,roleId:s.role_id,parameters:{maxFollowupDepth:create.pressure?2:1,maxTurns:6,wrapUpSeconds:45,difficultyProgression:'independent-evidence-v1'}},goal:create.goal,skillLabels:labels[s.role_id],memory,allowDraftKnowledge:true,now:at}};}
+   if(method==='session.create'){const create=LocalCommandSchemas['session.create'].parse(c);operation={action:'create',config:{identity,session:{sessionId,roleId:s.role_id,durationMinutes:create.durationMinutes,historyCompatibility:seedHistoryCompatibility(s.role_id,Object.keys(labels[s.role_id])),skills:Object.keys(labels[s.role_id]).map((skillId,i)=>({skillId,relevance:1-i*.05}))},policy:{id:'local-v2-'+s.role_id,roleId:s.role_id,parameters:{maxFollowupDepth:create.pressure?2:1,maxTurns:6,wrapUpSeconds:45,difficultyProgression:'independent-evidence-v1'}},goal:create.goal,skillLabels:labels[s.role_id],memory,allowDraftKnowledge:true,now:at}};}
    else if(method==='session.nextQuestion')operation={action:'plan',snapshot:w,command:{identity,expectedRevision:w!.revision,context}};
    else if(method==='session.answer'){
     const answer=LocalCommandSchemas['session.answer'].parse(c);
