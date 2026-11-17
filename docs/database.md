@@ -135,3 +135,18 @@ revision/storage_version/业务operationId/通信request.id分别保留。旧att
 | 提示持久化 | 同题最多2次，原子预占/提交/释放，操作回执与辅助状态保留 | 并发/重启/澄清不重置，ACK丢失不多生成；计数释放不绕过unknown预算 |
 
 数据库/schema与repository接线由后端主责，Agent对其运行时兼容提供验收支持；不是把数据库工作全部转给Agent。可并行开展现有存储支持的RPC/页面安全投影；依赖新增存储的功能须在上述用例通过后启用。当前仍是待交付计划，不冒充已迁移或已完成人工验收。
+
+### 8.4 限次提示 repository 契约
+
+Agent提供 `HintBinding/HintJournal/HintAssistance` 契约及 `HintRepository` 注入端口。数据库实现由后端提供，复用宿主profile同一SQLite连接与既有写事务/owner/fence，不能另起学生库或跨await联网。本轮没有修改正式DDL、profile版本或迁移；测试中的test_hint_fixture仅为临时库验收fixture。
+
+| 方法 | 必须保证 |
+| --- | --- |
+| load(db,binding) | 完整journal或null；profile/session/岗位/issue绑定一致，不删减已提交操作 |
+| save(db,next,expectedVersion) | null表示首次插入，否则CAS；整个journal、版本和operation唯一约束同事务，异常抛出交由宿主回滚，不自己commit |
+| findOperation(db,userId,operationId) | 在profile内跨issue定位，包括released/reserved/committed，防同键跨题复用；面试/语音任务的同键由宿主共同排斥 |
+| pending(db,userId) | 返回全部含reserved的journal，最多4000，超限明确失败；启动仅释放本地模板预占，不改已提交回执、不重跑模型 |
+
+稳定issue由宿主对身份、session、完整已发题记录（含来源/版本、plan run、issuedAt）计算摘要。成功提示由宿主在save所在事务中更新现有workflow JSON的hintAssistance、revision和storage_version；repository不得再创建第二份正式workflow或单独提交辅助标签。每题最多2条committed、最多1条reserved，失败操作保留released且不计成功次数；每题操作日志上限128，超限拒绝，不清空旧操作来腾空间。ACK丢失重放原回执；启动释放预占不会解除模型账本unknown。
+
+交付需覆盖：同题并发及两次上限、澄清不换issue、成功回执与辅助标签原子写入、故障回滚、重启保留/预占释放、旧owner拒绝、跨题/业务/语音operation冲突、仓库缺失时禁用新提示、仓库历史缺失与宿主标记不符时拒绝。仓库依赖后来不可用时，已存在workflow辅助标记仍用于回答/记忆/评测隔离，不能把历史提示抹成独立作答。真实repository、备份迁移与正式随包启用仍须联合验收。
