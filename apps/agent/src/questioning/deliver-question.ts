@@ -1,6 +1,7 @@
 import{QuestionDeliveryInputSchema,QuestionDeliverySchema,BridgeGenerationRequestSchema,BridgeModelOutputSchema,
  type QuestionDelivery,type BridgeGenerator}from'../../../../packages/contracts/src/question-delivery.ts';
 import{AgentStateError,estimateSkills}from'../planning/interview-state.ts';
+import{isGroundedNeutralTransition}from'../../../../packages/interview-domain/src/question-transition.ts';
 export interface DeliveryDependencies{generate?:BridgeGenerator;now?:()=>number;signal?:AbortSignal;timeoutMs?:number;}
 /** Presentation only: never rewrites the selected question or changes its scoring rubric. */
 export async function deliverQuestion(raw:unknown,deps:DeliveryDependencies={}):Promise<QuestionDelivery|undefined>{
@@ -33,8 +34,8 @@ export async function deliverQuestion(raw:unknown,deps:DeliveryDependencies={}):
    deps.signal?.addEventListener('abort',onAbort,{once:true});timer=setTimeout(()=>{controller.abort();reject(new AgentStateError('DEADLINE_EXCEEDED'));},Math.min(timeout,deadline-check()));});
   const output=await Promise.race([Promise.resolve().then(()=>{check();return deps.generate!(structuredClone(request),controller.signal);}),stop]);check();
   const p=BridgeModelOutputSchema.safeParse(output);if(!p.success)return finish('invalid-output');
-  const {bridge,excerpt}=p.data,first=i.previousAnswer.text.indexOf(excerpt);
-  if(first<0||i.previousAnswer.text.indexOf(excerpt,first+1)>=0||!bridge.includes(excerpt))return finish('invalid-output');
+  const {bridge,excerpt}=p.data;
+  if(!isGroundedNeutralTransition(i.previousAnswer.text,bridge,excerpt))return finish('invalid-output');
   return finish('generated',bridge,excerpt);
  }catch(e){check();if(e instanceof AgentStateError&&e.code==='MODEL_OUTPUT_INVALID')return finish('invalid-output');
   if(e instanceof AgentStateError&&e.code==='TOOL_BUDGET_EXCEEDED')return finish('call-budget');

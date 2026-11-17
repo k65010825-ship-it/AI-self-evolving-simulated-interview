@@ -98,6 +98,19 @@ export function decideNextAction(rawState: unknown, now: number, rawPolicy: unkn
     difficulty: state.difficulty, remainingSeconds, reason: 'priority_from_cumulative_state' };
   if (chosen.mastery !== null && chosen.mastery < 0.4 && state.difficulty > 1)
     return { action: 'adjust_difficulty', skillId: chosen.skillId, difficulty: state.difficulty - 1, remainingSeconds, reason: 'weak_skill' };
+  // Opt-in policy keeps already-committed plans replayable. A high average from easier,
+  // historical or repeated answers must not repeatedly staircase the current difficulty.
+  if (policy.difficultyProgression && chosen.mastery !== null && chosen.mastery >= 0.8
+    && chosen.confidence >= 0.6 && remainingSeconds >= 180 && state.difficulty < 5) {
+    const priorIds = new Set(state.priorEvidence.map(o => o.questionId));
+    const independent = new Map<string, SkillObservation>();
+    for (const o of state.observations) if (o.skillId === chosen.skillId && !priorIds.has(o.questionId) && !independent.has(o.questionId))
+      independent.set(o.questionId, o);
+    const recent = [...independent.values()].slice(-2);
+    if (recent.length === 2 && new Set(recent.map(o => o.questionType)).size === 2
+      && recent.every(o => o.score >= 0.8 && o.quality >= 0.8 && o.difficulty >= state.difficulty))
+      return { action: 'adjust_difficulty', skillId: chosen.skillId, difficulty: state.difficulty + 1, remainingSeconds, reason: 'strong_independent_evidence' };
+  }
   return { action: 'deepen', skillId: chosen.skillId, difficulty: state.difficulty, remainingSeconds,
     reason: 'clarify_current_skill_evidence' };
 }

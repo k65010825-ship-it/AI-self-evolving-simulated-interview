@@ -1098,6 +1098,9 @@ components:
                               type: integer
                               minimum: 1
                               maximum: 200
+                            difficultyProgression:
+                              type: string
+                              const: independent-evidence-v1
                           additionalProperties: false
                       required:
                         - id
@@ -2880,6 +2883,9 @@ components:
                                         type: integer
                                         minimum: 1
                                         maximum: 200
+                                      difficultyProgression:
+                                        type: string
+                                        const: independent-evidence-v1
                                     additionalProperties: false
                                 required:
                                   - id
@@ -4659,6 +4665,9 @@ components:
                                         type: integer
                                         minimum: 1
                                         maximum: 200
+                                      difficultyProgression:
+                                        type: string
+                                        const: independent-evidence-v1
                                     additionalProperties: false
                                 required:
                                   - id
@@ -5542,6 +5551,9 @@ components:
                                   type: integer
                                   minimum: 1
                                   maximum: 200
+                                difficultyProgression:
+                                  type: string
+                                  const: independent-evidence-v1
                               additionalProperties: false
                           required:
                             - id
@@ -6461,6 +6473,9 @@ components:
                                             type: integer
                                             minimum: 1
                                             maximum: 200
+                                          difficultyProgression:
+                                            type: string
+                                            const: independent-evidence-v1
                                         additionalProperties: false
                                     required:
                                       - id
@@ -8240,6 +8255,9 @@ components:
                                             type: integer
                                             minimum: 1
                                             maximum: 200
+                                          difficultyProgression:
+                                            type: string
+                                            const: independent-evidence-v1
                                         additionalProperties: false
                                     required:
                                       - id
@@ -12028,6 +12046,9 @@ components:
                                               type: integer
                                               minimum: 1
                                               maximum: 200
+                                            difficultyProgression:
+                                              type: string
+                                              const: independent-evidence-v1
                                           additionalProperties: false
                                       required:
                                         - id
@@ -12205,6 +12226,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                             changes:
                                               minItems: 1
@@ -12609,6 +12633,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   additionalProperties: false
                               required:
                                 - id
@@ -13111,6 +13138,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   additionalProperties: false
                               required:
                                 - id
@@ -14030,6 +14060,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -15809,6 +15842,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -19597,6 +19633,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                           required:
                                             - id
@@ -19774,6 +19813,9 @@ components:
                                                       type: integer
                                                       minimum: 1
                                                       maximum: 200
+                                                    difficultyProgression:
+                                                      type: string
+                                                      const: independent-evidence-v1
                                                   additionalProperties: false
                                                 changes:
                                                   minItems: 1
@@ -20229,6 +20271,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   additionalProperties: false
                               required:
                                 - id
@@ -21148,6 +21193,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -22927,6 +22975,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -26715,6 +26766,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                           required:
                                             - id
@@ -26892,6 +26946,9 @@ components:
                                                       type: integer
                                                       minimum: 1
                                                       maximum: 200
+                                                    difficultyProgression:
+                                                      type: string
+                                                      const: independent-evidence-v1
                                                   additionalProperties: false
                                                 changes:
                                                   minItems: 1
@@ -27778,6 +27835,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   additionalProperties: false
                               required:
                                 - id
@@ -28697,6 +28757,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -30476,6 +30539,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -34264,6 +34330,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                           required:
                                             - id
@@ -34441,6 +34510,9 @@ components:
                                                       type: integer
                                                       minimum: 1
                                                       maximum: 200
+                                                    difficultyProgression:
+                                                      type: string
+                                                      const: independent-evidence-v1
                                                   additionalProperties: false
                                                 changes:
                                                   minItems: 1
@@ -34879,6 +34951,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   additionalProperties: false
                               required:
                                 - id
@@ -35798,6 +35873,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -37577,6 +37655,9 @@ components:
                                                 type: integer
                                                 minimum: 1
                                                 maximum: 200
+                                              difficultyProgression:
+                                                type: string
+                                                const: independent-evidence-v1
                                             additionalProperties: false
                                         required:
                                           - id
@@ -41365,6 +41446,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                           required:
                                             - id
@@ -41542,6 +41626,9 @@ components:
                                                       type: integer
                                                       minimum: 1
                                                       maximum: 200
+                                                    difficultyProgression:
+                                                      type: string
+                                                      const: independent-evidence-v1
                                                   additionalProperties: false
                                                 changes:
                                                   minItems: 1
@@ -41964,6 +42051,9 @@ components:
                                   type: integer
                                   minimum: 1
                                   maximum: 200
+                                difficultyProgression:
+                                  type: string
+                                  const: independent-evidence-v1
                               additionalProperties: false
                           required:
                             - id
@@ -42883,6 +42973,9 @@ components:
                                             type: integer
                                             minimum: 1
                                             maximum: 200
+                                          difficultyProgression:
+                                            type: string
+                                            const: independent-evidence-v1
                                         additionalProperties: false
                                     required:
                                       - id
@@ -44662,6 +44755,9 @@ components:
                                             type: integer
                                             minimum: 1
                                             maximum: 200
+                                          difficultyProgression:
+                                            type: string
+                                            const: independent-evidence-v1
                                         additionalProperties: false
                                     required:
                                       - id
@@ -48450,6 +48546,9 @@ components:
                                               type: integer
                                               minimum: 1
                                               maximum: 200
+                                            difficultyProgression:
+                                              type: string
+                                              const: independent-evidence-v1
                                           additionalProperties: false
                                       required:
                                         - id
@@ -48627,6 +48726,9 @@ components:
                                                   type: integer
                                                   minimum: 1
                                                   maximum: 200
+                                                difficultyProgression:
+                                                  type: string
+                                                  const: independent-evidence-v1
                                               additionalProperties: false
                                             changes:
                                               minItems: 1
@@ -48794,6 +48896,9 @@ components:
                                     type: integer
                                     minimum: 1
                                     maximum: 200
+                                  difficultyProgression:
+                                    type: string
+                                    const: independent-evidence-v1
                                 additionalProperties: false
                             required:
                               - id
@@ -56081,6 +56186,9 @@ components:
                           type: integer
                           minimum: 1
                           maximum: 200
+                        difficultyProgression:
+                          type: string
+                          const: independent-evidence-v1
                       required:
                         - maxFollowupDepth
                         - wrapUpSeconds
@@ -57005,6 +57113,9 @@ components:
                                     type: integer
                                     minimum: 1
                                     maximum: 200
+                                  difficultyProgression:
+                                    type: string
+                                    const: independent-evidence-v1
                                 required:
                                   - maxFollowupDepth
                                   - wrapUpSeconds
@@ -58790,6 +58901,9 @@ components:
                                     type: integer
                                     minimum: 1
                                     maximum: 200
+                                  difficultyProgression:
+                                    type: string
+                                    const: independent-evidence-v1
                                 required:
                                   - maxFollowupDepth
                                   - wrapUpSeconds
@@ -62585,6 +62699,9 @@ components:
                                       type: integer
                                       minimum: 1
                                       maximum: 200
+                                    difficultyProgression:
+                                      type: string
+                                      const: independent-evidence-v1
                                   required:
                                     - maxFollowupDepth
                                     - wrapUpSeconds
@@ -62766,6 +62883,9 @@ components:
                                           type: integer
                                           minimum: 1
                                           maximum: 200
+                                        difficultyProgression:
+                                          type: string
+                                          const: independent-evidence-v1
                                       required:
                                         - maxFollowupDepth
                                         - wrapUpSeconds
@@ -62944,6 +63064,9 @@ components:
                       type: integer
                       minimum: 1
                       maximum: 200
+                    difficultyProgression:
+                      type: string
+                      const: independent-evidence-v1
                   required:
                     - maxFollowupDepth
                     - wrapUpSeconds
@@ -63418,6 +63541,9 @@ components:
                             type: integer
                             minimum: 1
                             maximum: 200
+                          difficultyProgression:
+                            type: string
+                            const: independent-evidence-v1
                         required:
                           - maxFollowupDepth
                           - wrapUpSeconds
@@ -63828,6 +63954,9 @@ components:
                           type: integer
                           minimum: 1
                           maximum: 200
+                        difficultyProgression:
+                          type: string
+                          const: independent-evidence-v1
                       required:
                         - maxFollowupDepth
                         - wrapUpSeconds

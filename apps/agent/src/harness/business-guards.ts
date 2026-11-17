@@ -6,6 +6,7 @@ import {BridgeModelOutputSchema} from '../../../../packages/contracts/src/questi
 import {AgentStateError} from '../planning/interview-state.ts';
 import type {HarnessPhase} from './profiles.ts';
 import type {HarnessHook} from './completion-gate.ts';
+import{isGroundedNeutralTransition}from'../../../../packages/interview-domain/src/question-transition.ts';
 const planningScope=z.object({roleId:RoleIdSchema,skillId:z.string().min(1).max(100),allowDraftKnowledge:z.boolean()}).strict();
 const deliveryScope=z.object({previousAnswerText:z.string().min(1).max(10000)}).strict();
 function deny():never{throw new AgentStateError('MODEL_OUTPUT_INVALID');}
@@ -17,8 +18,8 @@ export function createStageHooks(phase:HarnessPhase,rawScope?:unknown):HarnessHo
   const answer=parsed.data.previousAnswerText;
   return [{id:'business-delivery',stop:value=>{
    const out=BridgeModelOutputSchema.safeParse(value);if(!out.success)deny();
-   const {bridge,excerpt}=out.data,first=answer.indexOf(excerpt);
-   if(!bridge.includes(excerpt)||first<0||answer.indexOf(excerpt,first+1)!==-1)deny();
+   const {bridge,excerpt}=out.data;
+   if(!isGroundedNeutralTransition(answer,bridge,excerpt))deny();
   }}];
  }
  if(phase!=='planning')throw new AgentStateError('VALIDATION_ERROR');

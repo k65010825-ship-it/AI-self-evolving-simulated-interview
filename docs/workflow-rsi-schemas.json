@@ -412,6 +412,10 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 200
+                  },
+                  "difficultyProgression": {
+                    "type": "string",
+                    "const": "independent-evidence-v1"
                   }
                 },
                 "additionalProperties": false
@@ -1593,6 +1597,10 @@
                               "type": "integer",
                               "minimum": 1,
                               "maximum": 200
+                            },
+                            "difficultyProgression": {
+                              "type": "string",
+                              "const": "independent-evidence-v1"
                             }
                           },
                           "additionalProperties": false
@@ -3929,6 +3937,10 @@
                               "type": "integer",
                               "minimum": 1,
                               "maximum": 200
+                            },
+                            "difficultyProgression": {
+                              "type": "string",
+                              "const": "independent-evidence-v1"
                             }
                           },
                           "additionalProperties": false
@@ -8952,6 +8964,10 @@
                                 "type": "integer",
                                 "minimum": 1,
                                 "maximum": 200
+                              },
+                              "difficultyProgression": {
+                                "type": "string",
+                                "const": "independent-evidence-v1"
                               }
                             },
                             "additionalProperties": false
@@ -9198,6 +9214,10 @@
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 200
+                                  },
+                                  "difficultyProgression": {
+                                    "type": "string",
+                                    "const": "independent-evidence-v1"
                                   }
                                 },
                                 "additionalProperties": false
@@ -9413,6 +9433,10 @@
                       "type": "integer",
                       "minimum": 1,
                       "maximum": 200
+                    },
+                    "difficultyProgression": {
+                      "type": "string",
+                      "const": "independent-evidence-v1"
                     }
                   },
                   "additionalProperties": false
@@ -10462,6 +10486,10 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 200
+              },
+              "difficultyProgression": {
+                "type": "string",
+                "const": "independent-evidence-v1"
               }
             },
             "required": [
@@ -11118,6 +11146,10 @@
                       "type": "integer",
                       "minimum": 1,
                       "maximum": 200
+                    },
+                    "difficultyProgression": {
+                      "type": "string",
+                      "const": "independent-evidence-v1"
                     }
                   },
                   "required": [
@@ -11660,6 +11692,10 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 200
+                  },
+                  "difficultyProgression": {
+                    "type": "string",
+                    "const": "independent-evidence-v1"
                   }
                 },
                 "required": [
