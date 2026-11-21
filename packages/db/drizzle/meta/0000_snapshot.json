@@ -1,5 +1,5 @@
 {
-  "id": "49350018-1628-4a1d-a0a7-437bea105bbf",
+  "id": "ea0b495c-544a-4e8b-a934-64b64a2a9486",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -176,9 +176,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "role": {
-          "name": "role",
-          "type": "user_role",
+        "account_role": {
+          "name": "account_role",
+          "type": "account_role",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -204,27 +204,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "xp": {
-          "name": "xp",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "level": {
-          "name": "level",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "coins": {
-          "name": "coins",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
         },
         "last_login_at": {
           "name": "last_login_at",
@@ -263,11 +242,11 @@
           "method": "btree",
           "with": {}
         },
-        "app_user_role_idx": {
-          "name": "app_user_role_idx",
+        "app_user_account_role_idx": {
+          "name": "app_user_account_role_idx",
           "columns": [
             {
-              "expression": "role",
+              "expression": "account_role",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -291,18 +270,82 @@
         "app_user_display_name_length": {
           "name": "app_user_display_name_length",
           "value": "char_length(\"app_user\".\"display_name\") between 1 and 80"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.job_role": {
+      "name": "job_role",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
         },
-        "app_user_xp_non_negative": {
-          "name": "app_user_xp_non_negative",
-          "value": "\"app_user\".\"xp\" >= 0"
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
-        "app_user_level_positive": {
-          "name": "app_user_level_positive",
-          "value": "\"app_user\".\"level\" >= 1"
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
-        "app_user_coins_non_negative": {
-          "name": "app_user_coins_non_negative",
-          "value": "\"app_user\".\"coins\" >= 0"
+        "knowledge_version": {
+          "name": "knowledge_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "job_role_name_length": {
+          "name": "job_role_name_length",
+          "value": "char_length(\"job_role\".\"name\") between 1 and 80"
         }
       },
       "isRLSEnabled": false
@@ -442,6 +485,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "review_status": {
           "name": "review_status",
           "type": "review_status",
@@ -495,6 +544,33 @@
             },
             {
               "expression": "review_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "knowledge_item_scope_version_idx": {
+          "name": "knowledge_item_scope_version_idx",
+          "columns": [
+            {
+              "expression": "role_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "skill_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "version",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -585,6 +661,10 @@
         "knowledge_item_key_points_not_empty": {
           "name": "knowledge_item_key_points_not_empty",
           "value": "jsonb_array_length(\"knowledge_item\".\"key_points\") > 0"
+        },
+        "knowledge_item_reviewed_has_hash": {
+          "name": "knowledge_item_reviewed_has_hash",
+          "value": "\"knowledge_item\".\"review_status\" <> 'reviewed' or (\"knowledge_item\".\"content_hash\" is not null and \"knowledge_item\".\"reviewed_at\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -599,8 +679,27 @@
           "primaryKey": true,
           "notNull": true
         },
-        "knowledge_item_id": {
-          "name": "knowledge_item_id",
+        "target_type": {
+          "name": "target_type",
+          "type": "knowledge_review_target",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -647,11 +746,17 @@
         }
       },
       "indexes": {
-        "knowledge_review_item_idx": {
-          "name": "knowledge_review_item_idx",
+        "knowledge_review_target_idx": {
+          "name": "knowledge_review_target_idx",
           "columns": [
             {
-              "expression": "knowledge_item_id",
+              "expression": "target_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -670,19 +775,6 @@
         }
       },
       "foreignKeys": {
-        "knowledge_review_knowledge_item_id_knowledge_item_id_fk": {
-          "name": "knowledge_review_knowledge_item_id_knowledge_item_id_fk",
-          "tableFrom": "knowledge_review",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "knowledge_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "knowledge_review_reviewer_id_app_user_id_fk": {
           "name": "knowledge_review_reviewer_id_app_user_id_fk",
           "tableFrom": "knowledge_review",
@@ -701,9 +793,21 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "knowledge_review_target_id_length": {
+          "name": "knowledge_review_target_id_length",
+          "value": "char_length(\"knowledge_review\".\"target_id\") between 1 and 80"
+        },
+        "knowledge_review_version_length": {
+          "name": "knowledge_review_version_length",
+          "value": "char_length(\"knowledge_review\".\"version\") between 1 and 40"
+        },
+        "knowledge_review_hash_length": {
+          "name": "knowledge_review_hash_length",
+          "value": "char_length(\"knowledge_review\".\"content_hash\") between 1 and 128"
+        },
         "knowledge_review_status_change": {
           "name": "knowledge_review_status_change",
-          "value": "(\"knowledge_review\".\"decision\" = 'approve' and \"knowledge_review\".\"from_status\" = 'draft' and \"knowledge_review\".\"to_status\" = 'reviewed') or (\"knowledge_review\".\"decision\" = 'reject' and \"knowledge_review\".\"to_status\" = \"knowledge_review\".\"from_status\") or (\"knowledge_review\".\"decision\" = 'deprecate' and \"knowledge_review\".\"to_status\" = 'draft')"
+          "value": "(\"knowledge_review\".\"decision\" = 'approve' and \"knowledge_review\".\"to_status\" = 'reviewed') or (\"knowledge_review\".\"decision\" = 'reject' and \"knowledge_review\".\"to_status\" = \"knowledge_review\".\"from_status\") or (\"knowledge_review\".\"decision\" = 'deprecate' and \"knowledge_review\".\"to_status\" = 'draft')"
         }
       },
       "isRLSEnabled": false
@@ -835,10 +939,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "role_skill_role_id_role_id_fk": {
-          "name": "role_skill_role_id_role_id_fk",
+        "role_skill_role_id_job_role_id_fk": {
+          "name": "role_skill_role_id_job_role_id_fk",
           "tableFrom": "role_skill",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -868,82 +972,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.role": {
-      "name": "role",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "knowledge_version": {
-          "name": "knowledge_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rubric_version": {
-          "name": "rubric_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "role_name_length": {
-          "name": "role_name_length",
-          "value": "char_length(\"role\".\"name\") between 1 and 80"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.rubric_criterion": {
       "name": "rubric_criterion",
       "schema": "",
@@ -959,6 +987,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "description": {
           "name": "description",
@@ -977,6 +1011,24 @@
           "type": "numeric(5, 4)",
           "primaryKey": false,
           "notNull": true
+        },
+        "anchors": {
+          "name": "anchors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evidence_rule": {
+          "name": "evidence_rule",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verification_goal": {
+          "name": "verification_goal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "sort_order": {
           "name": "sort_order",
@@ -1059,6 +1111,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "review_status": {
           "name": "review_status",
@@ -1151,6 +1209,10 @@
         "rubric_version_length": {
           "name": "rubric_version_length",
           "value": "char_length(\"rubric\".\"version\") between 1 and 40"
+        },
+        "rubric_reviewed_has_hash": {
+          "name": "rubric_reviewed_has_hash",
+          "value": "\"rubric\".\"review_status\" <> 'reviewed' or \"rubric\".\"content_hash\" is not null"
         }
       },
       "isRLSEnabled": false
@@ -1185,6 +1247,22 @@
           "notNull": true,
           "default": "'candidate'"
         },
+        "publication_status": {
+          "name": "publication_status",
+          "type": "publication_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'not_published'"
+        },
+        "adoption_status": {
+          "name": "adoption_status",
+          "type": "adoption_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'not_adopted'"
+        },
         "parent_version": {
           "name": "parent_version",
           "type": "text",
@@ -1215,6 +1293,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adopted_at": {
+          "name": "adopted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "activated_at": {
           "name": "activated_at",
@@ -1259,13 +1349,28 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "policy_version_publication_idx": {
+          "name": "policy_version_publication_idx",
+          "columns": [
+            {
+              "expression": "publication_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "policy_version_role_id_role_id_fk": {
-          "name": "policy_version_role_id_role_id_fk",
+        "policy_version_role_id_job_role_id_fk": {
+          "name": "policy_version_role_id_job_role_id_fk",
           "tableFrom": "policy_version",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -1317,3043 +1422,14 @@
         "policy_version_coverage_reserve": {
           "name": "policy_version_coverage_reserve",
           "value": "(\"policy_version\".\"parameters\" ->> 'coverageReserveRatio')::numeric between 0 and 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.audio_analysis": {
-      "name": "audio_analysis",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
         },
-        "audio_asset_id": {
-          "name": "audio_asset_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+        "policy_version_published_at": {
+          "name": "policy_version_published_at",
+          "value": "(\"policy_version\".\"publication_status\" = 'published') = (\"policy_version\".\"published_at\" is not null)"
         },
-        "voiced_duration_ms": {
-          "name": "voiced_duration_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pause_ratio": {
-          "name": "pause_ratio",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "speech_rate_chars_per_min": {
-          "name": "speech_rate_chars_per_min",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clarity_score": {
-          "name": "clarity_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emotion_label": {
-          "name": "emotion_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emotion_confidence": {
-          "name": "emotion_confidence",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence": {
-          "name": "evidence",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "audio_analysis_audio_asset_unique": {
-          "name": "audio_analysis_audio_asset_unique",
-          "columns": [
-            {
-              "expression": "audio_asset_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "audio_analysis_audio_asset_id_audio_asset_id_fk": {
-          "name": "audio_analysis_audio_asset_id_audio_asset_id_fk",
-          "tableFrom": "audio_analysis",
-          "tableTo": "audio_asset",
-          "columnsFrom": [
-            "audio_asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "audio_analysis_pause_ratio_range": {
-          "name": "audio_analysis_pause_ratio_range",
-          "value": "\"audio_analysis\".\"pause_ratio\" is null or \"audio_analysis\".\"pause_ratio\" between 0 and 1"
-        },
-        "audio_analysis_clarity_range": {
-          "name": "audio_analysis_clarity_range",
-          "value": "\"audio_analysis\".\"clarity_score\" is null or \"audio_analysis\".\"clarity_score\" between 0 and 1"
-        },
-        "audio_analysis_emotion_confidence_range": {
-          "name": "audio_analysis_emotion_confidence_range",
-          "value": "\"audio_analysis\".\"emotion_confidence\" is null or \"audio_analysis\".\"emotion_confidence\" between 0 and 1"
-        },
-        "audio_analysis_voiced_duration_positive": {
-          "name": "audio_analysis_voiced_duration_positive",
-          "value": "\"audio_analysis\".\"voiced_duration_ms\" is null or \"audio_analysis\".\"voiced_duration_ms\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.audio_asset": {
-      "name": "audio_asset",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "turn_id": {
-          "name": "turn_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "storage_key": {
-          "name": "storage_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mime_type": {
-          "name": "mime_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "byte_size": {
-          "name": "byte_size",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "duration_ms": {
-          "name": "duration_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "audio_asset_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'uploaded'"
-        },
-        "consent_for_review": {
-          "name": "consent_for_review",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "retention_until": {
-          "name": "retention_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "delete_requested_at": {
-          "name": "delete_requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "audio_asset_interview_idx": {
-          "name": "audio_asset_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "audio_asset_user_idx": {
-          "name": "audio_asset_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "audio_asset_user_id_app_user_id_fk": {
-          "name": "audio_asset_user_id_app_user_id_fk",
-          "tableFrom": "audio_asset",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "audio_asset_interview_id_interview_session_id_fk": {
-          "name": "audio_asset_interview_id_interview_session_id_fk",
-          "tableFrom": "audio_asset",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "audio_asset_turn_id_interview_turn_id_fk": {
-          "name": "audio_asset_turn_id_interview_turn_id_fk",
-          "tableFrom": "audio_asset",
-          "tableTo": "interview_turn",
-          "columnsFrom": [
-            "turn_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "audio_asset_byte_size_positive": {
-          "name": "audio_asset_byte_size_positive",
-          "value": "\"audio_asset\".\"byte_size\" > 0"
-        },
-        "audio_asset_duration_positive": {
-          "name": "audio_asset_duration_positive",
-          "value": "\"audio_asset\".\"duration_ms\" is null or \"audio_asset\".\"duration_ms\" > 0"
-        },
-        "audio_asset_retention_requires_consent": {
-          "name": "audio_asset_retention_requires_consent",
-          "value": "\"audio_asset\".\"retention_until\" is null or \"audio_asset\".\"consent_for_review\""
-        },
-        "audio_asset_deleted_at_consistency": {
-          "name": "audio_asset_deleted_at_consistency",
-          "value": "(\"audio_asset\".\"status\" = 'deleted') = (\"audio_asset\".\"deleted_at\" is not null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.interview_turn": {
-      "name": "interview_turn",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "seq": {
-          "name": "seq",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "question_id": {
-          "name": "question_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "question_text": {
-          "name": "question_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "question_type": {
-          "name": "question_type",
-          "type": "question_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "difficulty": {
-          "name": "difficulty",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "interview_turn_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'awaiting_answer'"
-        },
-        "answer": {
-          "name": "answer",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_modality": {
-          "name": "answer_modality",
-          "type": "answer_modality",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_transcript_id": {
-          "name": "answer_transcript_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hints_used": {
-          "name": "hints_used",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "answer_submitted_at": {
-          "name": "answer_submitted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "interview_turn_seq_unique": {
-          "name": "interview_turn_seq_unique",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seq",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interview_turn_idempotency_unique": {
-          "name": "interview_turn_idempotency_unique",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "idempotency_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"interview_turn\".\"idempotency_key\" is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interview_turn_interview_idx": {
-          "name": "interview_turn_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seq",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "interview_turn_interview_id_interview_session_id_fk": {
-          "name": "interview_turn_interview_id_interview_session_id_fk",
-          "tableFrom": "interview_turn",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interview_turn_question_id_knowledge_item_id_fk": {
-          "name": "interview_turn_question_id_knowledge_item_id_fk",
-          "tableFrom": "interview_turn",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "interview_turn_answer_transcript_id_transcript_id_fk": {
-          "name": "interview_turn_answer_transcript_id_transcript_id_fk",
-          "tableFrom": "interview_turn",
-          "tableTo": "transcript",
-          "columnsFrom": [
-            "answer_transcript_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "interview_turn_seq_non_negative": {
-          "name": "interview_turn_seq_non_negative",
-          "value": "\"interview_turn\".\"seq\" >= 0"
-        },
-        "interview_turn_difficulty_range": {
-          "name": "interview_turn_difficulty_range",
-          "value": "\"interview_turn\".\"difficulty\" between 1 and 5"
-        },
-        "interview_turn_answer_length": {
-          "name": "interview_turn_answer_length",
-          "value": "\"interview_turn\".\"answer\" is null or char_length(\"interview_turn\".\"answer\") between 1 and 10000"
-        },
-        "interview_turn_hints_non_negative": {
-          "name": "interview_turn_hints_non_negative",
-          "value": "\"interview_turn\".\"hints_used\" >= 0"
-        },
-        "interview_turn_answer_consistency": {
-          "name": "interview_turn_answer_consistency",
-          "value": "(\"interview_turn\".\"status\" = 'answered') = (\"interview_turn\".\"answer\" is not null and \"interview_turn\".\"answer_submitted_at\" is not null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.interview_session": {
-      "name": "interview_session",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "interview_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'practice'"
-        },
-        "retest_of_interview_id": {
-          "name": "retest_of_interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "goal": {
-          "name": "goal",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "duration_minutes": {
-          "name": "duration_minutes",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "interview_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'planning'"
-        },
-        "session_version": {
-          "name": "session_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "policy_version": {
-          "name": "policy_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'baseline-v0'"
-        },
-        "current_question_id": {
-          "name": "current_question_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "state": {
-          "name": "state",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "failure": {
-          "name": "failure",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deadline_at": {
-          "name": "deadline_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancel_reason": {
-          "name": "cancel_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "interview_session_user_created_idx": {
-          "name": "interview_session_user_created_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interview_session_user_status_idx": {
-          "name": "interview_session_user_status_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interview_session_role_idx": {
-          "name": "interview_session_role_idx",
-          "columns": [
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "interview_session_user_id_app_user_id_fk": {
-          "name": "interview_session_user_id_app_user_id_fk",
-          "tableFrom": "interview_session",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interview_session_role_id_role_id_fk": {
-          "name": "interview_session_role_id_role_id_fk",
-          "tableFrom": "interview_session",
-          "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "interview_session_policy_version_policy_version_version_fk": {
-          "name": "interview_session_policy_version_policy_version_version_fk",
-          "tableFrom": "interview_session",
-          "tableTo": "policy_version",
-          "columnsFrom": [
-            "policy_version"
-          ],
-          "columnsTo": [
-            "version"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "interview_session_current_question_id_knowledge_item_id_fk": {
-          "name": "interview_session_current_question_id_knowledge_item_id_fk",
-          "tableFrom": "interview_session",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "current_question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "interview_session_retest_fk": {
-          "name": "interview_session_retest_fk",
-          "tableFrom": "interview_session",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "retest_of_interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "interview_session_goal_length": {
-          "name": "interview_session_goal_length",
-          "value": "char_length(btrim(\"interview_session\".\"goal\")) between 1 and 500"
-        },
-        "interview_session_duration_range": {
-          "name": "interview_session_duration_range",
-          "value": "\"interview_session\".\"duration_minutes\" between 15 and 25"
-        },
-        "interview_session_version_non_negative": {
-          "name": "interview_session_version_non_negative",
-          "value": "\"interview_session\".\"session_version\" >= 0"
-        },
-        "interview_session_retest_not_self": {
-          "name": "interview_session_retest_not_self",
-          "value": "\"interview_session\".\"retest_of_interview_id\" is null or \"interview_session\".\"retest_of_interview_id\" <> \"interview_session\".\"id\""
-        },
-        "interview_session_completed_at_consistency": {
-          "name": "interview_session_completed_at_consistency",
-          "value": "(\"interview_session\".\"status\" = 'completed') = (\"interview_session\".\"completed_at\" is not null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.transcript": {
-      "name": "transcript",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "audio_asset_id": {
-          "name": "audio_asset_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "raw_text": {
-          "name": "raw_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "confirmed_text": {
-          "name": "confirmed_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "transcript_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "language": {
-          "name": "language",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'zh-CN'"
-        },
-        "confidence": {
-          "name": "confidence",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "confirmed_at": {
-          "name": "confirmed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "transcript_audio_asset_idx": {
-          "name": "transcript_audio_asset_idx",
-          "columns": [
-            {
-              "expression": "audio_asset_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "transcript_audio_asset_id_audio_asset_id_fk": {
-          "name": "transcript_audio_asset_id_audio_asset_id_fk",
-          "tableFrom": "transcript",
-          "tableTo": "audio_asset",
-          "columnsFrom": [
-            "audio_asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "transcript_confidence_range": {
-          "name": "transcript_confidence_range",
-          "value": "\"transcript\".\"confidence\" is null or \"transcript\".\"confidence\" between 0 and 1"
-        },
-        "transcript_confirmed_consistency": {
-          "name": "transcript_confirmed_consistency",
-          "value": "(\"transcript\".\"status\" = 'confirmed') = (\"transcript\".\"confirmed_text\" is not null and \"transcript\".\"confirmed_at\" is not null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.agent_run": {
-      "name": "agent_run",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "turn_id": {
-          "name": "turn_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "run_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "run_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'queued'"
-        },
-        "stage": {
-          "name": "stage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attempt_id": {
-          "name": "attempt_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attempt_count": {
-          "name": "attempt_count",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "input_snapshot": {
-          "name": "input_snapshot",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "output": {
-          "name": "output",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "policy_version": {
-          "name": "policy_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "budget": {
-          "name": "budget",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{\"maxAttempts\":2,\"maxLlmCallsPerAttempt\":3,\"maxToolCallsPerAttempt\":5,\"deadlineMs\":120000}'::jsonb"
-        },
-        "deadline_at": {
-          "name": "deadline_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_event_seq": {
-          "name": "last_event_seq",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "cancel_requested_at": {
-          "name": "cancel_requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancelled_at": {
-          "name": "cancelled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "agent_run_interview_idx": {
-          "name": "agent_run_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_run_status_idx": {
-          "name": "agent_run_status_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_run_interview_id_interview_session_id_fk": {
-          "name": "agent_run_interview_id_interview_session_id_fk",
-          "tableFrom": "agent_run",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_run_user_id_app_user_id_fk": {
-          "name": "agent_run_user_id_app_user_id_fk",
-          "tableFrom": "agent_run",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_run_turn_id_interview_turn_id_fk": {
-          "name": "agent_run_turn_id_interview_turn_id_fk",
-          "tableFrom": "agent_run",
-          "tableTo": "interview_turn",
-          "columnsFrom": [
-            "turn_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "agent_run_policy_version_policy_version_version_fk": {
-          "name": "agent_run_policy_version_policy_version_version_fk",
-          "tableFrom": "agent_run",
-          "tableTo": "policy_version",
-          "columnsFrom": [
-            "policy_version"
-          ],
-          "columnsTo": [
-            "version"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "agent_run_attempt_count_range": {
-          "name": "agent_run_attempt_count_range",
-          "value": "\"agent_run\".\"attempt_count\" between 0 and 2"
-        },
-        "agent_run_last_event_seq_non_negative": {
-          "name": "agent_run_last_event_seq_non_negative",
-          "value": "\"agent_run\".\"last_event_seq\" >= 0"
-        },
-        "agent_run_cancel_consistency": {
-          "name": "agent_run_cancel_consistency",
-          "value": "(\"agent_run\".\"status\" <> 'cancelled') or \"agent_run\".\"cancelled_at\" is not null"
-        },
-        "agent_run_completed_consistency": {
-          "name": "agent_run_completed_consistency",
-          "value": "(\"agent_run\".\"status\" <> 'completed') or \"agent_run\".\"completed_at\" is not null"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.idempotency_record": {
-      "name": "idempotency_record",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "route": {
-          "name": "route",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idempotency_record_scope_unique": {
-          "name": "idempotency_record_scope_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "route",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "idempotency_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "idempotency_record_user_id_app_user_id_fk": {
-          "name": "idempotency_record_user_id_app_user_id_fk",
-          "tableFrom": "idempotency_record",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "idempotency_record_interview_id_interview_session_id_fk": {
-          "name": "idempotency_record_interview_id_interview_session_id_fk",
-          "tableFrom": "idempotency_record",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "idempotency_record_run_id_agent_run_id_fk": {
-          "name": "idempotency_record_run_id_agent_run_id_fk",
-          "tableFrom": "idempotency_record",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "idempotency_record_key_length": {
-          "name": "idempotency_record_key_length",
-          "value": "char_length(\"idempotency_record\".\"idempotency_key\") between 1 and 128"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.plan_decision": {
-      "name": "plan_decision",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "turn_id": {
-          "name": "turn_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action": {
-          "name": "action",
-          "type": "plan_action",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "question_id": {
-          "name": "question_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rationale": {
-          "name": "rationale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_refs": {
-          "name": "evidence_refs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "remaining_seconds": {
-          "name": "remaining_seconds",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "plan_decision_interview_idx": {
-          "name": "plan_decision_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "plan_decision_interview_id_interview_session_id_fk": {
-          "name": "plan_decision_interview_id_interview_session_id_fk",
-          "tableFrom": "plan_decision",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "plan_decision_run_id_agent_run_id_fk": {
-          "name": "plan_decision_run_id_agent_run_id_fk",
-          "tableFrom": "plan_decision",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "plan_decision_turn_id_interview_turn_id_fk": {
-          "name": "plan_decision_turn_id_interview_turn_id_fk",
-          "tableFrom": "plan_decision",
-          "tableTo": "interview_turn",
-          "columnsFrom": [
-            "turn_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "plan_decision_question_id_knowledge_item_id_fk": {
-          "name": "plan_decision_question_id_knowledge_item_id_fk",
-          "tableFrom": "plan_decision",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "plan_decision_rationale_length": {
-          "name": "plan_decision_rationale_length",
-          "value": "char_length(btrim(\"plan_decision\".\"rationale\")) between 1 and 500"
-        },
-        "plan_decision_remaining_seconds_non_negative": {
-          "name": "plan_decision_remaining_seconds_non_negative",
-          "value": "\"plan_decision\".\"remaining_seconds\" is null or \"plan_decision\".\"remaining_seconds\" >= 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.run_attempt": {
-      "name": "run_attempt",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "attempt_no": {
-          "name": "attempt_no",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "run_attempt_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'running'"
-        },
-        "lease_until": {
-          "name": "lease_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "ended_at": {
-          "name": "ended_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "usage": {
-          "name": "usage",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "error": {
-          "name": "error",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "terminal_reason": {
-          "name": "terminal_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "run_attempt_no_unique": {
-          "name": "run_attempt_no_unique",
-          "columns": [
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "attempt_no",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "run_attempt_run_idx": {
-          "name": "run_attempt_run_idx",
-          "columns": [
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "started_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "run_attempt_run_id_agent_run_id_fk": {
-          "name": "run_attempt_run_id_agent_run_id_fk",
-          "tableFrom": "run_attempt",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "run_attempt_no_range": {
-          "name": "run_attempt_no_range",
-          "value": "\"run_attempt\".\"attempt_no\" between 1 and 2"
-        },
-        "run_attempt_terminal_ended_at": {
-          "name": "run_attempt_terminal_ended_at",
-          "value": "(\"run_attempt\".\"status\" = 'running') = (\"run_attempt\".\"ended_at\" is null)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.run_event": {
-      "name": "run_event",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "bigserial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "attempt_id": {
-          "name": "attempt_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seq": {
-          "name": "seq",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "run_event_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "schema_version": {
-          "name": "schema_version",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "occurred_at": {
-          "name": "occurred_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "run_event_seq_unique": {
-          "name": "run_event_seq_unique",
-          "columns": [
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seq",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "run_event_replay_idx": {
-          "name": "run_event_replay_idx",
-          "columns": [
-            {
-              "expression": "run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seq",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "run_event_run_id_agent_run_id_fk": {
-          "name": "run_event_run_id_agent_run_id_fk",
-          "tableFrom": "run_event",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "run_event_attempt_id_run_attempt_id_fk": {
-          "name": "run_event_attempt_id_run_attempt_id_fk",
-          "tableFrom": "run_event",
-          "tableTo": "run_attempt",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "run_event_seq_non_negative": {
-          "name": "run_event_seq_non_negative",
-          "value": "\"run_event\".\"seq\" >= 0"
-        },
-        "run_event_schema_version_positive": {
-          "name": "run_event_schema_version_positive",
-          "value": "\"run_event\".\"schema_version\" >= 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.evaluation_dimension": {
-      "name": "evaluation_dimension",
-      "schema": "",
-      "columns": {
-        "evaluation_id": {
-          "name": "evaluation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dimension": {
-          "name": "dimension",
-          "type": "evaluation_dimension_key",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "score": {
-          "name": "score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence_refs": {
-          "name": "evidence_refs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "evaluation_dimension_evaluation_id_evaluation_id_fk": {
-          "name": "evaluation_dimension_evaluation_id_evaluation_id_fk",
-          "tableFrom": "evaluation_dimension",
-          "tableTo": "evaluation",
-          "columnsFrom": [
-            "evaluation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "evaluation_dimension_pk": {
-          "name": "evaluation_dimension_pk",
-          "columns": [
-            "evaluation_id",
-            "dimension"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "evaluation_dimension_score_range": {
-          "name": "evaluation_dimension_score_range",
-          "value": "\"evaluation_dimension\".\"score\" is null or \"evaluation_dimension\".\"score\" between 0 and 1"
-        },
-        "evaluation_dimension_missing_consistency": {
-          "name": "evaluation_dimension_missing_consistency",
-          "value": "\"evaluation_dimension\".\"score\" is not null or jsonb_array_length(\"evaluation_dimension\".\"evidence_refs\") = 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.evaluation": {
-      "name": "evaluation",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "turn_id": {
-          "name": "turn_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "question_id": {
-          "name": "question_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rubric_id": {
-          "name": "rubric_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rubric_version": {
-          "name": "rubric_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evaluator_version": {
-          "name": "evaluator_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "overall_score": {
-          "name": "overall_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confidence": {
-          "name": "confidence",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "missing_dimensions": {
-          "name": "missing_dimensions",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "strengths": {
-          "name": "strengths",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "gaps": {
-          "name": "gaps",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "evidence": {
-          "name": "evidence",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "evaluation_turn_unique": {
-          "name": "evaluation_turn_unique",
-          "columns": [
-            {
-              "expression": "turn_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "evaluation_interview_idx": {
-          "name": "evaluation_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "evaluation_skill_idx": {
-          "name": "evaluation_skill_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "evaluation_interview_id_interview_session_id_fk": {
-          "name": "evaluation_interview_id_interview_session_id_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "evaluation_turn_id_interview_turn_id_fk": {
-          "name": "evaluation_turn_id_interview_turn_id_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "interview_turn",
-          "columnsFrom": [
-            "turn_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "evaluation_user_id_app_user_id_fk": {
-          "name": "evaluation_user_id_app_user_id_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "evaluation_question_id_knowledge_item_id_fk": {
-          "name": "evaluation_question_id_knowledge_item_id_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "question_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "evaluation_rubric_id_rubric_id_fk": {
-          "name": "evaluation_rubric_id_rubric_id_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "rubric",
-          "columnsFrom": [
-            "rubric_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "evaluation_role_skill_fk": {
-          "name": "evaluation_role_skill_fk",
-          "tableFrom": "evaluation",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "evaluation_overall_range": {
-          "name": "evaluation_overall_range",
-          "value": "\"evaluation\".\"overall_score\" is null or \"evaluation\".\"overall_score\" between 0 and 1"
-        },
-        "evaluation_confidence_range": {
-          "name": "evaluation_confidence_range",
-          "value": "\"evaluation\".\"confidence\" between 0 and 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.report_dimension": {
-      "name": "report_dimension",
-      "schema": "",
-      "columns": {
-        "report_id": {
-          "name": "report_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dimension": {
-          "name": "dimension",
-          "type": "evaluation_dimension_key",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "score": {
-          "name": "score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence_refs": {
-          "name": "evidence_refs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "report_dimension_report_id_interview_report_id_fk": {
-          "name": "report_dimension_report_id_interview_report_id_fk",
-          "tableFrom": "report_dimension",
-          "tableTo": "interview_report",
-          "columnsFrom": [
-            "report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "report_dimension_pk": {
-          "name": "report_dimension_pk",
-          "columns": [
-            "report_id",
-            "dimension"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "report_dimension_score_range": {
-          "name": "report_dimension_score_range",
-          "value": "\"report_dimension\".\"score\" is null or \"report_dimension\".\"score\" between 0 and 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.interview_report": {
-      "name": "interview_report",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "policy_version": {
-          "name": "policy_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rubric_version": {
-          "name": "rubric_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "overall_score": {
-          "name": "overall_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "strengths": {
-          "name": "strengths",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "gaps": {
-          "name": "gaps",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "practice_advice": {
-          "name": "practice_advice",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "missing_dimensions": {
-          "name": "missing_dimensions",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "generated_at": {
-          "name": "generated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "interview_report_interview_unique": {
-          "name": "interview_report_interview_unique",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "interview_report_user_idx": {
-          "name": "interview_report_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "interview_report_interview_id_interview_session_id_fk": {
-          "name": "interview_report_interview_id_interview_session_id_fk",
-          "tableFrom": "interview_report",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interview_report_user_id_app_user_id_fk": {
-          "name": "interview_report_user_id_app_user_id_fk",
-          "tableFrom": "interview_report",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "interview_report_role_id_role_id_fk": {
-          "name": "interview_report_role_id_role_id_fk",
-          "tableFrom": "interview_report",
-          "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "interview_report_overall_range": {
-          "name": "interview_report_overall_range",
-          "value": "\"interview_report\".\"overall_score\" is null or \"interview_report\".\"overall_score\" between 0 and 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.skill_observation": {
-      "name": "skill_observation",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "turn_id": {
-          "name": "turn_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evaluation_id": {
-          "name": "evaluation_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "knowledge_item_id": {
-          "name": "knowledge_item_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source": {
-          "name": "source",
-          "type": "evidence_source",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "independent_evidence": {
-          "name": "independent_evidence",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "dedupe_key": {
-          "name": "dedupe_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "weight": {
-          "name": "weight",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'1'"
-        },
-        "mastery_before": {
-          "name": "mastery_before",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mastery_after": {
-          "name": "mastery_after",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confidence_before": {
-          "name": "confidence_before",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confidence_after": {
-          "name": "confidence_after",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "observed_at": {
-          "name": "observed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "skill_observation_skill_idx": {
-          "name": "skill_observation_skill_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "observed_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "skill_observation_interview_idx": {
-          "name": "skill_observation_interview_idx",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "skill_observation_dedupe_unique": {
-          "name": "skill_observation_dedupe_unique",
-          "columns": [
-            {
-              "expression": "dedupe_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"skill_observation\".\"dedupe_key\" is not null and \"skill_observation\".\"independent_evidence\"",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "skill_observation_user_id_app_user_id_fk": {
-          "name": "skill_observation_user_id_app_user_id_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "skill_observation_interview_id_interview_session_id_fk": {
-          "name": "skill_observation_interview_id_interview_session_id_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "skill_observation_turn_id_interview_turn_id_fk": {
-          "name": "skill_observation_turn_id_interview_turn_id_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "interview_turn",
-          "columnsFrom": [
-            "turn_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "skill_observation_evaluation_id_evaluation_id_fk": {
-          "name": "skill_observation_evaluation_id_evaluation_id_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "evaluation",
-          "columnsFrom": [
-            "evaluation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "skill_observation_knowledge_item_id_knowledge_item_id_fk": {
-          "name": "skill_observation_knowledge_item_id_knowledge_item_id_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "knowledge_item",
-          "columnsFrom": [
-            "knowledge_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "skill_observation_role_skill_fk": {
-          "name": "skill_observation_role_skill_fk",
-          "tableFrom": "skill_observation",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "skill_observation_weight_range": {
-          "name": "skill_observation_weight_range",
-          "value": "\"skill_observation\".\"weight\" > 0 and \"skill_observation\".\"weight\" <= 1"
-        },
-        "skill_observation_mastery_range": {
-          "name": "skill_observation_mastery_range",
-          "value": "(\"skill_observation\".\"mastery_before\" is null or \"skill_observation\".\"mastery_before\" between 0 and 1) and (\"skill_observation\".\"mastery_after\" is null or \"skill_observation\".\"mastery_after\" between 0 and 1)"
-        },
-        "skill_observation_confidence_range": {
-          "name": "skill_observation_confidence_range",
-          "value": "(\"skill_observation\".\"confidence_before\" is null or \"skill_observation\".\"confidence_before\" between 0 and 1) and (\"skill_observation\".\"confidence_after\" is null or \"skill_observation\".\"confidence_after\" between 0 and 1)"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.skill_profile": {
-      "name": "skill_profile",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "mastery": {
-          "name": "mastery",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confidence": {
-          "name": "confidence",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "evidence_count": {
-          "name": "evidence_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "last_evidence_at": {
-          "name": "last_evidence_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "skill_profile_role_idx": {
-          "name": "skill_profile_role_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "skill_profile_user_id_app_user_id_fk": {
-          "name": "skill_profile_user_id_app_user_id_fk",
-          "tableFrom": "skill_profile",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "skill_profile_role_skill_fk": {
-          "name": "skill_profile_role_skill_fk",
-          "tableFrom": "skill_profile",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "skill_profile_pk": {
-          "name": "skill_profile_pk",
-          "columns": [
-            "user_id",
-            "role_id",
-            "skill_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "skill_profile_mastery_range": {
-          "name": "skill_profile_mastery_range",
-          "value": "\"skill_profile\".\"mastery\" is null or \"skill_profile\".\"mastery\" between 0 and 1"
-        },
-        "skill_profile_confidence_range": {
-          "name": "skill_profile_confidence_range",
-          "value": "\"skill_profile\".\"confidence\" between 0 and 1"
-        },
-        "skill_profile_evidence_count_non_negative": {
-          "name": "skill_profile_evidence_count_non_negative",
-          "value": "\"skill_profile\".\"evidence_count\" >= 0"
-        },
-        "skill_profile_version_positive": {
-          "name": "skill_profile_version_positive",
-          "value": "\"skill_profile\".\"version\" >= 1"
-        },
-        "skill_profile_evidence_consistency": {
-          "name": "skill_profile_evidence_consistency",
-          "value": "\"skill_profile\".\"mastery\" is null or \"skill_profile\".\"evidence_count\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.learning_progress": {
-      "name": "learning_progress",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resource_id": {
-          "name": "resource_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "learning_progress_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'started'"
-        },
-        "evidence_level": {
-          "name": "evidence_level",
-          "type": "evidence_level",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "evidence": {
-          "name": "evidence",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "learning_progress_user_idx": {
-          "name": "learning_progress_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "resource_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "learning_progress_user_id_app_user_id_fk": {
-          "name": "learning_progress_user_id_app_user_id_fk",
-          "tableFrom": "learning_progress",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "learning_progress_resource_id_learning_resource_id_fk": {
-          "name": "learning_progress_resource_id_learning_resource_id_fk",
-          "tableFrom": "learning_progress",
-          "tableTo": "learning_resource",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "learning_progress_completion_consistency": {
-          "name": "learning_progress_completion_consistency",
-          "value": "(\"learning_progress\".\"status\" in ('self_reported', 'verified')) = (\"learning_progress\".\"completed_at\" is not null and \"learning_progress\".\"evidence_level\" is not null)"
-        },
-        "learning_progress_evidence_level_match": {
-          "name": "learning_progress_evidence_level_match",
-          "value": "(\"learning_progress\".\"status\" = 'self_reported' and \"learning_progress\".\"evidence_level\" = 'self_reported') or (\"learning_progress\".\"status\" = 'verified' and \"learning_progress\".\"evidence_level\" = 'verifiable') or (\"learning_progress\".\"status\" in ('started', 'abandoned') and \"learning_progress\".\"evidence_level\" is null)"
+        "policy_version_adopted_at": {
+          "name": "policy_version_adopted_at",
+          "value": "(\"policy_version\".\"adoption_status\" = 'adopted') = (\"policy_version\".\"adopted_at\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -4558,10 +1634,10 @@
         }
       },
       "foreignKeys": {
-        "learning_resource_role_id_role_id_fk": {
-          "name": "learning_resource_role_id_role_id_fk",
+        "learning_resource_role_id_job_role_id_fk": {
+          "name": "learning_resource_role_id_job_role_id_fk",
           "tableFrom": "learning_resource",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -4583,881 +1659,6 @@
         "learning_resource_estimated_minutes_positive": {
           "name": "learning_resource_estimated_minutes_positive",
           "value": "\"learning_resource\".\"estimated_minutes\" is null or \"learning_resource\".\"estimated_minutes\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.recommendation": {
-      "name": "recommendation",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "report_id": {
-          "name": "report_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "resource_id": {
-          "name": "resource_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action": {
-          "name": "action",
-          "type": "recommendation_action",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rationale": {
-          "name": "rationale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "recommendation_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'suggested'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "recommendation_user_skill_idx": {
-          "name": "recommendation_user_skill_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "recommendation_user_id_app_user_id_fk": {
-          "name": "recommendation_user_id_app_user_id_fk",
-          "tableFrom": "recommendation",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "recommendation_interview_id_interview_session_id_fk": {
-          "name": "recommendation_interview_id_interview_session_id_fk",
-          "tableFrom": "recommendation",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "recommendation_report_id_interview_report_id_fk": {
-          "name": "recommendation_report_id_interview_report_id_fk",
-          "tableFrom": "recommendation",
-          "tableTo": "interview_report",
-          "columnsFrom": [
-            "report_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "recommendation_resource_id_learning_resource_id_fk": {
-          "name": "recommendation_resource_id_learning_resource_id_fk",
-          "tableFrom": "recommendation",
-          "tableTo": "learning_resource",
-          "columnsFrom": [
-            "resource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "recommendation_role_skill_fk": {
-          "name": "recommendation_role_skill_fk",
-          "tableFrom": "recommendation",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "recommendation_rationale_not_blank": {
-          "name": "recommendation_rationale_not_blank",
-          "value": "char_length(btrim(\"recommendation\".\"rationale\")) > 0"
-        },
-        "recommendation_resource_requirement": {
-          "name": "recommendation_resource_requirement",
-          "value": "\"recommendation\".\"action\" <> 'review_resource' or \"recommendation\".\"resource_id\" is not null"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.performance_pair": {
-      "name": "performance_pair",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "prediction_id": {
-          "name": "prediction_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "retest_interview_id": {
-          "name": "retest_interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "predicted_score": {
-          "name": "predicted_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reference_score": {
-          "name": "reference_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "mae": {
-          "name": "mae",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "eligibility": {
-          "name": "eligibility",
-          "type": "pair_eligibility",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "ineligibility_reasons": {
-          "name": "ineligibility_reasons",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "difficulty": {
-          "name": "difficulty",
-          "type": "smallint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rubric_version": {
-          "name": "rubric_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "learning_exposure_matched": {
-          "name": "learning_exposure_matched",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "paired_at": {
-          "name": "paired_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "performance_pair_prediction_unique": {
-          "name": "performance_pair_prediction_unique",
-          "columns": [
-            {
-              "expression": "prediction_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "performance_pair_role_eligibility_idx": {
-          "name": "performance_pair_role_eligibility_idx",
-          "columns": [
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "eligibility",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "performance_pair_prediction_id_prediction_snapshot_id_fk": {
-          "name": "performance_pair_prediction_id_prediction_snapshot_id_fk",
-          "tableFrom": "performance_pair",
-          "tableTo": "prediction_snapshot",
-          "columnsFrom": [
-            "prediction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "performance_pair_user_id_app_user_id_fk": {
-          "name": "performance_pair_user_id_app_user_id_fk",
-          "tableFrom": "performance_pair",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "performance_pair_retest_interview_id_interview_session_id_fk": {
-          "name": "performance_pair_retest_interview_id_interview_session_id_fk",
-          "tableFrom": "performance_pair",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "retest_interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "performance_pair_role_skill_fk": {
-          "name": "performance_pair_role_skill_fk",
-          "tableFrom": "performance_pair",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "performance_pair_predicted_range": {
-          "name": "performance_pair_predicted_range",
-          "value": "\"performance_pair\".\"predicted_score\" between 0 and 1"
-        },
-        "performance_pair_reference_range": {
-          "name": "performance_pair_reference_range",
-          "value": "\"performance_pair\".\"reference_score\" is null or \"performance_pair\".\"reference_score\" between 0 and 1"
-        },
-        "performance_pair_mae_non_negative": {
-          "name": "performance_pair_mae_non_negative",
-          "value": "\"performance_pair\".\"mae\" is null or \"performance_pair\".\"mae\" >= 0"
-        },
-        "performance_pair_eligible_requires_reference": {
-          "name": "performance_pair_eligible_requires_reference",
-          "value": "\"performance_pair\".\"eligibility\" <> 'eligible' or (\"performance_pair\".\"reference_score\" is not null and \"performance_pair\".\"mae\" is not null and \"performance_pair\".\"learning_exposure_matched\" and \"performance_pair\".\"retest_interview_id\" is not null)"
-        },
-        "performance_pair_ineligible_reasons": {
-          "name": "performance_pair_ineligible_reasons",
-          "value": "\"performance_pair\".\"eligibility\" <> 'ineligible' or jsonb_array_length(\"performance_pair\".\"ineligibility_reasons\") > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.prediction_snapshot": {
-      "name": "prediction_snapshot",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "skill_id": {
-          "name": "skill_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_interview_id": {
-          "name": "source_interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "predicted_at": {
-          "name": "predicted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "expected_learning_exposure": {
-          "name": "expected_learning_exposure",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "valid_until": {
-          "name": "valid_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rubric_version": {
-          "name": "rubric_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "predicted_target_score": {
-          "name": "predicted_target_score",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "predictor_version": {
-          "name": "predictor_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_refs": {
-          "name": "evidence_refs",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "status": {
-          "name": "status",
-          "type": "prediction_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "prediction_snapshot_skill_idx": {
-          "name": "prediction_snapshot_skill_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "role_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "skill_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "valid_until",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prediction_snapshot_status_idx": {
-          "name": "prediction_snapshot_status_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "prediction_snapshot_user_id_app_user_id_fk": {
-          "name": "prediction_snapshot_user_id_app_user_id_fk",
-          "tableFrom": "prediction_snapshot",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "prediction_snapshot_source_interview_id_interview_session_id_fk": {
-          "name": "prediction_snapshot_source_interview_id_interview_session_id_fk",
-          "tableFrom": "prediction_snapshot",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "source_interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "prediction_snapshot_role_skill_fk": {
-          "name": "prediction_snapshot_role_skill_fk",
-          "tableFrom": "prediction_snapshot",
-          "tableTo": "role_skill",
-          "columnsFrom": [
-            "role_id",
-            "skill_id"
-          ],
-          "columnsTo": [
-            "role_id",
-            "skill_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "prediction_snapshot_score_range": {
-          "name": "prediction_snapshot_score_range",
-          "value": "\"prediction_snapshot\".\"predicted_target_score\" between 0 and 1"
-        },
-        "prediction_snapshot_window": {
-          "name": "prediction_snapshot_window",
-          "value": "\"prediction_snapshot\".\"valid_until\" > \"prediction_snapshot\".\"predicted_at\""
-        },
-        "prediction_snapshot_exposure_not_blank": {
-          "name": "prediction_snapshot_exposure_not_blank",
-          "value": "char_length(btrim(\"prediction_snapshot\".\"expected_learning_exposure\")) > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.reflection": {
-      "name": "reflection",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "interview_id": {
-          "name": "interview_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "reflection_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "skill_coverage": {
-          "name": "skill_coverage",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "repeat_rate": {
-          "name": "repeat_rate",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "plan_adherence": {
-          "name": "plan_adherence",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "longest_skill_run": {
-          "name": "longest_skill_run",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "objectives": {
-          "name": "objectives",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "new_evidence_count": {
-          "name": "new_evidence_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "duplicate_question_ids": {
-          "name": "duplicate_question_ids",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "missed_skill_ids": {
-          "name": "missed_skill_ids",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "uncertainty": {
-          "name": "uncertainty",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "timing": {
-          "name": "timing",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "summary": {
-          "name": "summary",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "candidate_policy_version": {
-          "name": "candidate_policy_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "reflection_interview_unique": {
-          "name": "reflection_interview_unique",
-          "columns": [
-            {
-              "expression": "interview_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "reflection_user_idx": {
-          "name": "reflection_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "reflection_interview_id_interview_session_id_fk": {
-          "name": "reflection_interview_id_interview_session_id_fk",
-          "tableFrom": "reflection",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "reflection_user_id_app_user_id_fk": {
-          "name": "reflection_user_id_app_user_id_fk",
-          "tableFrom": "reflection",
-          "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "reflection_role_id_role_id_fk": {
-          "name": "reflection_role_id_role_id_fk",
-          "tableFrom": "reflection",
-          "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "reflection_candidate_policy_version_policy_version_version_fk": {
-          "name": "reflection_candidate_policy_version_policy_version_version_fk",
-          "tableFrom": "reflection",
-          "tableTo": "policy_version",
-          "columnsFrom": [
-            "candidate_policy_version"
-          ],
-          "columnsTo": [
-            "version"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "reflection_skill_coverage_range": {
-          "name": "reflection_skill_coverage_range",
-          "value": "\"reflection\".\"skill_coverage\" is null or \"reflection\".\"skill_coverage\" between 0 and 1"
-        },
-        "reflection_repeat_rate_range": {
-          "name": "reflection_repeat_rate_range",
-          "value": "\"reflection\".\"repeat_rate\" is null or \"reflection\".\"repeat_rate\" between 0 and 1"
-        },
-        "reflection_plan_adherence_range": {
-          "name": "reflection_plan_adherence_range",
-          "value": "\"reflection\".\"plan_adherence\" is null or \"reflection\".\"plan_adherence\" between 0 and 1"
-        },
-        "reflection_longest_run_non_negative": {
-          "name": "reflection_longest_run_non_negative",
-          "value": "\"reflection\".\"longest_skill_run\" is null or \"reflection\".\"longest_skill_run\" >= 0"
-        },
-        "reflection_completed_consistency": {
-          "name": "reflection_completed_consistency",
-          "value": "(\"reflection\".\"status\" = 'completed') = (\"reflection\".\"completed_at\" is not null)"
         }
       },
       "isRLSEnabled": false
@@ -5498,6 +1699,34 @@
           "notNull": true,
           "default": "'synthetic'"
         },
+        "source_group": {
+          "name": "source_group",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label_source": {
+          "name": "label_source",
+          "type": "eval_label_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unlabeled'"
+        },
+        "review_status": {
+          "name": "review_status",
+          "type": "review_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "authorization_ref": {
+          "name": "authorization_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "input": {
           "name": "input",
           "type": "jsonb",
@@ -5509,6 +1738,12 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -5561,6 +1796,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "eval_case_source_group_idx": {
+          "name": "eval_case_source_group_idx",
+          "columns": [
+            {
+              "expression": "source_group",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -5577,10 +1827,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "eval_case_role_id_role_id_fk": {
-          "name": "eval_case_role_id_role_id_fk",
+        "eval_case_role_id_job_role_id_fk": {
+          "name": "eval_case_role_id_job_role_id_fk",
           "tableFrom": "eval_case",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -5594,7 +1844,16 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "eval_case_consented_requires_authorization": {
+          "name": "eval_case_consented_requires_authorization",
+          "value": "\"eval_case\".\"source\" <> 'consented' or \"eval_case\".\"authorization_ref\" is not null"
+        },
+        "eval_case_reviewed_has_hash": {
+          "name": "eval_case_reviewed_has_hash",
+          "value": "\"eval_case\".\"review_status\" <> 'reviewed' or \"eval_case\".\"content_hash\" is not null"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.eval_dataset": {
@@ -5647,9 +1906,21 @@
           "notNull": true,
           "default": 0
         },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "frozen_at": {
           "name": "frozen_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "frozen_by": {
+          "name": "frozen_by",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -5719,10 +1990,10 @@
         }
       },
       "foreignKeys": {
-        "eval_dataset_role_id_role_id_fk": {
-          "name": "eval_dataset_role_id_role_id_fk",
+        "eval_dataset_role_id_job_role_id_fk": {
+          "name": "eval_dataset_role_id_job_role_id_fk",
           "tableFrom": "eval_dataset",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -5730,6 +2001,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "eval_dataset_frozen_by_app_user_id_fk": {
+          "name": "eval_dataset_frozen_by_app_user_id_fk",
+          "tableFrom": "eval_dataset",
+          "tableTo": "app_user",
+          "columnsFrom": [
+            "frozen_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -5744,6 +2028,10 @@
         "eval_dataset_frozen_consistency": {
           "name": "eval_dataset_frozen_consistency",
           "value": "(\"eval_dataset\".\"status\" = 'frozen') = (\"eval_dataset\".\"frozen_at\" is not null)"
+        },
+        "eval_dataset_frozen_has_hash": {
+          "name": "eval_dataset_frozen_has_hash",
+          "value": "\"eval_dataset\".\"status\" <> 'frozen' or \"eval_dataset\".\"content_hash\" is not null"
         }
       },
       "isRLSEnabled": false
@@ -5781,6 +2069,43 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "dataset_version": {
+          "name": "dataset_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dataset_digest": {
+          "name": "dataset_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config_digest": {
+          "name": "config_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "execution_budget": {
+          "name": "execution_budget",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "authorized_by": {
+          "name": "authorized_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "authorized_at": {
+          "name": "authorized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
@@ -5907,10 +2232,10 @@
         }
       },
       "foreignKeys": {
-        "eval_experiment_role_id_role_id_fk": {
-          "name": "eval_experiment_role_id_role_id_fk",
+        "eval_experiment_role_id_job_role_id_fk": {
+          "name": "eval_experiment_role_id_job_role_id_fk",
           "tableFrom": "eval_experiment",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -5931,6 +2256,19 @@
             "id"
           ],
           "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "eval_experiment_authorized_by_app_user_id_fk": {
+          "name": "eval_experiment_authorized_by_app_user_id_fk",
+          "tableFrom": "eval_experiment",
+          "tableTo": "app_user",
+          "columnsFrom": [
+            "authorized_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "eval_experiment_created_by_app_user_id_fk": {
@@ -5993,6 +2331,10 @@
         "eval_experiment_distinct_policies": {
           "name": "eval_experiment_distinct_policies",
           "value": "\"eval_experiment\".\"baseline_policy_version\" <> \"eval_experiment\".\"candidate_policy_version\""
+        },
+        "eval_experiment_running_requires_authorization": {
+          "name": "eval_experiment_running_requires_authorization",
+          "value": "\"eval_experiment\".\"status\" <> 'running' or (\"eval_experiment\".\"authorized_by\" is not null and \"eval_experiment\".\"authorized_at\" is not null)"
         },
         "eval_experiment_published_requires_approval": {
           "name": "eval_experiment_published_requires_approval",
@@ -6139,6 +2481,159 @@
       },
       "isRLSEnabled": false
     },
+    "public.experiment_execution": {
+      "name": "experiment_execution",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "experiment_id": {
+          "name": "experiment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "experiment_execution_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "budget": {
+          "name": "budget",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "authorized_by": {
+          "name": "authorized_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "authorized_at": {
+          "name": "authorized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage": {
+          "name": "usage",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "experiment_execution_experiment_idx": {
+          "name": "experiment_execution_experiment_idx",
+          "columns": [
+            {
+              "expression": "experiment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "experiment_execution_status_idx": {
+          "name": "experiment_execution_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "experiment_execution_experiment_id_eval_experiment_id_fk": {
+          "name": "experiment_execution_experiment_id_eval_experiment_id_fk",
+          "tableFrom": "experiment_execution",
+          "tableTo": "eval_experiment",
+          "columnsFrom": [
+            "experiment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "experiment_execution_authorized_by_app_user_id_fk": {
+          "name": "experiment_execution_authorized_by_app_user_id_fk",
+          "tableFrom": "experiment_execution",
+          "tableTo": "app_user",
+          "columnsFrom": [
+            "authorized_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "experiment_execution_terminal_consistency": {
+          "name": "experiment_execution_terminal_consistency",
+          "value": "(\"experiment_execution\".\"status\" in ('completed', 'failed', 'cancelled')) = (\"experiment_execution\".\"ended_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.policy_champion": {
       "name": "policy_champion",
       "schema": "",
@@ -6239,10 +2734,10 @@
         }
       },
       "foreignKeys": {
-        "policy_champion_role_id_role_id_fk": {
-          "name": "policy_champion_role_id_role_id_fk",
+        "policy_champion_role_id_job_role_id_fk": {
+          "name": "policy_champion_role_id_job_role_id_fk",
           "tableFrom": "policy_champion",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -6429,32 +2924,6 @@
         }
       },
       "foreignKeys": {
-        "alert_interview_id_interview_session_id_fk": {
-          "name": "alert_interview_id_interview_session_id_fk",
-          "tableFrom": "alert",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "alert_run_id_agent_run_id_fk": {
-          "name": "alert_run_id_agent_run_id_fk",
-          "tableFrom": "alert",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "alert_experiment_id_eval_experiment_id_fk": {
           "name": "alert_experiment_id_eval_experiment_id_fk",
           "tableFrom": "alert",
@@ -6502,7 +2971,7 @@
         },
         "actor_role": {
           "name": "actor_role",
-          "type": "user_role",
+          "type": "account_role",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
@@ -6748,32 +3217,6 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
-        },
-        "feedback_entry_interview_id_interview_session_id_fk": {
-          "name": "feedback_entry_interview_id_interview_session_id_fk",
-          "tableFrom": "feedback_entry",
-          "tableTo": "interview_session",
-          "columnsFrom": [
-            "interview_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "feedback_entry_run_id_agent_run_id_fk": {
-          "name": "feedback_entry_run_id_agent_run_id_fk",
-          "tableFrom": "feedback_entry",
-          "tableTo": "agent_run",
-          "columnsFrom": [
-            "run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6791,6 +3234,166 @@
         "feedback_entry_resolved_consistency": {
           "name": "feedback_entry_resolved_consistency",
           "value": "(\"feedback_entry\".\"status\" = 'resolved') = (\"feedback_entry\".\"resolved_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.metric_measure": {
+      "name": "metric_measure",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "snapshot_id": {
+          "name": "snapshot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "numerator": {
+          "name": "numerator",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "denominator": {
+          "name": "denominator",
+          "type": "numeric(18, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "numeric(9, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "window_start": {
+          "name": "window_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window_end": {
+          "name": "window_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evidence_kind": {
+          "name": "evidence_kind",
+          "type": "metric_evidence_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'mixed'"
+        },
+        "applicable_version": {
+          "name": "applicable_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metric_measure_name_unique": {
+          "name": "metric_measure_name_unique",
+          "columns": [
+            {
+              "expression": "snapshot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "metric_measure_snapshot_idx": {
+          "name": "metric_measure_snapshot_idx",
+          "columns": [
+            {
+              "expression": "snapshot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "metric_measure_snapshot_id_metric_snapshot_id_fk": {
+          "name": "metric_measure_snapshot_id_metric_snapshot_id_fk",
+          "tableFrom": "metric_measure",
+          "tableTo": "metric_snapshot",
+          "columnsFrom": [
+            "snapshot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "metric_measure_denominator_positive": {
+          "name": "metric_measure_denominator_positive",
+          "value": "\"metric_measure\".\"denominator\" > 0"
+        },
+        "metric_measure_numerator_non_negative": {
+          "name": "metric_measure_numerator_non_negative",
+          "value": "\"metric_measure\".\"numerator\" >= 0"
+        },
+        "metric_measure_window_order": {
+          "name": "metric_measure_window_order",
+          "value": "\"metric_measure\".\"window_end\" > \"metric_measure\".\"window_start\""
+        },
+        "metric_measure_value_range": {
+          "name": "metric_measure_value_range",
+          "value": "\"metric_measure\".\"value\" is null or \"metric_measure\".\"value\" between 0 and 1"
+        },
+        "metric_measure_source_not_blank": {
+          "name": "metric_measure_source_not_blank",
+          "value": "char_length(btrim(\"metric_measure\".\"source\")) > 0"
         }
       },
       "isRLSEnabled": false
@@ -6829,6 +3432,26 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "evidence_kind": {
+          "name": "evidence_kind",
+          "type": "metric_evidence_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'mixed'"
+        },
+        "data_source": {
+          "name": "data_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicable_version": {
+          "name": "applicable_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "interview_count": {
           "name": "interview_count",
@@ -6926,10 +3549,10 @@
         }
       },
       "foreignKeys": {
-        "metric_snapshot_role_id_role_id_fk": {
-          "name": "metric_snapshot_role_id_role_id_fk",
+        "metric_snapshot_role_id_job_role_id_fk": {
+          "name": "metric_snapshot_role_id_job_role_id_fk",
           "tableFrom": "metric_snapshot",
-          "tableTo": "role",
+          "tableTo": "job_role",
           "columnsFrom": [
             "role_id"
           ],
@@ -6952,6 +3575,10 @@
           "name": "metric_snapshot_scope_role",
           "value": "(\"metric_snapshot\".\"scope\" = 'role') = (\"metric_snapshot\".\"role_id\" is not null)"
         },
+        "metric_snapshot_data_source_not_blank": {
+          "name": "metric_snapshot_data_source_not_blank",
+          "value": "char_length(btrim(\"metric_snapshot\".\"data_source\")) > 0"
+        },
         "metric_snapshot_ratio_ranges": {
           "name": "metric_snapshot_ratio_ranges",
           "value": "(\"metric_snapshot\".\"run_failure_rate\" is null or \"metric_snapshot\".\"run_failure_rate\" between 0 and 1) and (\"metric_snapshot\".\"skill_coverage\" is null or \"metric_snapshot\".\"skill_coverage\" between 0 and 1) and (\"metric_snapshot\".\"repeat_rate\" is null or \"metric_snapshot\".\"repeat_rate\" between 0 and 1) and (\"metric_snapshot\".\"plan_adherence\" is null or \"metric_snapshot\".\"plan_adherence\" between 0 and 1)"
@@ -6963,8 +3590,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.xp_event": {
-      "name": "xp_event",
+    "public.content_release": {
+      "name": "content_release",
       "schema": "",
       "columns": {
         "id": {
@@ -6973,71 +3600,52 @@
           "primaryKey": true,
           "notNull": true
         },
-        "user_id": {
-          "name": "user_id",
+        "version": {
+          "name": "version",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "reason": {
-          "name": "reason",
-          "type": "xp_reason",
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "manifest": {
+          "name": "manifest",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_location": {
+          "name": "resource_location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "content_release_status",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
-        },
-        "xp_delta": {
-          "name": "xp_delta",
-          "type": "integer",
-          "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "default": "'draft'"
         },
-        "coin_delta": {
-          "name": "coin_delta",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "balance_xp": {
-          "name": "balance_xp",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "balance_coins": {
-          "name": "balance_coins",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "level_after": {
-          "name": "level_after",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_type": {
-          "name": "source_type",
+        "created_by": {
+          "name": "created_by",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "source_id": {
-          "name": "source_id",
-          "type": "text",
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "dedupe_key": {
-          "name": "dedupe_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "note": {
-          "name": "note",
+        "notes": {
+          "name": "notes",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -7048,14 +3656,21 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "xp_event_dedupe_unique": {
-          "name": "xp_event_dedupe_unique",
+        "content_release_version_unique": {
+          "name": "content_release_version_unique",
           "columns": [
             {
-              "expression": "dedupe_key",
+              "expression": "version",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -7066,17 +3681,17 @@
           "method": "btree",
           "with": {}
         },
-        "xp_event_user_idx": {
-          "name": "xp_event_user_idx",
+        "content_release_status_idx": {
+          "name": "content_release_status_idx",
           "columns": [
             {
-              "expression": "user_id",
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "created_at",
+              "expression": "published_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -7089,17 +3704,17 @@
         }
       },
       "foreignKeys": {
-        "xp_event_user_id_app_user_id_fk": {
-          "name": "xp_event_user_id_app_user_id_fk",
-          "tableFrom": "xp_event",
+        "content_release_created_by_app_user_id_fk": {
+          "name": "content_release_created_by_app_user_id_fk",
+          "tableFrom": "content_release",
           "tableTo": "app_user",
           "columnsFrom": [
-            "user_id"
+            "created_by"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -7107,23 +3722,39 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "xp_event_has_change": {
-          "name": "xp_event_has_change",
-          "value": "\"xp_event\".\"xp_delta\" <> 0 or \"xp_event\".\"coin_delta\" <> 0"
+        "content_release_version_length": {
+          "name": "content_release_version_length",
+          "value": "char_length(\"content_release\".\"version\") between 1 and 40"
         },
-        "xp_event_reason_direction": {
-          "name": "xp_event_reason_direction",
-          "value": "(\"xp_event\".\"reason\" = 'hint_used' and \"xp_event\".\"coin_delta\" < 0) or (\"xp_event\".\"reason\" <> 'hint_used' and \"xp_event\".\"xp_delta\" >= 0 and \"xp_event\".\"coin_delta\" >= 0)"
+        "content_release_hash_length": {
+          "name": "content_release_hash_length",
+          "value": "char_length(\"content_release\".\"content_hash\") between 1 and 128"
         },
-        "xp_event_balances_non_negative": {
-          "name": "xp_event_balances_non_negative",
-          "value": "\"xp_event\".\"balance_xp\" >= 0 and \"xp_event\".\"balance_coins\" >= 0 and \"xp_event\".\"level_after\" >= 1"
+        "content_release_published_at": {
+          "name": "content_release_published_at",
+          "value": "(\"content_release\".\"status\" = 'published') = (\"content_release\".\"published_at\" is not null)"
         }
       },
       "isRLSEnabled": false
     }
   },
   "enums": {
+    "public.account_role": {
+      "name": "account_role",
+      "schema": "public",
+      "values": [
+        "student",
+        "admin"
+      ]
+    },
+    "public.adoption_status": {
+      "name": "adoption_status",
+      "schema": "public",
+      "values": [
+        "not_adopted",
+        "adopted"
+      ]
+    },
     "public.alert_severity": {
       "name": "alert_severity",
       "schema": "public",
@@ -7142,24 +3773,13 @@
         "resolved"
       ]
     },
-    "public.answer_modality": {
-      "name": "answer_modality",
+    "public.content_release_status": {
+      "name": "content_release_status",
       "schema": "public",
       "values": [
-        "text",
-        "voice"
-      ]
-    },
-    "public.audio_asset_status": {
-      "name": "audio_asset_status",
-      "schema": "public",
-      "values": [
-        "uploaded",
-        "transcribing",
-        "transcribed",
-        "confirmed",
-        "failed",
-        "deleted"
+        "draft",
+        "published",
+        "retired"
       ]
     },
     "public.dataset_group": {
@@ -7198,34 +3818,24 @@
         "retired"
       ]
     },
-    "public.evaluation_dimension_key": {
-      "name": "evaluation_dimension_key",
+    "public.eval_label_source": {
+      "name": "eval_label_source",
       "schema": "public",
       "values": [
-        "correctness",
-        "depth",
-        "logic",
-        "role_fit",
-        "communication",
-        "speech_acoustics",
-        "speech_emotion"
+        "expert",
+        "model",
+        "unlabeled"
       ]
     },
-    "public.evidence_level": {
-      "name": "evidence_level",
+    "public.experiment_execution_status": {
+      "name": "experiment_execution_status",
       "schema": "public",
       "values": [
-        "self_reported",
-        "verifiable"
-      ]
-    },
-    "public.evidence_source": {
-      "name": "evidence_source",
-      "schema": "public",
-      "values": [
-        "interview",
-        "retest",
-        "diagnostic"
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled"
       ]
     },
     "public.experiment_status": {
@@ -7260,26 +3870,6 @@
         "resolved"
       ]
     },
-    "public.interview_kind": {
-      "name": "interview_kind",
-      "schema": "public",
-      "values": [
-        "practice",
-        "retest"
-      ]
-    },
-    "public.interview_status": {
-      "name": "interview_status",
-      "schema": "public",
-      "values": [
-        "planning",
-        "awaiting_answer",
-        "processing_answer",
-        "completed",
-        "cancelled",
-        "failed"
-      ]
-    },
     "public.knowledge_review_decision": {
       "name": "knowledge_review_decision",
       "schema": "public",
@@ -7289,14 +3879,12 @@
         "deprecate"
       ]
     },
-    "public.learning_progress_status": {
-      "name": "learning_progress_status",
+    "public.knowledge_review_target": {
+      "name": "knowledge_review_target",
       "schema": "public",
       "values": [
-        "started",
-        "self_reported",
-        "verified",
-        "abandoned"
+        "knowledge_item",
+        "rubric"
       ]
     },
     "public.learning_resource_availability": {
@@ -7316,31 +3904,21 @@
         "advanced"
       ]
     },
+    "public.metric_evidence_kind": {
+      "name": "metric_evidence_kind",
+      "schema": "public",
+      "values": [
+        "real",
+        "synthetic",
+        "mixed"
+      ]
+    },
     "public.metric_scope": {
       "name": "metric_scope",
       "schema": "public",
       "values": [
         "system",
         "role"
-      ]
-    },
-    "public.pair_eligibility": {
-      "name": "pair_eligibility",
-      "schema": "public",
-      "values": [
-        "pending",
-        "eligible",
-        "ineligible"
-      ]
-    },
-    "public.plan_action": {
-      "name": "plan_action",
-      "schema": "public",
-      "values": [
-        "deepen",
-        "switch_skill",
-        "adjust_difficulty",
-        "finish"
       ]
     },
     "public.policy_status": {
@@ -7354,13 +3932,12 @@
         "rejected"
       ]
     },
-    "public.prediction_status": {
-      "name": "prediction_status",
+    "public.publication_status": {
+      "name": "publication_status",
       "schema": "public",
       "values": [
-        "pending",
-        "paired",
-        "expired"
+        "not_published",
+        "published"
       ]
     },
     "public.question_type": {
@@ -7373,87 +3950,12 @@
         "behavioral"
       ]
     },
-    "public.recommendation_action": {
-      "name": "recommendation_action",
-      "schema": "public",
-      "values": [
-        "practice",
-        "review_resource",
-        "retest"
-      ]
-    },
-    "public.recommendation_status": {
-      "name": "recommendation_status",
-      "schema": "public",
-      "values": [
-        "suggested",
-        "accepted",
-        "completed",
-        "dismissed"
-      ]
-    },
-    "public.reflection_status": {
-      "name": "reflection_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "completed",
-        "failed"
-      ]
-    },
     "public.review_status": {
       "name": "review_status",
       "schema": "public",
       "values": [
         "draft",
         "reviewed"
-      ]
-    },
-    "public.run_attempt_status": {
-      "name": "run_attempt_status",
-      "schema": "public",
-      "values": [
-        "running",
-        "completed",
-        "failed",
-        "cancelled",
-        "expired"
-      ]
-    },
-    "public.run_event_type": {
-      "name": "run_event_type",
-      "schema": "public",
-      "values": [
-        "run.accepted",
-        "run.stage",
-        "question.delta",
-        "question.completed",
-        "run.completed",
-        "run.failed",
-        "run.cancelled"
-      ]
-    },
-    "public.run_kind": {
-      "name": "run_kind",
-      "schema": "public",
-      "values": [
-        "initial_plan",
-        "answer_processing",
-        "finish",
-        "reflection",
-        "experiment_evaluation",
-        "learning_recommendation"
-      ]
-    },
-    "public.run_status": {
-      "name": "run_status",
-      "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "completed",
-        "failed",
-        "cancelled"
       ]
     },
     "public.source_verification_status": {
@@ -7465,51 +3967,12 @@
         "content-checked"
       ]
     },
-    "public.transcript_status": {
-      "name": "transcript_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "ready",
-        "confirmed",
-        "failed"
-      ]
-    },
-    "public.interview_turn_status": {
-      "name": "interview_turn_status",
-      "schema": "public",
-      "values": [
-        "awaiting_answer",
-        "processing_answer",
-        "answered",
-        "skipped"
-      ]
-    },
-    "public.user_role": {
-      "name": "user_role",
-      "schema": "public",
-      "values": [
-        "student",
-        "admin"
-      ]
-    },
     "public.user_status": {
       "name": "user_status",
       "schema": "public",
       "values": [
         "active",
         "disabled"
-      ]
-    },
-    "public.xp_reason": {
-      "name": "xp_reason",
-      "schema": "public",
-      "values": [
-        "interview_completed",
-        "learning_completed",
-        "retest_completed",
-        "hint_used",
-        "admin_adjustment"
       ]
     }
   },

@@ -39,7 +39,6 @@ const paths: Record<string, unknown> = {
   '/v1/runs/{runId}/events': { get: planned('subscribeRun', '订阅归一 SSE 事件', 200, [id('runId'),
     { name: 'Last-Event-ID', in: 'header', schema: { type: 'string' } }]) },
   '/v1/runs/{runId}/cancellation': { post: planned('cancelRun', '取消运行并撤销提交资格', 202, [id('runId')]) },
-  '/v1/profiles/me': { get: planned('getOwnProfile', '本人能力画像', 200) },
   '/v1/experiments': { post: planned('createExperiment', '管理员创建评测任务', 202), get: planned('listExperiments', '管理员评测记录', 200, pagination) },
 };
 const document = {

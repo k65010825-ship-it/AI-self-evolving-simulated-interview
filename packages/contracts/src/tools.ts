@@ -13,7 +13,12 @@ export const KnowledgeItemSchema = z.object({
   difficulty: z.number().int().min(1).max(5), question: z.string().min(1),
   keyPoints: z.array(z.string().min(1)).min(1),
   rubric: z.array(z.object({ criterionId: z.string(), description: z.string(),
-    maxScore: z.number().positive(), weight: z.number().positive() }).strict()).min(1),
+    maxScore: z.number().positive(), weight: z.number().positive(),
+    dimension: z.string().trim().min(1).max(80).optional(),
+    anchors: z.array(z.object({ label: z.string(), description: z.string(), score: z.number().nonnegative().optional() }).strict()).optional(),
+    evidenceRule: z.record(z.string(), z.unknown()).optional(),
+    verificationGoal: z.string().trim().min(1).max(500).optional(),
+  }).strict()).min(1),
   sourceIds: z.array(z.string().min(1)).min(1), version: z.string().min(1),
   reviewStatus: z.enum(['draft', 'reviewed']),
 }).strict();

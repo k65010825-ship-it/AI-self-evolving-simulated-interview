@@ -18,13 +18,14 @@ import {
 import { users } from './identity.ts';
 import {
   knowledgeReviewDecision,
+  knowledgeReviewTarget,
   questionType,
   reviewStatus,
   sourceVerificationStatus,
 } from './enums.ts';
 
-export const roles = pgTable(
-  'role',
+export const jobRoles = pgTable(
+  'job_role',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
@@ -36,7 +37,7 @@ export const roles = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [check('role_name_length', sql`char_length(${table.name}) between 1 and 80`)],
+  (table) => [check('job_role_name_length', sql`char_length(${table.name}) between 1 and 80`)],
 );
 
 export const roleSkills = pgTable(
@@ -44,7 +45,7 @@ export const roleSkills = pgTable(
   {
     roleId: text('role_id')
       .notNull()
-      .references(() => roles.id, { onDelete: 'cascade' }),
+      .references(() => jobRoles.id, { onDelete: 'cascade' }),
     skillId: text('skill_id').notNull(),
     name: text('name').notNull(),
     summary: text('summary'),
@@ -82,6 +83,7 @@ export const rubrics = pgTable(
     skillId: text('skill_id').notNull(),
     questionType: questionType('question_type'),
     version: text('version').notNull(),
+    contentHash: text('content_hash'),
     reviewStatus: reviewStatus('review_status').notNull().default('draft'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -95,6 +97,7 @@ export const rubrics = pgTable(
       foreignColumns: [roleSkills.roleId, roleSkills.skillId],
     }).onDelete('cascade'),
     check('rubric_version_length', sql`char_length(${table.version}) between 1 and 40`),
+    check('rubric_reviewed_has_hash', sql`${table.reviewStatus} <> 'reviewed' or ${table.contentHash} is not null`),
   ],
 );
 
@@ -105,9 +108,13 @@ export const rubricCriteria = pgTable(
       .notNull()
       .references(() => rubrics.id, { onDelete: 'cascade' }),
     criterionId: text('criterion_id').notNull(),
+    dimension: text('dimension'),
     description: text('description').notNull(),
     maxScore: numeric('max_score', { precision: 5, scale: 2 }).notNull(),
     weight: numeric('weight', { precision: 5, scale: 4 }).notNull(),
+    anchors: jsonb('anchors').$type<Record<string, unknown>[]>(),
+    evidenceRule: jsonb('evidence_rule').$type<Record<string, unknown>>(),
+    verificationGoal: text('verification_goal'),
     sortOrder: integer('sort_order').notNull().default(0),
   },
   (table) => [
@@ -131,6 +138,7 @@ export const knowledgeItems = pgTable(
       .notNull()
       .references(() => rubrics.id, { onDelete: 'restrict' }),
     version: text('version').notNull(),
+    contentHash: text('content_hash'),
     reviewStatus: reviewStatus('review_status').notNull().default('draft'),
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     reviewedBy: text('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
@@ -139,6 +147,7 @@ export const knowledgeItems = pgTable(
   },
   (table) => [
     index('knowledge_item_scope_idx').on(table.roleId, table.skillId, table.reviewStatus),
+    index('knowledge_item_scope_version_idx').on(table.roleId, table.skillId, table.version),
     index('knowledge_item_role_type_idx').on(table.roleId, table.questionType),
     foreignKey({
       name: 'knowledge_item_role_skill_fk',
@@ -148,6 +157,10 @@ export const knowledgeItems = pgTable(
     check('knowledge_item_difficulty_range', sql`${table.difficulty} between 1 and 5`),
     check('knowledge_item_question_not_blank', sql`char_length(btrim(${table.question})) > 0`),
     check('knowledge_item_key_points_not_empty', sql`jsonb_array_length(${table.keyPoints}) > 0`),
+    check(
+      'knowledge_item_reviewed_has_hash',
+      sql`${table.reviewStatus} <> 'reviewed' or (${table.contentHash} is not null and ${table.reviewedAt} is not null)`,
+    ),
   ],
 );
 
@@ -171,9 +184,10 @@ export const knowledgeReviews = pgTable(
   'knowledge_review',
   {
     id: text('id').primaryKey(),
-    knowledgeItemId: text('knowledge_item_id')
-      .notNull()
-      .references(() => knowledgeItems.id, { onDelete: 'cascade' }),
+    targetType: knowledgeReviewTarget('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    version: text('version').notNull(),
+    contentHash: text('content_hash').notNull(),
     decision: knowledgeReviewDecision('decision').notNull(),
     fromStatus: reviewStatus('from_status').notNull(),
     toStatus: reviewStatus('to_status').notNull(),
@@ -184,10 +198,13 @@ export const knowledgeReviews = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    index('knowledge_review_item_idx').on(table.knowledgeItemId, table.createdAt),
+    index('knowledge_review_target_idx').on(table.targetType, table.targetId, table.createdAt),
+    check('knowledge_review_target_id_length', sql`char_length(${table.targetId}) between 1 and 80`),
+    check('knowledge_review_version_length', sql`char_length(${table.version}) between 1 and 40`),
+    check('knowledge_review_hash_length', sql`char_length(${table.contentHash}) between 1 and 128`),
     check(
       'knowledge_review_status_change',
-      sql`(${table.decision} = 'approve' and ${table.fromStatus} = 'draft' and ${table.toStatus} = 'reviewed') or (${table.decision} = 'reject' and ${table.toStatus} = ${table.fromStatus}) or (${table.decision} = 'deprecate' and ${table.toStatus} = 'draft')`,
+      sql`(${table.decision} = 'approve' and ${table.toStatus} = 'reviewed') or (${table.decision} = 'reject' and ${table.toStatus} = ${table.fromStatus}) or (${table.decision} = 'deprecate' and ${table.toStatus} = 'draft')`,
     ),
   ],
 );

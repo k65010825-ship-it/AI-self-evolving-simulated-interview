@@ -11,19 +11,17 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { roles } from './catalog.ts';
+import { jobRoles } from './catalog.ts';
 import { evalExperiments } from './evolution.ts';
 import { users } from './identity.ts';
-import { interviews } from './interviews.ts';
-import { agentRuns } from './runs.ts';
 import {
+  accountRole,
   alertSeverity,
   alertStatus,
   feedbackCategory,
   feedbackStatus,
+  metricEvidenceKind,
   metricScope,
-  userRole,
-  xpReason,
 } from './enums.ts';
 
 export const auditLogs = pgTable(
@@ -31,7 +29,7 @@ export const auditLogs = pgTable(
   {
     id: text('id').primaryKey(),
     actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
-    actorRole: userRole('actor_role'),
+    actorRole: accountRole('actor_role'),
     action: text('action').notNull(),
     targetType: text('target_type').notNull(),
     targetId: text('target_id'),
@@ -53,8 +51,8 @@ export const feedbackEntries = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
-    interviewId: text('interview_id').references(() => interviews.id, { onDelete: 'set null' }),
-    runId: text('run_id').references(() => agentRuns.id, { onDelete: 'set null' }),
+    interviewId: text('interview_id'),
+    runId: text('run_id'),
     category: feedbackCategory('category').notNull(),
     rating: smallint('rating'),
     message: text('message'),
@@ -83,8 +81,8 @@ export const alerts = pgTable(
     code: text('code').notNull(),
     message: text('message').notNull(),
     status: alertStatus('status').notNull().default('open'),
-    interviewId: text('interview_id').references(() => interviews.id, { onDelete: 'set null' }),
-    runId: text('run_id').references(() => agentRuns.id, { onDelete: 'set null' }),
+    interviewId: text('interview_id'),
+    runId: text('run_id'),
     experimentId: text('experiment_id').references(() => evalExperiments.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true }),
@@ -109,9 +107,12 @@ export const metricSnapshots = pgTable(
   {
     id: text('id').primaryKey(),
     scope: metricScope('scope').notNull(),
-    roleId: text('role_id').references(() => roles.id, { onDelete: 'cascade' }),
+    roleId: text('role_id').references(() => jobRoles.id, { onDelete: 'cascade' }),
     windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
     windowEnd: timestamp('window_end', { withTimezone: true }).notNull(),
+    evidenceKind: metricEvidenceKind('evidence_kind').notNull().default('mixed'),
+    dataSource: text('data_source').notNull(),
+    applicableVersion: text('applicable_version'),
     interviewCount: integer('interview_count').notNull().default(0),
     completedInterviewCount: integer('completed_interview_count').notNull().default(0),
     runFailureRate: numeric('run_failure_rate', { precision: 5, scale: 4 }),
@@ -128,6 +129,7 @@ export const metricSnapshots = pgTable(
     index('metric_snapshot_window_idx').on(table.scope, table.windowStart),
     check('metric_snapshot_window_order', sql`${table.windowEnd} > ${table.windowStart}`),
     check('metric_snapshot_scope_role', sql`(${table.scope} = 'role') = (${table.roleId} is not null)`),
+    check('metric_snapshot_data_source_not_blank', sql`char_length(btrim(${table.dataSource})) > 0`),
     check(
       'metric_snapshot_ratio_ranges',
       sql`(${table.runFailureRate} is null or ${table.runFailureRate} between 0 and 1) and (${table.skillCoverage} is null or ${table.skillCoverage} between 0 and 1) and (${table.repeatRate} is null or ${table.repeatRate} between 0 and 1) and (${table.planAdherence} is null or ${table.planAdherence} between 0 and 1)`,
@@ -136,36 +138,31 @@ export const metricSnapshots = pgTable(
   ],
 );
 
-export const xpEvents = pgTable(
-  'xp_event',
+export const metricMeasures = pgTable(
+  'metric_measure',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id')
+    snapshotId: text('snapshot_id')
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    reason: xpReason('reason').notNull(),
-    xpDelta: integer('xp_delta').notNull().default(0),
-    coinDelta: integer('coin_delta').notNull().default(0),
-    balanceXp: integer('balance_xp').notNull(),
-    balanceCoins: integer('balance_coins').notNull(),
-    levelAfter: integer('level_after').notNull(),
-    sourceType: text('source_type').notNull(),
-    sourceId: text('source_id').notNull(),
-    dedupeKey: text('dedupe_key').notNull(),
-    note: text('note'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+      .references(() => metricSnapshots.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    numerator: numeric('numerator', { precision: 18, scale: 4 }).notNull(),
+    denominator: numeric('denominator', { precision: 18, scale: 4 }).notNull(),
+    value: numeric('value', { precision: 9, scale: 4 }),
+    windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+    windowEnd: timestamp('window_end', { withTimezone: true }).notNull(),
+    source: text('source').notNull(),
+    evidenceKind: metricEvidenceKind('evidence_kind').notNull().default('mixed'),
+    applicableVersion: text('applicable_version'),
+    capturedAt: timestamp('captured_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('xp_event_dedupe_unique').on(table.dedupeKey),
-    index('xp_event_user_idx').on(table.userId, table.createdAt),
-    check('xp_event_has_change', sql`${table.xpDelta} <> 0 or ${table.coinDelta} <> 0`),
-    check(
-      'xp_event_reason_direction',
-      sql`(${table.reason} = 'hint_used' and ${table.coinDelta} < 0) or (${table.reason} <> 'hint_used' and ${table.xpDelta} >= 0 and ${table.coinDelta} >= 0)`,
-    ),
-    check(
-      'xp_event_balances_non_negative',
-      sql`${table.balanceXp} >= 0 and ${table.balanceCoins} >= 0 and ${table.levelAfter} >= 1`,
-    ),
+    uniqueIndex('metric_measure_name_unique').on(table.snapshotId, table.name),
+    index('metric_measure_snapshot_idx').on(table.snapshotId),
+    check('metric_measure_denominator_positive', sql`${table.denominator} > 0`),
+    check('metric_measure_numerator_non_negative', sql`${table.numerator} >= 0`),
+    check('metric_measure_window_order', sql`${table.windowEnd} > ${table.windowStart}`),
+    check('metric_measure_value_range', sql`${table.value} is null or ${table.value} between 0 and 1`),
+    check('metric_measure_source_not_blank', sql`char_length(btrim(${table.source})) > 0`),
   ],
 );

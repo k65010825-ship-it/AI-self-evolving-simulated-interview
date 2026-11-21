@@ -1,0 +1,3202 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "bef76b19-f7e3-488d-aa7b-25ff211c415c",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "skill_observation": {
+      "name": "skill_observation",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "score": {
+          "name": "score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "skill_observation_scope_idx": {
+          "name": "skill_observation_scope_idx",
+          "columns": [
+            "user_id",
+            "role_id",
+            "skill_id",
+            "observed_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "skill_observation_source_type_values": {
+          "name": "skill_observation_source_type_values",
+          "value": "\"skill_observation\".\"source_type\" in ('interview', 'retest', 'diagnostic')"
+        },
+        "skill_observation_score_range": {
+          "name": "skill_observation_score_range",
+          "value": "\"skill_observation\".\"score\" is null or \"skill_observation\".\"score\" between 0 and 1"
+        }
+      }
+    },
+    "skill_profile": {
+      "name": "skill_profile",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mastery": {
+          "name": "mastery",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "evidence_count": {
+          "name": "evidence_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "last_updated_at": {
+          "name": "last_updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "skill_profile_pk": {
+          "columns": [
+            "user_id",
+            "role_id",
+            "skill_id"
+          ],
+          "name": "skill_profile_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "skill_profile_mastery_range": {
+          "name": "skill_profile_mastery_range",
+          "value": "\"skill_profile\".\"mastery\" is null or \"skill_profile\".\"mastery\" between 0 and 1"
+        },
+        "skill_profile_confidence_range": {
+          "name": "skill_profile_confidence_range",
+          "value": "\"skill_profile\".\"confidence\" between 0 and 1"
+        },
+        "skill_profile_evidence_non_negative": {
+          "name": "skill_profile_evidence_non_negative",
+          "value": "\"skill_profile\".\"evidence_count\" >= 0"
+        }
+      }
+    },
+    "user_gamification": {
+      "name": "user_gamification",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "xp_balance": {
+          "name": "xp_balance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "coin_balance": {
+          "name": "coin_balance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "user_gamification_balances_non_negative": {
+          "name": "user_gamification_balances_non_negative",
+          "value": "\"user_gamification\".\"xp_balance\" >= 0 and \"user_gamification\".\"coin_balance\" >= 0"
+        }
+      }
+    },
+    "xp_event": {
+      "name": "xp_event",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "xp_delta": {
+          "name": "xp_delta",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "coin_delta": {
+          "name": "coin_delta",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "balance_xp": {
+          "name": "balance_xp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "balance_coins": {
+          "name": "balance_coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dedupe_key": {
+          "name": "dedupe_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "xp_event_dedupe_unique": {
+          "name": "xp_event_dedupe_unique",
+          "columns": [
+            "dedupe_key"
+          ],
+          "isUnique": true
+        },
+        "xp_event_user_idx": {
+          "name": "xp_event_user_idx",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "xp_event_reason_values": {
+          "name": "xp_event_reason_values",
+          "value": "\"xp_event\".\"reason\" in ('interview_completed', 'learning_completed', 'retest_completed', 'hint_used', 'admin_adjustment')"
+        },
+        "xp_event_has_change": {
+          "name": "xp_event_has_change",
+          "value": "\"xp_event\".\"xp_delta\" <> 0 or \"xp_event\".\"coin_delta\" <> 0"
+        },
+        "xp_event_reason_direction": {
+          "name": "xp_event_reason_direction",
+          "value": "(\"xp_event\".\"reason\" = 'hint_used' and \"xp_event\".\"coin_delta\" < 0) or (\"xp_event\".\"reason\" <> 'hint_used' and \"xp_event\".\"xp_delta\" >= 0 and \"xp_event\".\"coin_delta\" >= 0)"
+        },
+        "xp_event_balances_non_negative": {
+          "name": "xp_event_balances_non_negative",
+          "value": "\"xp_event\".\"balance_xp\" >= 0 and \"xp_event\".\"balance_coins\" >= 0"
+        }
+      }
+    },
+    "audio_analysis": {
+      "name": "audio_analysis",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "audio_asset_id": {
+          "name": "audio_asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "voiced_duration_ms": {
+          "name": "voiced_duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pause_ratio": {
+          "name": "pause_ratio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "speech_rate_chars_per_min": {
+          "name": "speech_rate_chars_per_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "clarity_score": {
+          "name": "clarity_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "clarity_verified": {
+          "name": "clarity_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "emotion_label": {
+          "name": "emotion_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "emotion_confidence": {
+          "name": "emotion_confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "emotion_verified": {
+          "name": "emotion_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "audio_analysis_audio_asset_unique": {
+          "name": "audio_analysis_audio_asset_unique",
+          "columns": [
+            "audio_asset_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "audio_analysis_pause_ratio_range": {
+          "name": "audio_analysis_pause_ratio_range",
+          "value": "\"audio_analysis\".\"pause_ratio\" is null or \"audio_analysis\".\"pause_ratio\" between 0 and 1"
+        },
+        "audio_analysis_clarity_range": {
+          "name": "audio_analysis_clarity_range",
+          "value": "\"audio_analysis\".\"clarity_score\" is null or \"audio_analysis\".\"clarity_score\" between 0 and 1"
+        },
+        "audio_analysis_emotion_confidence_range": {
+          "name": "audio_analysis_emotion_confidence_range",
+          "value": "\"audio_analysis\".\"emotion_confidence\" is null or \"audio_analysis\".\"emotion_confidence\" between 0 and 1"
+        },
+        "audio_analysis_voiced_duration_positive": {
+          "name": "audio_analysis_voiced_duration_positive",
+          "value": "\"audio_analysis\".\"voiced_duration_ms\" is null or \"audio_analysis\".\"voiced_duration_ms\" > 0"
+        },
+        "audio_analysis_clarity_verified_requires_score": {
+          "name": "audio_analysis_clarity_verified_requires_score",
+          "value": "\"audio_analysis\".\"clarity_verified\" = false or \"audio_analysis\".\"clarity_score\" is not null"
+        },
+        "audio_analysis_emotion_verified_requires_score": {
+          "name": "audio_analysis_emotion_verified_requires_score",
+          "value": "\"audio_analysis\".\"emotion_verified\" = false or \"audio_analysis\".\"emotion_confidence\" is not null"
+        }
+      }
+    },
+    "audio_asset": {
+      "name": "audio_asset",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "turn_id": {
+          "name": "turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "byte_size": {
+          "name": "byte_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'uploaded'"
+        },
+        "consent_for_review": {
+          "name": "consent_for_review",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "retention_until": {
+          "name": "retention_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "delete_requested_at": {
+          "name": "delete_requested_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "audio_asset_interview_idx": {
+          "name": "audio_asset_interview_idx",
+          "columns": [
+            "interview_id"
+          ],
+          "isUnique": false
+        },
+        "audio_asset_user_idx": {
+          "name": "audio_asset_user_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "audio_asset_status_values": {
+          "name": "audio_asset_status_values",
+          "value": "\"audio_asset\".\"status\" in ('uploaded', 'transcribing', 'transcribed', 'confirmed', 'failed', 'deleted')"
+        },
+        "audio_asset_byte_size_positive": {
+          "name": "audio_asset_byte_size_positive",
+          "value": "\"audio_asset\".\"byte_size\" > 0"
+        },
+        "audio_asset_duration_positive": {
+          "name": "audio_asset_duration_positive",
+          "value": "\"audio_asset\".\"duration_ms\" is null or \"audio_asset\".\"duration_ms\" > 0"
+        },
+        "audio_asset_retention_requires_consent": {
+          "name": "audio_asset_retention_requires_consent",
+          "value": "\"audio_asset\".\"retention_until\" is null or \"audio_asset\".\"consent_for_review\""
+        },
+        "audio_asset_deleted_at_consistency": {
+          "name": "audio_asset_deleted_at_consistency",
+          "value": "(\"audio_asset\".\"status\" = 'deleted') = (\"audio_asset\".\"deleted_at\" is not null)"
+        }
+      }
+    },
+    "interview_session": {
+      "name": "interview_session",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'practice'"
+        },
+        "retest_of_interview_id": {
+          "name": "retest_of_interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "goal": {
+          "name": "goal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'planning'"
+        },
+        "session_version": {
+          "name": "session_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'baseline-v0'"
+        },
+        "current_question_id": {
+          "name": "current_question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "failure": {
+          "name": "failure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deadline_at": {
+          "name": "deadline_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancel_reason": {
+          "name": "cancel_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "interview_session_user_created_idx": {
+          "name": "interview_session_user_created_idx",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "interview_session_user_status_idx": {
+          "name": "interview_session_user_status_idx",
+          "columns": [
+            "user_id",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "interview_session_role_idx": {
+          "name": "interview_session_role_idx",
+          "columns": [
+            "role_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "interview_session_status_values": {
+          "name": "interview_session_status_values",
+          "value": "\"interview_session\".\"status\" in ('planning', 'awaiting_answer', 'processing_answer', 'completed', 'cancelled', 'failed')"
+        },
+        "interview_session_kind_values": {
+          "name": "interview_session_kind_values",
+          "value": "\"interview_session\".\"kind\" in ('practice', 'retest')"
+        },
+        "interview_session_goal_length": {
+          "name": "interview_session_goal_length",
+          "value": "length(trim(\"interview_session\".\"goal\")) between 1 and 500"
+        },
+        "interview_session_duration_range": {
+          "name": "interview_session_duration_range",
+          "value": "\"interview_session\".\"duration_minutes\" between 15 and 25"
+        },
+        "interview_session_version_non_negative": {
+          "name": "interview_session_version_non_negative",
+          "value": "\"interview_session\".\"session_version\" >= 0"
+        },
+        "interview_session_retest_not_self": {
+          "name": "interview_session_retest_not_self",
+          "value": "\"interview_session\".\"retest_of_interview_id\" is null or \"interview_session\".\"retest_of_interview_id\" <> \"interview_session\".\"id\""
+        },
+        "interview_session_completed_at_consistency": {
+          "name": "interview_session_completed_at_consistency",
+          "value": "(\"interview_session\".\"status\" = 'completed') = (\"interview_session\".\"completed_at\" is not null)"
+        }
+      }
+    },
+    "interview_turn": {
+      "name": "interview_turn",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "question_text": {
+          "name": "question_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_type": {
+          "name": "question_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'awaiting_answer'"
+        },
+        "answer": {
+          "name": "answer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "answer_modality": {
+          "name": "answer_modality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "answer_transcript_id": {
+          "name": "answer_transcript_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "hints_used": {
+          "name": "hints_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "answer_submitted_at": {
+          "name": "answer_submitted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "interview_turn_seq_unique": {
+          "name": "interview_turn_seq_unique",
+          "columns": [
+            "interview_id",
+            "seq"
+          ],
+          "isUnique": true
+        },
+        "interview_turn_idempotency_unique": {
+          "name": "interview_turn_idempotency_unique",
+          "columns": [
+            "interview_id",
+            "idempotency_key"
+          ],
+          "isUnique": true,
+          "where": "\"interview_turn\".\"idempotency_key\" is not null"
+        },
+        "interview_turn_interview_idx": {
+          "name": "interview_turn_interview_idx",
+          "columns": [
+            "interview_id",
+            "seq"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "interview_turn_status_values": {
+          "name": "interview_turn_status_values",
+          "value": "\"interview_turn\".\"status\" in ('awaiting_answer', 'processing_answer', 'answered', 'skipped')"
+        },
+        "interview_turn_question_type_values": {
+          "name": "interview_turn_question_type_values",
+          "value": "\"interview_turn\".\"question_type\" in ('technical', 'project', 'scenario', 'behavioral')"
+        },
+        "interview_turn_answer_modality_values": {
+          "name": "interview_turn_answer_modality_values",
+          "value": "\"interview_turn\".\"answer_modality\" is null or \"interview_turn\".\"answer_modality\" in ('text', 'voice')"
+        },
+        "interview_turn_seq_non_negative": {
+          "name": "interview_turn_seq_non_negative",
+          "value": "\"interview_turn\".\"seq\" >= 0"
+        },
+        "interview_turn_difficulty_range": {
+          "name": "interview_turn_difficulty_range",
+          "value": "\"interview_turn\".\"difficulty\" between 1 and 5"
+        },
+        "interview_turn_answer_length": {
+          "name": "interview_turn_answer_length",
+          "value": "\"interview_turn\".\"answer\" is null or length(\"interview_turn\".\"answer\") between 1 and 10000"
+        },
+        "interview_turn_hints_non_negative": {
+          "name": "interview_turn_hints_non_negative",
+          "value": "\"interview_turn\".\"hints_used\" >= 0"
+        },
+        "interview_turn_answer_consistency": {
+          "name": "interview_turn_answer_consistency",
+          "value": "(\"interview_turn\".\"status\" = 'answered') = (\"interview_turn\".\"answer\" is not null and \"interview_turn\".\"answer_submitted_at\" is not null)"
+        }
+      }
+    },
+    "transcript": {
+      "name": "transcript",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "audio_asset_id": {
+          "name": "audio_asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "raw_text": {
+          "name": "raw_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "confirmed_text": {
+          "name": "confirmed_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'zh-CN'"
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "confirmed_at": {
+          "name": "confirmed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "transcript_audio_asset_idx": {
+          "name": "transcript_audio_asset_idx",
+          "columns": [
+            "audio_asset_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "transcript_status_values": {
+          "name": "transcript_status_values",
+          "value": "\"transcript\".\"status\" in ('pending', 'ready', 'confirmed', 'failed')"
+        },
+        "transcript_confidence_range": {
+          "name": "transcript_confidence_range",
+          "value": "\"transcript\".\"confidence\" is null or \"transcript\".\"confidence\" between 0 and 1"
+        },
+        "transcript_confirmed_consistency": {
+          "name": "transcript_confirmed_consistency",
+          "value": "(\"transcript\".\"status\" = 'confirmed') = (\"transcript\".\"confirmed_text\" is not null and \"transcript\".\"confirmed_at\" is not null)"
+        }
+      }
+    },
+    "agent_run": {
+      "name": "agent_run",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "turn_id": {
+          "name": "turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'queued'"
+        },
+        "stage": {
+          "name": "stage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attempt_id": {
+          "name": "attempt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "input_snapshot": {
+          "name": "input_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "output": {
+          "name": "output",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "budget": {
+          "name": "budget",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{\"maxAttempts\":2,\"maxLlmCallsPerAttempt\":3,\"maxToolCallsPerAttempt\":5,\"deadlineMs\":120000}'"
+        },
+        "deadline_at": {
+          "name": "deadline_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_event_seq": {
+          "name": "last_event_seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "cancel_requested_at": {
+          "name": "cancel_requested_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "agent_run_interview_idx": {
+          "name": "agent_run_interview_idx",
+          "columns": [
+            "interview_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "agent_run_status_idx": {
+          "name": "agent_run_status_idx",
+          "columns": [
+            "status",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "agent_run_status_values": {
+          "name": "agent_run_status_values",
+          "value": "\"agent_run\".\"status\" in ('queued', 'running', 'completed', 'failed', 'cancelled')"
+        },
+        "agent_run_kind_values": {
+          "name": "agent_run_kind_values",
+          "value": "\"agent_run\".\"kind\" in ('initial_plan', 'answer_processing', 'finish', 'reflection', 'experiment_evaluation', 'learning_recommendation')"
+        },
+        "agent_run_attempt_count_range": {
+          "name": "agent_run_attempt_count_range",
+          "value": "\"agent_run\".\"attempt_count\" between 0 and 2"
+        },
+        "agent_run_last_event_seq_non_negative": {
+          "name": "agent_run_last_event_seq_non_negative",
+          "value": "\"agent_run\".\"last_event_seq\" >= 0"
+        },
+        "agent_run_cancel_consistency": {
+          "name": "agent_run_cancel_consistency",
+          "value": "(\"agent_run\".\"status\" <> 'cancelled') or \"agent_run\".\"cancelled_at\" is not null"
+        },
+        "agent_run_completed_consistency": {
+          "name": "agent_run_completed_consistency",
+          "value": "(\"agent_run\".\"status\" <> 'completed') or \"agent_run\".\"completed_at\" is not null"
+        }
+      }
+    },
+    "budget_ledger": {
+      "name": "budget_ledger",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attempt_id": {
+          "name": "attempt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "operation": {
+          "name": "operation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'open'"
+        },
+        "llm_calls": {
+          "name": "llm_calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "tool_calls": {
+          "name": "tool_calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "settled_at": {
+          "name": "settled_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "budget_ledger_run_idx": {
+          "name": "budget_ledger_run_idx",
+          "columns": [
+            "run_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "budget_ledger_operation_values": {
+          "name": "budget_ledger_operation_values",
+          "value": "\"budget_ledger\".\"operation\" in ('reserve', 'dispatch', 'settle', 'unknown')"
+        },
+        "budget_ledger_status_values": {
+          "name": "budget_ledger_status_values",
+          "value": "\"budget_ledger\".\"status\" in ('open', 'settled', 'unknown')"
+        },
+        "budget_ledger_amounts_non_negative": {
+          "name": "budget_ledger_amounts_non_negative",
+          "value": "\"budget_ledger\".\"llm_calls\" >= 0 and \"budget_ledger\".\"tool_calls\" >= 0 and \"budget_ledger\".\"input_tokens\" >= 0 and \"budget_ledger\".\"output_tokens\" >= 0"
+        },
+        "budget_ledger_settled_consistency": {
+          "name": "budget_ledger_settled_consistency",
+          "value": "(\"budget_ledger\".\"status\" = 'settled') = (\"budget_ledger\".\"settled_at\" is not null)"
+        }
+      }
+    },
+    "idempotency_record": {
+      "name": "idempotency_record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "route": {
+          "name": "route",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "idempotency_record_scope_unique": {
+          "name": "idempotency_record_scope_unique",
+          "columns": [
+            "user_id",
+            "route",
+            "idempotency_key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "idempotency_record_key_length": {
+          "name": "idempotency_record_key_length",
+          "value": "length(\"idempotency_record\".\"idempotency_key\") between 1 and 128"
+        }
+      }
+    },
+    "plan_decision": {
+      "name": "plan_decision",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "turn_id": {
+          "name": "turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidence_refs": {
+          "name": "evidence_refs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "remaining_seconds": {
+          "name": "remaining_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "plan_decision_interview_idx": {
+          "name": "plan_decision_interview_idx",
+          "columns": [
+            "interview_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "plan_decision_action_values": {
+          "name": "plan_decision_action_values",
+          "value": "\"plan_decision\".\"action\" in ('deepen', 'switch_skill', 'adjust_difficulty', 'finish')"
+        },
+        "plan_decision_rationale_length": {
+          "name": "plan_decision_rationale_length",
+          "value": "length(trim(\"plan_decision\".\"rationale\")) between 1 and 500"
+        },
+        "plan_decision_remaining_seconds_non_negative": {
+          "name": "plan_decision_remaining_seconds_non_negative",
+          "value": "\"plan_decision\".\"remaining_seconds\" is null or \"plan_decision\".\"remaining_seconds\" >= 0"
+        }
+      }
+    },
+    "run_attempt": {
+      "name": "run_attempt",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attempt_no": {
+          "name": "attempt_no",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'running'"
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "usage": {
+          "name": "usage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_reason": {
+          "name": "terminal_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "run_attempt_no_unique": {
+          "name": "run_attempt_no_unique",
+          "columns": [
+            "run_id",
+            "attempt_no"
+          ],
+          "isUnique": true
+        },
+        "run_attempt_run_idx": {
+          "name": "run_attempt_run_idx",
+          "columns": [
+            "run_id",
+            "started_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "run_attempt_status_values": {
+          "name": "run_attempt_status_values",
+          "value": "\"run_attempt\".\"status\" in ('running', 'completed', 'failed', 'cancelled', 'expired')"
+        },
+        "run_attempt_no_range": {
+          "name": "run_attempt_no_range",
+          "value": "\"run_attempt\".\"attempt_no\" between 1 and 2"
+        },
+        "run_attempt_terminal_ended_at": {
+          "name": "run_attempt_terminal_ended_at",
+          "value": "(\"run_attempt\".\"status\" = 'running') = (\"run_attempt\".\"ended_at\" is null)"
+        }
+      }
+    },
+    "run_event": {
+      "name": "run_event",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attempt_id": {
+          "name": "attempt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "payload": {
+          "name": "payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "run_event_seq_unique": {
+          "name": "run_event_seq_unique",
+          "columns": [
+            "run_id",
+            "seq"
+          ],
+          "isUnique": true
+        },
+        "run_event_replay_idx": {
+          "name": "run_event_replay_idx",
+          "columns": [
+            "run_id",
+            "seq"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "run_event_type_values": {
+          "name": "run_event_type_values",
+          "value": "\"run_event\".\"type\" in ('run.accepted', 'run.stage', 'question.delta', 'question.completed', 'run.completed', 'run.failed', 'run.cancelled')"
+        },
+        "run_event_seq_non_negative": {
+          "name": "run_event_seq_non_negative",
+          "value": "\"run_event\".\"seq\" >= 0"
+        },
+        "run_event_schema_version_positive": {
+          "name": "run_event_schema_version_positive",
+          "value": "\"run_event\".\"schema_version\" >= 1"
+        }
+      }
+    },
+    "evaluation_dimension": {
+      "name": "evaluation_dimension",
+      "columns": {
+        "evaluation_id": {
+          "name": "evaluation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'scored'"
+        },
+        "score": {
+          "name": "score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "evidence_refs": {
+          "name": "evidence_refs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "evaluation_dimension_pk": {
+          "columns": [
+            "evaluation_id",
+            "dimension"
+          ],
+          "name": "evaluation_dimension_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "evaluation_dimension_values": {
+          "name": "evaluation_dimension_values",
+          "value": "\"evaluation_dimension\".\"dimension\" in ('correctness', 'depth', 'logic', 'role_fit', 'communication', 'speech_acoustics', 'speech_emotion')"
+        },
+        "evaluation_dimension_status_values": {
+          "name": "evaluation_dimension_status_values",
+          "value": "\"evaluation_dimension\".\"status\" in ('scored', 'zero', 'missing_evidence', 'abstained')"
+        },
+        "evaluation_dimension_score_range": {
+          "name": "evaluation_dimension_score_range",
+          "value": "\"evaluation_dimension\".\"score\" is null or \"evaluation_dimension\".\"score\" between 0 and 1"
+        },
+        "evaluation_dimension_scored_has_score": {
+          "name": "evaluation_dimension_scored_has_score",
+          "value": "\"evaluation_dimension\".\"status\" <> 'scored' or \"evaluation_dimension\".\"score\" is not null"
+        },
+        "evaluation_dimension_zero_score": {
+          "name": "evaluation_dimension_zero_score",
+          "value": "\"evaluation_dimension\".\"status\" <> 'zero' or \"evaluation_dimension\".\"score\" = 0"
+        },
+        "evaluation_dimension_unscored_null": {
+          "name": "evaluation_dimension_unscored_null",
+          "value": "\"evaluation_dimension\".\"status\" not in ('missing_evidence', 'abstained') or (\"evaluation_dimension\".\"score\" is null and \"evaluation_dimension\".\"evidence_refs\" = '[]')"
+        }
+      }
+    },
+    "evaluation": {
+      "name": "evaluation",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "turn_id": {
+          "name": "turn_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question_id": {
+          "name": "question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rubric_id": {
+          "name": "rubric_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evaluator_version": {
+          "name": "evaluator_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "scoring_status": {
+          "name": "scoring_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'scored'"
+        },
+        "overall_score": {
+          "name": "overall_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "missing_dimensions": {
+          "name": "missing_dimensions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "strengths": {
+          "name": "strengths",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "gaps": {
+          "name": "gaps",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "answer_digest": {
+          "name": "answer_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "answer_version": {
+          "name": "answer_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "evaluation_turn_unique": {
+          "name": "evaluation_turn_unique",
+          "columns": [
+            "turn_id"
+          ],
+          "isUnique": true
+        },
+        "evaluation_interview_idx": {
+          "name": "evaluation_interview_idx",
+          "columns": [
+            "interview_id"
+          ],
+          "isUnique": false
+        },
+        "evaluation_skill_idx": {
+          "name": "evaluation_skill_idx",
+          "columns": [
+            "user_id",
+            "role_id",
+            "skill_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "evaluation_scoring_status_values": {
+          "name": "evaluation_scoring_status_values",
+          "value": "\"evaluation\".\"scoring_status\" in ('scored', 'partial', 'skipped')"
+        },
+        "evaluation_overall_range": {
+          "name": "evaluation_overall_range",
+          "value": "\"evaluation\".\"overall_score\" is null or \"evaluation\".\"overall_score\" between 0 and 1"
+        },
+        "evaluation_confidence_range": {
+          "name": "evaluation_confidence_range",
+          "value": "\"evaluation\".\"confidence\" between 0 and 1"
+        }
+      }
+    },
+    "report_dimension": {
+      "name": "report_dimension",
+      "columns": {
+        "report_id": {
+          "name": "report_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimension": {
+          "name": "dimension",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "score": {
+          "name": "score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "evidence_refs": {
+          "name": "evidence_refs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "report_dimension_pk": {
+          "columns": [
+            "report_id",
+            "dimension"
+          ],
+          "name": "report_dimension_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "report_dimension_values": {
+          "name": "report_dimension_values",
+          "value": "\"report_dimension\".\"dimension\" in ('correctness', 'depth', 'logic', 'role_fit', 'communication', 'speech_acoustics', 'speech_emotion')"
+        },
+        "report_dimension_score_range": {
+          "name": "report_dimension_score_range",
+          "value": "\"report_dimension\".\"score\" is null or \"report_dimension\".\"score\" between 0 and 1"
+        }
+      }
+    },
+    "interview_report": {
+      "name": "interview_report",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "overall_score": {
+          "name": "overall_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "strengths": {
+          "name": "strengths",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "gaps": {
+          "name": "gaps",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "practice_advice": {
+          "name": "practice_advice",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "missing_dimensions": {
+          "name": "missing_dimensions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "generated_at": {
+          "name": "generated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "interview_report_interview_unique": {
+          "name": "interview_report_interview_unique",
+          "columns": [
+            "interview_id"
+          ],
+          "isUnique": true
+        },
+        "interview_report_user_idx": {
+          "name": "interview_report_user_idx",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "interview_report_overall_range": {
+          "name": "interview_report_overall_range",
+          "value": "\"interview_report\".\"overall_score\" is null or \"interview_report\".\"overall_score\" between 0 and 1"
+        }
+      }
+    },
+    "learning_progress": {
+      "name": "learning_progress",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'started'"
+        },
+        "evidence_level": {
+          "name": "evidence_level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "learning_progress_user_idx": {
+          "name": "learning_progress_user_idx",
+          "columns": [
+            "user_id",
+            "resource_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "learning_progress_status_values": {
+          "name": "learning_progress_status_values",
+          "value": "\"learning_progress\".\"status\" in ('started', 'self_reported', 'verified', 'abandoned')"
+        },
+        "learning_progress_evidence_level_values": {
+          "name": "learning_progress_evidence_level_values",
+          "value": "\"learning_progress\".\"evidence_level\" is null or \"learning_progress\".\"evidence_level\" in ('self_reported', 'verifiable')"
+        },
+        "learning_progress_completion_consistency": {
+          "name": "learning_progress_completion_consistency",
+          "value": "(\"learning_progress\".\"status\" in ('self_reported', 'verified')) = (\"learning_progress\".\"completed_at\" is not null and \"learning_progress\".\"evidence_level\" is not null)"
+        },
+        "learning_progress_evidence_level_match": {
+          "name": "learning_progress_evidence_level_match",
+          "value": "(\"learning_progress\".\"status\" = 'self_reported' and \"learning_progress\".\"evidence_level\" = 'self_reported') or (\"learning_progress\".\"status\" = 'verified' and \"learning_progress\".\"evidence_level\" = 'verifiable') or (\"learning_progress\".\"status\" in ('started', 'abandoned') and \"learning_progress\".\"evidence_level\" is null)"
+        }
+      }
+    },
+    "recommendation": {
+      "name": "recommendation",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "report_id": {
+          "name": "report_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'suggested'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "recommendation_user_skill_idx": {
+          "name": "recommendation_user_skill_idx",
+          "columns": [
+            "user_id",
+            "role_id",
+            "skill_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "recommendation_action_values": {
+          "name": "recommendation_action_values",
+          "value": "\"recommendation\".\"action\" in ('practice', 'review_resource', 'retest')"
+        },
+        "recommendation_status_values": {
+          "name": "recommendation_status_values",
+          "value": "\"recommendation\".\"status\" in ('suggested', 'accepted', 'completed', 'dismissed')"
+        },
+        "recommendation_rationale_not_blank": {
+          "name": "recommendation_rationale_not_blank",
+          "value": "length(trim(\"recommendation\".\"rationale\")) > 0"
+        },
+        "recommendation_resource_requirement": {
+          "name": "recommendation_resource_requirement",
+          "value": "\"recommendation\".\"action\" <> 'review_resource' or \"recommendation\".\"resource_id\" is not null"
+        }
+      }
+    },
+    "performance_pair": {
+      "name": "performance_pair",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "prediction_id": {
+          "name": "prediction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "retest_interview_id": {
+          "name": "retest_interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "predicted_score": {
+          "name": "predicted_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reference_score": {
+          "name": "reference_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "mae": {
+          "name": "mae",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "eligibility": {
+          "name": "eligibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "ineligibility_reasons": {
+          "name": "ineligibility_reasons",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "learning_exposure_matched": {
+          "name": "learning_exposure_matched",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "paired_at": {
+          "name": "paired_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "performance_pair_prediction_unique": {
+          "name": "performance_pair_prediction_unique",
+          "columns": [
+            "prediction_id"
+          ],
+          "isUnique": true
+        },
+        "performance_pair_role_eligibility_idx": {
+          "name": "performance_pair_role_eligibility_idx",
+          "columns": [
+            "role_id",
+            "eligibility"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "performance_pair_eligibility_values": {
+          "name": "performance_pair_eligibility_values",
+          "value": "\"performance_pair\".\"eligibility\" in ('pending', 'eligible', 'ineligible')"
+        },
+        "performance_pair_predicted_range": {
+          "name": "performance_pair_predicted_range",
+          "value": "\"performance_pair\".\"predicted_score\" between 0 and 1"
+        },
+        "performance_pair_reference_range": {
+          "name": "performance_pair_reference_range",
+          "value": "\"performance_pair\".\"reference_score\" is null or \"performance_pair\".\"reference_score\" between 0 and 1"
+        },
+        "performance_pair_mae_non_negative": {
+          "name": "performance_pair_mae_non_negative",
+          "value": "\"performance_pair\".\"mae\" is null or \"performance_pair\".\"mae\" >= 0"
+        },
+        "performance_pair_eligible_requires_reference": {
+          "name": "performance_pair_eligible_requires_reference",
+          "value": "\"performance_pair\".\"eligibility\" <> 'eligible' or (\"performance_pair\".\"reference_score\" is not null and \"performance_pair\".\"mae\" is not null and \"performance_pair\".\"learning_exposure_matched\" and \"performance_pair\".\"retest_interview_id\" is not null)"
+        },
+        "performance_pair_ineligible_reasons": {
+          "name": "performance_pair_ineligible_reasons",
+          "value": "\"performance_pair\".\"eligibility\" <> 'ineligible' or json_array_length(\"performance_pair\".\"ineligibility_reasons\") > 0"
+        }
+      }
+    },
+    "prediction_snapshot": {
+      "name": "prediction_snapshot",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_interview_id": {
+          "name": "source_interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "predicted_at": {
+          "name": "predicted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "expected_learning_exposure": {
+          "name": "expected_learning_exposure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_until": {
+          "name": "valid_until",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rubric_version": {
+          "name": "rubric_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "predicted_target_score": {
+          "name": "predicted_target_score",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "predictor_version": {
+          "name": "predictor_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidence_refs": {
+          "name": "evidence_refs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {
+        "prediction_snapshot_skill_idx": {
+          "name": "prediction_snapshot_skill_idx",
+          "columns": [
+            "user_id",
+            "role_id",
+            "skill_id",
+            "valid_until"
+          ],
+          "isUnique": false
+        },
+        "prediction_snapshot_status_idx": {
+          "name": "prediction_snapshot_status_idx",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "prediction_snapshot_status_values": {
+          "name": "prediction_snapshot_status_values",
+          "value": "\"prediction_snapshot\".\"status\" in ('pending', 'paired', 'expired')"
+        },
+        "prediction_snapshot_score_range": {
+          "name": "prediction_snapshot_score_range",
+          "value": "\"prediction_snapshot\".\"predicted_target_score\" between 0 and 1"
+        },
+        "prediction_snapshot_window": {
+          "name": "prediction_snapshot_window",
+          "value": "\"prediction_snapshot\".\"valid_until\" > \"prediction_snapshot\".\"predicted_at\""
+        },
+        "prediction_snapshot_exposure_not_blank": {
+          "name": "prediction_snapshot_exposure_not_blank",
+          "value": "length(trim(\"prediction_snapshot\".\"expected_learning_exposure\")) > 0"
+        }
+      }
+    },
+    "reflection": {
+      "name": "reflection",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "interview_id": {
+          "name": "interview_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "skill_coverage": {
+          "name": "skill_coverage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "repeat_rate": {
+          "name": "repeat_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "plan_adherence": {
+          "name": "plan_adherence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "longest_skill_run": {
+          "name": "longest_skill_run",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "objectives": {
+          "name": "objectives",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "new_evidence_count": {
+          "name": "new_evidence_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "duplicate_question_ids": {
+          "name": "duplicate_question_ids",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "missed_skill_ids": {
+          "name": "missed_skill_ids",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'[]'"
+        },
+        "uncertainty": {
+          "name": "uncertainty",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "timing": {
+          "name": "timing",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "candidate_policy_version": {
+          "name": "candidate_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "reflection_interview_unique": {
+          "name": "reflection_interview_unique",
+          "columns": [
+            "interview_id"
+          ],
+          "isUnique": true
+        },
+        "reflection_user_idx": {
+          "name": "reflection_user_idx",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "reflection_status_values": {
+          "name": "reflection_status_values",
+          "value": "\"reflection\".\"status\" in ('pending', 'completed', 'failed')"
+        },
+        "reflection_skill_coverage_range": {
+          "name": "reflection_skill_coverage_range",
+          "value": "\"reflection\".\"skill_coverage\" is null or \"reflection\".\"skill_coverage\" between 0 and 1"
+        },
+        "reflection_repeat_rate_range": {
+          "name": "reflection_repeat_rate_range",
+          "value": "\"reflection\".\"repeat_rate\" is null or \"reflection\".\"repeat_rate\" between 0 and 1"
+        },
+        "reflection_plan_adherence_range": {
+          "name": "reflection_plan_adherence_range",
+          "value": "\"reflection\".\"plan_adherence\" is null or \"reflection\".\"plan_adherence\" between 0 and 1"
+        },
+        "reflection_longest_run_non_negative": {
+          "name": "reflection_longest_run_non_negative",
+          "value": "\"reflection\".\"longest_skill_run\" is null or \"reflection\".\"longest_skill_run\" >= 0"
+        },
+        "reflection_completed_consistency": {
+          "name": "reflection_completed_consistency",
+          "value": "(\"reflection\".\"status\" = 'completed') = (\"reflection\".\"completed_at\" is not null)"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
