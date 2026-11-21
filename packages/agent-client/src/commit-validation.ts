@@ -181,7 +181,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
   const report = close.report;
   const unscored=(before.clarificationAttempts??[]).filter((a,index,all)=>!before.turns.some(t=>t.input.question.id===a.input.question.id)
     &&!all.slice(index+1).some(next=>next.input.question.id===a.input.question.id));
-  if(unscored.length){requireEqual(report.unscoredAnswers,unscored.map(a=>({answerId:a.input.answer.id,questionId:a.input.question.id,skillId:a.input.question.skillId,
+  if(unscored.length){requireEqual(report.unscoredAnswers,unscored.map(a=>({...(a.input.assistance?{assistance:a.input.assistance}:{}),answerId:a.input.answer.id,questionId:a.input.question.id,skillId:a.input.question.skillId,
     status:a.resolution.status,reason:a.resolution.reason,normalizedScore:null,missingCriterionIds:a.resolution.missingCriterionIds,evidenceMode:a.evidenceMode})));
     if(report.coverage.scoredAnswers!==before.turns.length||report.coverage.unscoredAnswers!==unscored.length)reject('COMMIT_TRANSITION_INVALID');
   }else if(report.unscoredAnswers!==undefined||report.coverage.scoredAnswers!==undefined||report.coverage.unscoredAnswers!==undefined)reject('COMMIT_TRANSITION_INVALID');
@@ -213,7 +213,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
       insufficientAnswers:speech.filter(s=>s.features.status==='insufficient_data').length});
   } else if (report.expression.status !== 'not_evaluated') reject('COMMIT_TRANSITION_INVALID');
   const expectedAssessments = before.turns.map(t => {const publication=projectFeedbackPublication(t.input,t.proposal);const a={ observationId: t.input.observationId, answerId: t.input.answer.id, questionId: t.input.question.id,
-    skillId: t.input.question.skillId, questionType: t.input.question.questionType, questionText: t.input.question.text,
+    skillId: t.input.question.skillId,...(t.input.assistance?{assistance:t.input.assistance}:{}),questionType: t.input.question.questionType, questionText: t.input.question.text,
     ...(t.input.presentedText!==undefined?{presentedText:t.input.presentedText,presentationReview:t.input.presentedText===t.input.question.text?'not-applicable' as const:'pending' as const}:{}),difficulty: t.input.question.difficulty,
     rubricId: t.input.rubric.id, rubricVersion: t.input.rubric.version, rubric: t.input.rubric, evaluation: t.proposal.evaluation,
     evidence: t.proposal.evidence, feedback: publication.feedback,feedbackPublication:publication.publication,feedbackVerification:'not_verified' as const,evidenceMode: t.evidenceMode };

@@ -15,6 +15,7 @@
     "agent:local": "bun --no-env-file apps/agent/src/local/index.ts",
     "agent:local:build": "bun --no-env-file scripts/build-local-agent.ts",
     "agent:local:acceptance": "bun --no-env-file scripts/accept-local-agent.ts",
+    "agent:local:journey": "bun --no-env-file scripts/accept-local-journey.ts",
     "agent:local:online": "bun --no-env-file scripts/local-acceptance.ts",
     "agent:scoring:quality": "bun --no-env-file scripts/scoring-quality.ts",
     "agent:local:speech:acceptance": "bun --no-env-file scripts/accept-local-speech-agent.ts",
