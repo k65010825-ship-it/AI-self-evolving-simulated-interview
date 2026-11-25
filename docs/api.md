@@ -15,13 +15,13 @@
 
 ## 2. 页面能力与本地接线
 
-| 学生页面 | 当前可用入口（feature/agent） | 尚待补充 |
+| 学生页面 | 当前可用入口（feature/agent） | 尚待补充 / 团队协同项 |
 | --- | --- | --- |
-| 关卡 | roles.list、session.create | 六技能目录、结构化弱点/全面练习模式 |
-| 试炼 | session.get/answers（澄清、弃评、逐轮反馈）及原命令/任务/语音 | 每题2次有效提示与持久幂等回执仍待实现 |
-| 战报 | session.report分页、session.get首屏，含有界原文证据、逐题分维评分和发布状态 | 跨量规统一汇总不提供；提示辅助状态待提示模块接入 |
-| 修炼 | 既有核心规则，尚无完整本地 RPC | 资源/学习记录、不同题复测与配对保存 |
-| 进化/面板 | session.list、memory.get 提供基础记录 | 画像趋势、成长查询、反思与策略/实验状态投影 |
+| 关卡 | roles.list（六主技能＋独立collaboration，诚实draftCount）、session.create（含practiceMode与maxTurns=8） | 正式人工审核题库分发、桌面UI接线 |
+| 试炼 | session.get/answers（澄清、弃评、逐轮反馈）、hint.status/hint.request（limited-hints-v1）及原命令/任务/语音 | 数据库负责人提供正式 HintRepository；真实语音设备与桌面接线 |
+| 战报 | session.report分页、session.get首屏，含有界原文证据、逐题分维评分、辅助作答标记和发布状态 | 跨量规统一汇总仍有意不提供 |
+| 修炼 | learning.status/assignment.create/event.record/retest.plan/retest.pair（local-learning-v1） | 数据库负责人提供正式 LearningRepository；verifyPractice 仅限宿主受信任路径；桌面UI |
+| 进化/面板 | profile.get、practice.recommendations、reflection.list（local-progress-views-v1）及 experiment.status/evaluate/rollback（local-experiments-v1） | 数据库负责人提供正式 ExperimentRepository；策略保持 not_published；桌面UI |
 
 不能按原型假数据推断字段已开放。新增方法先确定输入/结果、状态、权限、幂等和错误，再改 contracts 和实现；renderer 不接收内部 workflow、rubric、来源全文或任意文件路径。
 
