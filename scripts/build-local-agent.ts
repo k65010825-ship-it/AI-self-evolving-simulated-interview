@@ -1,4 +1,7 @@
 import {mkdir,mkdtemp,copyFile,writeFile} from 'node:fs/promises';import {resolve,join} from 'node:path';import {createHash} from 'node:crypto';
+import {ROLE_CATALOG_VERSION} from '../packages/contracts/src/role-catalog.ts';
+import {loadKnowledgeWorkspace} from '../apps/agent/src/knowledge/catalog.ts';
+import {buildKnowledgeCatalog} from '../apps/agent/src/knowledge/curation.ts';
 /** Windows sidecar artifact, not an Electron installer. No credentials or user files are copied. */
 export async function buildLocalAgent(){
  if(process.platform!=='win32'||process.arch!=='x64')throw Error('LOCAL_BUILD_PLATFORM_UNSUPPORTED');
@@ -6,7 +9,9 @@ export async function buildLocalAgent(){
  const result=await Bun.build({entrypoints:[resolve('apps/agent/src/local/index.ts')],outdir:output,target:'bun',format:'esm',naming:'runtime.js',minify:false});
  if(!result.success)throw Error('LOCAL_BUILD_FAILED');await copyFile(resolve('node_modules/@oven/bun-windows-x64/bin/bun.exe'),join(output,'bun.exe'));
  const files=[];for(const name of ['runtime.js','bun.exe'])files.push({name,sha256:createHash('sha256').update(Buffer.from(await Bun.file(join(output,name)).arrayBuffer())).digest('hex')});
- await writeFile(join(output,'assets','manifest.json'),JSON.stringify({version:1,mode:'local-runtime',defaultSessionMode:'offline-fixture',protocolVersion:1,profileSchemaVersion:3,knowledge:'embedded-versioned-development-seed',files},null,2)+'\n',{flag:'wx'});
+ const ws=loadKnowledgeWorkspace(),curated=buildKnowledgeCatalog(ws,{mode:'draft-preview'});
+ const workspaceDigest=createHash('sha256').update(JSON.stringify({items:ws.items,sources:ws.sources,dossiers:ws.dossiers,reviews:ws.reviews})).digest('hex');
+  await writeFile(join(output,'assets','manifest.json'),JSON.stringify({version:1,mode:'local-runtime',defaultSessionMode:'offline-fixture',protocolVersion:1,profileSchemaVersion:3,knowledge:'embedded-pinned-development-catalog',knowledgeCatalog:{version:'catalog-v1',roleCatalogVersion:ROLE_CATALOG_VERSION,workspaceDigest,counts:curated.summary},files},null,2)+'\n',{flag:'wx'});
  return{output,executable:join(output,'bun.exe'),entry:join(output,'runtime.js'),assetsRoot:join(output,'assets')};
 }
 if(import.meta.main){try{console.log(JSON.stringify(await buildLocalAgent()));}catch{console.error('LOCAL_BUILD_FAILED');process.exitCode=1;}}

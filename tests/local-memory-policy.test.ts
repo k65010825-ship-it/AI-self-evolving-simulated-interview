@@ -18,7 +18,10 @@ test('new local sessions pin source-exact compatibility, preserve all raw histor
    const c=h.command('session.create',{operationId:'create-'+roleId,roleId,goal:'memory policy',durationMinutes:20});await h.wait(c.jobId);expect(h.job(c.jobId).status).toBe('completed');sessions.push(c.sessionId);
    db=new Database(path,{readonly:true});let raw:unknown;try{raw=JSON.parse((db.query('SELECT workflow FROM local_sessions WHERE session_id=?').get(c.sessionId) as {workflow:string}).workflow);}finally{db.close();}
    const w=WorkflowSchema.parse(raw),seed=roleId==='java-backend'?java:web,policy=w.state.historyCompatibility;
-   expect(policy?.mode).toBe('strict');expect(policy!.allowed).toHaveLength(seed.length);expect(w.state.priorEvidence).toHaveLength(3);
+   expect(policy?.mode).toBe('strict');expect(w.catalogPin?.mode).toBe('draft-preview');
+   expect(w.policy.parameters.questionFallback).toBe('catalog-unseen-v1');
+   expect(policy!.allowed).toEqual(w.catalogPin!.items.map(q=>({skillId:q.skillId,rubricId:q.id,rubricVersion:q.version})));
+   expect(policy!.allowed.length).toBeGreaterThan(seed.length);expect(w.state.priorEvidence).toHaveLength(3);
    const estimates=estimateSkills(w.state,Date.now());expect(estimates.find(s=>s.skillId===seed[0]!.skillId)?.mastery).toBeNull();expect(estimates.find(s=>s.skillId===seed[1]!.skillId)?.mastery).toBe(.2);
    const recall=recallStateEvidence(w.state,Date.now());expect(recall.selected.map(e=>e.questionId)).toEqual([seed[1]!.id]);expect(recall.askedQuestionIds).toContain(seed[0]!.id);
    const finish=h.command('session.complete',{operationId:'finish-'+roleId,sessionId:c.sessionId,expectedRevision:0});await h.wait(finish.jobId);expect(h.job(finish.jobId).status).toBe('completed');

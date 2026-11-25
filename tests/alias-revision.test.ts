@@ -15,7 +15,7 @@ test('improved coverage cannot hide new false acceptance or trigger production p
  const r=createAliasRevisionComparison();
  expect(r.summary.resolvedDraftFalseRejections).toBe(2);expect(r.summary.introducedDraftFalseAcceptances).toBe(2);
  expect(r.recommendation).toBe('changes-required');expect(r.productionPublished).toBe(false);expect(r.qualityClaimEligible).toBe(false);
- expect(loadKnowledgeWorkspace().items).toHaveLength(24);
+ expect(loadKnowledgeWorkspace().items).toHaveLength(29);
 });
 test('recomputed hash cannot hide modified comparison decisions or mutated frozen labels',()=>{
  const original=createAliasRevisionComparison();expect(verifyAliasRevisionComparison(original).digest).toBe(original.digest);

@@ -11,6 +11,12 @@ for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: RS
  expect(evaluatePolicyCandidate(pinned).status).toBe('eligible_for_offline_experiment');
  const removed=structuredClone(pinned);delete removed.candidate.parameters.difficultyProgression;
  expect(()=>evaluatePolicyCandidate(removed)).toThrow('VALIDATION_ERROR');
+ const fallback=structuredClone(base);fallback.candidate.parameters.questionFallback='catalog-unseen-v1';
+ expect(()=>evaluatePolicyCandidate(fallback)).toThrow('VALIDATION_ERROR');
+ fallback.baseline.parameters.questionFallback='catalog-unseen-v1';
+ expect(evaluatePolicyCandidate(fallback).status).toBe('eligible_for_offline_experiment');
+ const removedFallback=structuredClone(fallback);delete removedFallback.candidate.parameters.questionFallback;
+ expect(()=>evaluatePolicyCandidate(removedFallback)).toThrow('VALIDATION_ERROR');
  const registry=createExperimentRegistry({experimentId:'boundary',roleId,baselinePolicy:base.baseline,now:4000000}),before=JSON.stringify(registry);
  expect(()=>applyExperimentOperation(registry,{experimentId:'boundary',roleId,operationId:'injected',expectedVersion:0,now:4000001,action:'evaluate',evaluationInput:injected})).toThrow('VALIDATION_ERROR');
  expect(JSON.stringify(registry)).toBe(before);

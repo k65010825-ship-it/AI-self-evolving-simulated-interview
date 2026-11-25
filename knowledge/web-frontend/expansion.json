@@ -633,5 +633,242 @@
         ]
       }
     ]
+  },
+  {
+    "id": "web-technical-browser-network",
+    "roleId": "web-frontend",
+    "skillId": "browser-network",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "前端使用 Fetch 发起跨源请求并遇到预检（Preflight）或强缓存/协商缓存问题时，浏览器与服务端分别怎样配合控制？",
+    "keyPoints": [
+      "区分简单请求与触发预检的条件及 CORS 响应头职责",
+      "结合 Cache-Control / ETag 说明静态资源与接口缓存边界"
+    ],
+    "sourceIds": [
+      "mdn-fetch"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "浏览器网络规则",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称前端加上Origin头就能绕过CORS限制"
+          },
+          {
+            "score": 1,
+            "description": "只提跨域报错"
+          },
+          {
+            "score": 2,
+            "description": "说明服务端返回CORS头或缓存头"
+          },
+          {
+            "score": 3,
+            "description": "区分预检触发条件与强/协商缓存"
+          },
+          {
+            "score": 4,
+            "description": "准确解释浏览器策略边界、凭证及缓存更新配合"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "调试与验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "仅凭本地关闭安全策略宣称线上正常"
+          },
+          {
+            "score": 1,
+            "description": "只说看Network面板"
+          },
+          {
+            "score": 2,
+            "description": "核对OPTIONS或响应头"
+          },
+          {
+            "score": 3,
+            "description": "说明状态码、缓存命中与禁用缓存对比"
+          },
+          {
+            "score": 4,
+            "description": "给出发布后静态资源与接口版本一致性验证"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-technical-react-reconciliation",
+    "roleId": "web-frontend",
+    "skillId": "react",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "React 列表渲染中用数组索引（index）作 key 在增删重排时会出现什么问题？应该如何选择稳定的 key？",
+    "keyPoints": [
+      "key 用于在同级节点间关联组件实例与非受控/局部状态",
+      "插入或重排导致索引错位时状态和副作用会错误复用"
+    ],
+    "sourceIds": [
+      "react-learn"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "协调与状态归属",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称key只是为了消除控制台警告，用随机数最安全"
+          },
+          {
+            "score": 1,
+            "description": "只说不要用index"
+          },
+          {
+            "score": 2,
+            "description": "指出重排会导致渲染错误"
+          },
+          {
+            "score": 3,
+            "description": "说明实例状态与Effect错位复用机制"
+          },
+          {
+            "score": 4,
+            "description": "区分静态列表与动态列表，给出稳定业务ID选择原则"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "副作用与验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "忽略受控输入与局部状态差异"
+          },
+          {
+            "score": 1,
+            "description": "只说换ID"
+          },
+          {
+            "score": 2,
+            "description": "构造包含输入状态的重排用例"
+          },
+          {
+            "score": 3,
+            "description": "验证中间插入/删除后的状态保留"
+          },
+          {
+            "score": 4,
+            "description": "结合Effect清理及无唯一ID时的处理边界说明"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "web-scenario-perf-a11y",
+    "roleId": "web-frontend",
+    "skillId": "performance-accessibility",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "一个长列表弹层页面既存在滚动卡顿，又存在键盘无法完整操作和焦点丢失的问题，你会如何定位并同时改进性能与可访问性？",
+    "keyPoints": [
+      "区分主线程长任务/重排与 DOM 节点过多导致的卡顿",
+      "保障语义化角色、焦点管理、Escape 关闭与键盘可达性"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "性能与无障碍方案",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "用div绑点击事件替代所有交互且去掉outline焦点框"
+          },
+          {
+            "score": 1,
+            "description": "只提虚拟列表或ARIA名词"
+          },
+          {
+            "score": 2,
+            "description": "分别提出减少DOM/重排和焦点管理措施"
+          },
+          {
+            "score": 3,
+            "description": "说明虚拟滚动与键盘Tab/关闭焦点回归配合"
+          },
+          {
+            "score": 4,
+            "description": "兼顾渲染性能、语义元素、焦点陷阱与屏幕阅读器边界"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "度量与验收",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "只凭主观感觉流畅宣称达标"
+          },
+          {
+            "score": 1,
+            "description": "只说用Lighthouse跑分"
+          },
+          {
+            "score": 2,
+            "description": "指出Performance面板和纯键盘测试"
+          },
+          {
+            "score": 3,
+            "description": "说明长任务耗时与关闭弹层焦点回退验证"
+          },
+          {
+            "score": 4,
+            "description": "区分自动化检测覆盖率与人工键盘/读屏验收边界"
+          }
+        ]
+      }
+    ]
   }
 ]

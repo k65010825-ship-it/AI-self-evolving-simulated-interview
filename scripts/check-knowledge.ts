@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { loadKnowledgeWorkspace } from '../apps/agent/src/knowledge/catalog.ts';
 import { buildKnowledgeCatalog } from '../apps/agent/src/knowledge/curation.ts';
 import { ResourceCatalogSchema } from '../packages/contracts/src/resources.ts';
+import { roleSkillDefinitions } from '../packages/contracts/src/role-catalog.ts';
 const workspace = loadKnowledgeWorkspace();
 const sources = workspace.sources;
 const catalog = buildKnowledgeCatalog(workspace, { mode: 'draft-preview' });
@@ -12,14 +13,19 @@ for (const role of ['java-backend', 'web-frontend'] as const) {
   const items = catalog.items.filter(i => i.roleId === role);
   const kinds = new Set(items.map((item) => item.questionType));
   if (kinds.size !== 4) throw new Error(`Missing question types: ${role}`);
+  const definedSkills: string[] = roleSkillDefinitions(role).map(s => s.skillId);
+  for (const skillId of definedSkills) {
+    if (!items.some(i => i.skillId === skillId)) throw new Error(`Missing skill coverage in ${role}: ${skillId}`);
+  }
   for (const item of items) {
     if (ids.has(item.id) || item.roleId !== role) throw new Error('Duplicate identifier or role mismatch');
+    if (!definedSkills.includes(item.skillId)) throw new Error(`Unregistered skillId in ${role}: ${item.skillId}`);
     ids.add(item.id);
     if (item.sourceIds.some((id) => !sourceIds.has(id))) throw new Error(`Unknown source: ${item.id}`);
     const weight = item.rubric.reduce((total, criterion) => total + criterion.weight, 0);
     if (Math.abs(weight - 1) > 1e-9) throw new Error(`Rubric weights do not sum to 1: ${item.id}`);
   }
-  console.log(`${role}: ${items.length} items (${items.filter(i => i.reviewStatus === 'draft').length} draft); four question types; references/schema/weights valid`);
+  console.log(`${role}: ${items.length} items (${items.filter(i => i.reviewStatus === 'draft').length} draft); 6 main + behavioral skills, four question types; references/schema/weights valid`);
 }
 console.log(`Review gate: ${catalog.summary.readyForHumanReview}/${catalog.summary.total} structurally ready; ${catalog.summary.reviewed} reviewed; no automatic approvals or publication.`);
 console.log('This is structural quality checking, not expert content review or source-page verification.');

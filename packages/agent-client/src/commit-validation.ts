@@ -7,6 +7,7 @@ import { buildCriterionFeedback } from '@interview/interview-domain/feedback';
 import {projectFeedbackPublication} from '@interview/interview-domain/feedback-publication';
 import { evidenceSupportRejection,isExplicitNonAnswer } from '@interview/interview-domain/evidence-support';
 import {validClarificationPrompt} from '@interview/interview-domain/clarification';
+import {validatePinnedPlan} from '@interview/interview-domain';
 
 export class WorkflowCommitError extends Error { constructor(readonly code: WorkflowCommitErrorCode) { super(code); this.name = 'WorkflowCommitError'; } }
 export function reject(code: WorkflowCommitErrorCode): never { throw new WorkflowCommitError(code); }
@@ -75,7 +76,7 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
       state: { schemaVersion: 1, sessionId: c.session.sessionId, roleId: c.session.roleId, version: 0, startedAt: c.now,
         deadlineAt: c.now + c.session.durationMinutes * 60000, skills: c.session.skills, observations: [], currentSkillId: null, followupDepth: 0, difficulty: 2, priorEvidence,
         ...(c.session.historyCompatibility?{historyCompatibility:c.session.historyCompatibility}:{}) },
-      policy: c.policy, goal: c.goal, skillLabels: c.skillLabels, baseMemory: c.memory, allowDraftKnowledge: c.allowDraftKnowledge,
+      policy: c.policy, goal: c.goal, skillLabels: c.skillLabels, baseMemory: c.memory, allowDraftKnowledge: c.allowDraftKnowledge,...(c.catalogPin?{catalogPin:c.catalogPin}:{}),
       phase: 'ready_to_plan', turns: [], askedQuestionIds: [], issuedQuestions: [], current: null, currentIssuedAt: null, lastPlan: null, pendingReason: null, closeout: null });
     return;
   }
@@ -92,6 +93,13 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     if (before.phase !== 'ready_to_plan' || !after.lastPlan) reject('COMMIT_TRANSITION_INVALID');
     unchanged(before, after, ['revision', 'lastPlan', 'current', 'currentIssuedAt', 'askedQuestionIds', 'issuedQuestions', 'phase', 'pendingReason']);
     const selection = after.lastPlan.selection;
+    if(before.policy.parameters.questionFallback){
+      try{validatePinnedPlan({state:before.state,planningPolicy:before.policy,askedQuestionIds:before.askedQuestionIds,
+        ...(before.catalogPin?{catalogPin:before.catalogPin}:{}),allowDraftKnowledge:before.allowDraftKnowledge},after.lastPlan,
+        {now,notBefore:Math.max(before.state.startedAt,...before.state.observations.map(o=>o.observedAt),...before.issuedQuestions.map(q=>q.issuedAt),...(before.clarificationAttempts??[]).map(a=>a.resolution.issuedAt)),deadlineAt:op.command.context.deadlineAt});}
+      catch{reject('COMMIT_TRANSITION_INVALID');}
+      if(selection.status==='selected'&&selection.provenance!.decidedAt!==after.currentIssuedAt)reject('COMMIT_TRANSITION_INVALID');
+    }
     if (selection.status === 'selected') {
       if (after.phase !== 'awaiting_answer' || after.currentIssuedAt === null || after.currentIssuedAt > now || after.pendingReason !== null ||
         selection.question.roleId !== before.identity.roleId || selection.rubric.roleId !== before.identity.roleId || selection.plan.action === 'finish' ||
@@ -118,7 +126,8 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
       }
       requireEqual(after.issuedQuestions, [...before.issuedQuestions, {questionId:selection.question.id,issuedAt:after.currentIssuedAt,content:{
         question:selection.question,rubric:selection.rubric,source:selection.source,text:d?.text??selection.question.text,stateVersion:before.state.version,
-        policyId:before.policy.id,planRunId:op.command.context.runId,planAttemptId:op.command.context.attemptId,...(d?{delivery:d}:{})}}]);
+        policyId:before.policy.id,planRunId:op.command.context.runId,planAttemptId:op.command.context.attemptId,...(d?{delivery:d}:{}),
+        ...(selection.provenance?{effectivePlan:{plan:selection.plan,provenance:selection.provenance}}:{})}}]);
     } else {
       if (after.phase !== 'ready_to_close' || after.current !== null || after.currentIssuedAt !== null || after.pendingReason !== (selection.status === 'finished' ? 'plan_finished' : 'knowledge_gap')) reject('COMMIT_TRANSITION_INVALID');
       requireEqual(after.askedQuestionIds, before.askedQuestionIds); requireEqual(after.issuedQuestions, before.issuedQuestions);
@@ -179,6 +188,11 @@ export function validateWorkflowTransition(op: WorkflowOperation, after: Intervi
     close.requestRevision !== c.expectedRevision || close.requestMode !== c.mode || close.sourceGroupId !== c.sourceGroupId ||
     after.pendingReason !== close.reason || close.reason !== (c.mode === 'user_stop' ? 'user_stop' : before.pendingReason) || (c.mode === 'automatic' && before.phase !== 'ready_to_close')) reject('COMMIT_TRANSITION_INVALID');
   const report = close.report;
+  if(before.policy.parameters.questionFallback){
+    if(!close.reflection.planning)reject('COMMIT_TRANSITION_INVALID');
+    requireEqual(close.reflection.planning,{version:'catalog-unseen-v1',issuedCount:before.issuedQuestions.length,
+      fallbackCount:before.issuedQuestions.filter(q=>q.content?.effectivePlan?.plan.reason==='planned_skill_depleted_fallback').length});
+  }
   const unscored=(before.clarificationAttempts??[]).filter((a,index,all)=>!before.turns.some(t=>t.input.question.id===a.input.question.id)
     &&!all.slice(index+1).some(next=>next.input.question.id===a.input.question.id));
   if(unscored.length){requireEqual(report.unscoredAnswers,unscored.map(a=>({...(a.input.assistance?{assistance:a.input.assistance}:{}),answerId:a.input.answer.id,questionId:a.input.question.id,skillId:a.input.question.skillId,

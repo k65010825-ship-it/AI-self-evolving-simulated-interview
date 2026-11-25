@@ -8,7 +8,7 @@ import{createPiQuestionDelivery}from'../adapters/pi/question-delivery.ts';
 import{contentText}from'../../../../experiments/pi-sdk/planner-fixture.ts';
 import type {RunManagerDependencies} from './run-manager.ts';
 /** Explicit development fixture only. No personal credentials or network model provider. */
-export async function createOfflineRunManager(options:{planning?:'deterministic'|'pi-knowledge';questionDelivery?:'canonical'|'natural-bridge';cwd?:string;onCheckpoint?:RunManagerDependencies['onCheckpoint']}={}){
+export async function createOfflineRunManager(options:{planning?:'deterministic'|'pi-knowledge';questionDelivery?:'canonical'|'natural-bridge';cwd?:string;now?:()=>number;onCheckpoint?:RunManagerDependencies['onCheckpoint']}={}){
  const cwd=options.cwd??process.cwd();
  if(options.planning!==undefined&&!['deterministic','pi-knowledge'].includes(options.planning))throw new Error('Invalid offline planning mode');
  if(options.questionDelivery!==undefined&&!['canonical','natural-bridge'].includes(options.questionDelivery))throw new Error('Invalid offline delivery mode');
@@ -22,7 +22,8 @@ export async function createOfflineRunManager(options:{planning?:'deterministic'
    presenters.set(roleId,createPiQuestionDelivery({cwd,modelRuntime:d.runtime,model:d.model}));
   }
   if(options.planning==='pi-knowledge'){
-   const p=await createPlannerFixture();planners.set(roleId,createPiQuestionPlanner({cwd,modelRuntime:p.runtime,model:p.model}));
+    // Each workflow input carries its own catalog pin; unpinned legacy inputs retain seed behavior.
+    const p=await createPlannerFixture();planners.set(roleId,createPiQuestionPlanner({cwd,modelRuntime:p.runtime,model:p.model}));
   }
   const fixture=await createEvaluationFixture(context=>{
    const user=context.messages.filter(m=>m.role==='user').at(-1);
@@ -36,6 +37,6 @@ export async function createOfflineRunManager(options:{planning?:'deterministic'
   });
   evaluators.set(roleId,createPiEvaluator({cwd,modelRuntime:fixture.runtime,model:fixture.model,roleId}));
  }
- return createRunManager({evaluateForRole:role=>evaluators.get(role)!,...(options.onCheckpoint?{onCheckpoint:options.onCheckpoint}:{}),...(planners.size?{planForRole:(role:RoleId)=>planners.get(role)!}:{}),
+ return createRunManager({evaluateForRole:role=>evaluators.get(role)!,...(options.now?{now:options.now}:{}),...(options.onCheckpoint?{onCheckpoint:options.onCheckpoint}:{}),...(planners.size?{planForRole:(role:RoleId)=>planners.get(role)!}:{}),
   ...(presenters.size?{deliverForRole:(role:RoleId)=>presenters.get(role)!}:{})});
 }

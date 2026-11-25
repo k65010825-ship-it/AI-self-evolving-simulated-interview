@@ -3,18 +3,19 @@ import { loadKnowledgeWorkspace, createCuratedKnowledgeExecutor } from '../apps/
 import { buildKnowledgeCatalog } from '../apps/agent/src/knowledge/curation.ts';
 
 const context = { userId: 'fixture', runId: 'fixture', attemptId: 'a', roleId: 'java-backend' as const, deadlineAt: Date.now() + 60000 };
-test('expanded workspace contains 12 draft items per role and an empty real review ledger', () => {
+test('expanded workspace contains 14 java and 15 web draft items and an empty real review ledger', () => {
   const w = loadKnowledgeWorkspace();
   expect(w.reviews).toHaveLength(0);
-  expect(w.dossiers).toHaveLength(24);
+  expect(w.dossiers).toHaveLength(29);
+  expect(w.items.filter(i => i.roleId === 'java-backend')).toHaveLength(14);
+  expect(w.items.filter(i => i.roleId === 'web-frontend')).toHaveLength(15);
   for (const role of ['java-backend', 'web-frontend']) {
     const items = w.items.filter(i => i.roleId === role);
-    expect(items).toHaveLength(12);
     expect(new Set(items.map(i => i.questionType)).size).toBe(4);
   }
   const c = buildKnowledgeCatalog(w);
   expect(c.items).toHaveLength(0);
-  expect(c.summary.readyForHumanReview).toBe(20);
+  expect(c.summary.readyForHumanReview).toBe(22);
 });
 
 test('curated querying is fail-closed by default; preview exposes purpose-limited real guidance', async () => {

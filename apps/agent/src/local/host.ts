@@ -8,12 +8,13 @@ import {MemorySnapshotSchema} from '../../../../packages/contracts/src/memory.ts
 import {createWorkflowCommitTicket,prepareWorkflowCommit,workflowCommitDigest as digest} from '../../../../packages/agent-client/src/workflow-commit.ts';
 import {createOfflineRunManager} from '../runtime/offline-runtime.ts';
 import {localReport,localSessionPresentation,localAnswerPage} from './presentation.ts';
+import {buildProfileView,buildPracticeRecommendationsView,buildReflectionListView} from './progress-presentation.ts';
 import {createLiveRunManager} from '../runtime/live-runtime.ts';
 import {createLocalSpeechHost,validateLocalSpeechSource,type SpeechSource} from './speech-host.ts';
 import {LocalSpeechCommandSchemas,type LocalSpeechCommand} from '../../../../packages/contracts/src/local-speech-api.ts';
 import type {LocalSpeechDependencies} from './speech-executor.ts';
 import {createRunManager} from '../runtime/run-manager.ts';
-import {seedHistoryCompatibility} from '../tools/knowledge-executor.ts';
+import {resolvePinnedCatalog,catalogHistoryCompatibility} from '../knowledge/catalog.ts';
 import {createLocalLiveStore} from './live-store.ts';
 import {LocalLiveGrantInputSchema,type LocalLiveGrant} from '../../../../packages/contracts/src/local-live.ts';
 import type {LocalCredentialBinding} from '../../../../packages/contracts/src/local-credential.ts';
@@ -21,12 +22,16 @@ import type {LiveFetch} from '../model-access/bailian-provider.ts';
 import {EvaluationDiagnosticSchema,type EvaluationDiagnostic} from '../../../../packages/contracts/src/evaluation-diagnostic.ts';
 import {createLocalHintHost} from './hint-host.ts';
 import type {HintRepository} from '../hints/repository-port.ts';
+import {createLocalLearningHost} from './learning-host.ts';
+import type {LearningRepository} from '../learning/repository-port.ts';
+import {createLocalExperimentHost} from './experiment-host.ts';
+import type {ExperimentRepository} from '../reflection/repository-port.ts';
+import {roleSkillConfigs,roleSkillDefinitions,roleSkillLabels} from '../../../../packages/contracts/src/role-catalog.ts';
 type Job={job_id:string;operation_id:string;session_id:string;role_id:RoleId;digest:string;request:string;ticket:string;status:string;snapshot:string|null;receipt:string|null;error_code:string|null;created_at:number};
 type Session={session_id:string;role_id:RoleId;storage_version:number;workflow:string|null;created_at:number;deadline_at:number};
-const labels:Record<RoleId,Record<string,string>>={'java-backend':{'spring-transactions':'Spring事务','java-concurrency':'Java并发','project-design':'项目设计','collaboration':'协作表达'},'web-frontend':{'async-state':'React异步状态','javascript':'JavaScript基础','project-design':'项目设计','collaboration':'协作表达'}};
 function fail(code:string):never{throw new LocalError(code);}
 function safeCode(error:unknown){const c=(error as {code?:unknown}|null)?.code;return typeof c==='string'&&/^[A-Z_]{1,80}$/.test(c)?c:'DEPENDENCY_UNAVAILABLE';}
-type LocalHostOptions={hints?:HintRepository;dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void};
+type LocalHostOptions={hints?:HintRepository;learning?:LearningRepository;experiments?:ExperimentRepository;dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void};
 export async function createLocalHost(options:LocalHostOptions){
  const profile=openLocalProfile(options),cleanup=[()=>profile.close()];
  try{return initializeLocalHost(profile,options,cleanup);}
@@ -57,10 +62,24 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
    if(changed.changes!==1)fail('VERSION_CONFLICT');
   },
   assertAvailable:(db,id,operationId)=>{
-   if(db.query('SELECT 1 FROM local_jobs WHERE operation_id=?').get(operationId)||db.query("SELECT 1 FROM local_speech_tasks WHERE json_extract(body,'$.operationId')=?").get(operationId))fail('HINT_OPERATION_CONFLICT');if(closing)fail('LOCAL_SHUTTING_DOWN');
+   if(db.query('SELECT 1 FROM local_jobs WHERE operation_id=?').get(operationId)||db.query("SELECT 1 FROM local_speech_tasks WHERE json_extract(body,'$.operationId')=?").get(operationId)||learningHost.ownsOperation(db,operationId)||experimentHost.ownsOperation(db,operationId))fail('HINT_OPERATION_CONFLICT');if(closing)fail('LOCAL_SHUTTING_DOWN');
    if(db.query("SELECT 1 FROM local_jobs WHERE session_id=? AND status IN ('queued','running')").get(id))fail('SESSION_BUSY');
    if(live.hasBlockedAccounting()||db.query("SELECT 1 FROM local_budget WHERE status IN ('unknown','dispatched')").get())fail('BUDGET_RECONCILIATION_REQUIRED');
   }});
+ const assertOperationFree=(db:Database,operationId:string)=>{
+  if(closing)fail('LOCAL_SHUTTING_DOWN');
+  if(db.query('SELECT 1 FROM local_jobs WHERE operation_id=?').get(operationId)
+   ||db.query("SELECT 1 FROM local_speech_tasks WHERE json_extract(body,'$.operationId')=?").get(operationId)
+   ||hints.ownsOperation(db,operationId)||learningHost.ownsOperation(db,operationId)||experimentHost.ownsOperation(db,operationId))fail('VERSION_CONFLICT');
+ };
+ const learningHost=createLocalLearningHost({profile,...(options.learning?{repository:options.learning}:{}),now:clock,
+  session:(db,id)=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w!,deadlineAt:s.deadline_at};},
+  completedWorkflows:(db,roleId)=>(db.query('SELECT workflow FROM local_sessions WHERE role_id=? AND workflow IS NOT NULL').all(roleId) as {workflow:string}[])
+   .map(r=>WorkflowSchema.parse(JSON.parse(r.workflow))).filter(w=>w.phase==='completed'&&!!w.closeout),
+  assertOperationFree});
+ const experimentHost=createLocalExperimentHost({profile,...(options.experiments?{repository:options.experiments}:{}),now:clock,
+  session:(db,id)=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w!,deadlineAt:s.deadline_at};},
+  assertOperationFree});
  const speech=createLocalSpeechHost({profile,now:clock,session:id=>profile.read(db=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w,deadlineAt:s.deadline_at,mode:live.budget(id)?'live':'offline-fixture'};}),submitAnswer:(input,source)=>command('session.answer',input,source),notify,interviewActive:()=>active.size,onIdle:drain,cancelAnswer:id=>{const a=active.get(id);if(a){a.cancelled=true;a.controller.abort();a.manager?.dispose();}const ix=queue.indexOf(id);if(ix>=0)queue.splice(ix,1);terminate(id,'cancelled','RUN_CANCELLED');if(!a){pending.get(id)?.resolve();pending.delete(id);}},...(options.resolveCredential?{resolveCredential:options.resolveCredential}:{}),...(options.onSpeechGrant?{onGrant:options.onSpeechGrant}:{}),...(options.onRevoke?{onRevoke:options.onRevoke}:{}),...(options.speechFetch?{fetch:options.speechFetch}:{})});
  function commit(id:string,expectedGrantId?:string){let event:LocalEvent|undefined;
   profile.write(db=>{const j=row(db,id);if(j.status!=='running')return;
@@ -104,7 +123,7 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
      onRunCheckpoint:s=>checkpoint(id,s),onBudgetCheckpoint:(context,snapshot,p)=>{live.checkpoint({...binding,runId:context.runId,attemptId:context.attemptId,snapshot,profile:p});},
     });
    }else if(budget){state.manager=createRunManager({evaluateForRole:()=>{throw new LocalError('LOCAL_GRANT_INACTIVE');},now:clock,onCheckpoint:s=>checkpoint(id,s)});}
-   else state.manager=await createOfflineRunManager({cwd:profile.assetsRoot,planning:'pi-knowledge',questionDelivery:'natural-bridge',onCheckpoint:s=>checkpoint(id,s)});
+   else state.manager=await createOfflineRunManager({cwd:profile.assetsRoot,planning:'pi-knowledge',questionDelivery:'natural-bridge',now:clock,onCheckpoint:s=>checkpoint(id,s)});
    if(state.cancelled||closing)fail('RUN_CANCELLED');state.manager.start(request);await state.manager.wait(id);
    const result=state.manager.snapshot(id);if(result.status!=='completed')fail(result.error?.code??'DEPENDENCY_UNAVAILABLE');if(grant&&(live.activeGrant(metadata.session_id)?.grantId!==grant.grantId||grant.expiresAt<=clock()))fail('LOCAL_GRANT_INACTIVE');commit(id,grant?.grantId);
   }catch(e){try{terminate(id,state.cancelled||closing?'cancelled':'failed',safeCode(e));}catch{/* lost profile ownership cannot write */}}
@@ -112,7 +131,7 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
  }
  function drain(){if(closing)return;while(active.size+speech.activeCount<2&&queue.length){const id=queue.shift()!;void execute(id);}speech.drain();}
  function command(method:LocalCommand,raw:unknown,source?:SpeechSource){if(closing)fail('LOCAL_SHUTTING_DOWN');const parsed=LocalCommandSchemas[method].safeParse(raw);if(!parsed.success)fail('VALIDATION_ERROR');const c=parsed.data!,hash=digest({method,command:c,...(source?{speechSource:source}:{})});let event:LocalEvent|undefined,newJob=false;
-  const result=profile.write(db=>{const hintOperation=hints.ownsOperation(db,c.operationId);if(hintOperation)fail('VERSION_CONFLICT');
+  const result=profile.write(db=>{if(hints.ownsOperation(db,c.operationId)||learningHost.ownsOperation(db,c.operationId)||experimentHost.ownsOperation(db,c.operationId))fail('VERSION_CONFLICT');
    const prior=db.query('SELECT * FROM local_jobs WHERE operation_id=?').get(c.operationId)as Job|null;
    if(prior){if(prior.digest!==hash)fail('VERSION_CONFLICT');return{jobId:prior.job_id,sessionId:prior.session_id};}
    if(db.query("SELECT 1 FROM local_speech_tasks WHERE json_extract(body,'$.operationId')=?").get(c.operationId))fail('VERSION_CONFLICT');
@@ -133,7 +152,8 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
    const memory=memoryIn(db,s.role_id,at);db.query('INSERT INTO local_memory VALUES(?,?) ON CONFLICT DO NOTHING').run(s.role_id,JSON.stringify(memory));
    const context={userId:profile.profileId,roleId:s.role_id,runId:id,attemptId:'attempt-1',deadlineAt:Math.min(s.deadline_at,at+30000)},identity={userId:profile.profileId,roleId:s.role_id};
    let operation:unknown;
-   if(method==='session.create'){const create=LocalCommandSchemas['session.create'].parse(c);operation={action:'create',config:{identity,session:{sessionId,roleId:s.role_id,durationMinutes:create.durationMinutes,historyCompatibility:seedHistoryCompatibility(s.role_id,Object.keys(labels[s.role_id])),skills:Object.keys(labels[s.role_id]).map((skillId,i)=>({skillId,relevance:1-i*.05}))},policy:{id:'local-v2-'+s.role_id,roleId:s.role_id,parameters:{maxFollowupDepth:create.pressure?2:1,maxTurns:6,wrapUpSeconds:45,difficultyProgression:'independent-evidence-v1'}},goal:create.goal,skillLabels:labels[s.role_id],memory,allowDraftKnowledge:true,now:at}};}
+    if(method==='session.create'){const create=LocalCommandSchemas['session.create'].parse(c),skillLabels=roleSkillLabels(s.role_id),skillIds=Object.keys(skillLabels),catalogPin=resolvePinnedCatalog(s.role_id,'draft-preview',skillIds,at);
+     operation={action:'create',config:{identity,catalogPin,session:{sessionId,roleId:s.role_id,durationMinutes:create.durationMinutes,historyCompatibility:catalogHistoryCompatibility(catalogPin),skills:roleSkillConfigs(s.role_id)},policy:{id:'local-v4-'+s.role_id,roleId:s.role_id,parameters:{maxFollowupDepth:create.pressure?2:1,maxTurns:8,wrapUpSeconds:45,difficultyProgression:'independent-evidence-v1',questionFallback:'catalog-unseen-v1',practiceMode:create.practiceMode}},goal:create.goal,skillLabels,memory,allowDraftKnowledge:true,now:at}};}
    else if(method==='session.nextQuestion')operation={action:'plan',snapshot:w,command:{identity,expectedRevision:w!.revision,context}};
    else if(method==='session.answer'){
     const answer=LocalCommandSchemas['session.answer'].parse(c),assistance=hints.assistanceIn(db,w!);
@@ -158,7 +178,7 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
   report:(raw:unknown)=>{const p=LocalReadPageSchema.safeParse(raw);if(!p.success)fail('VALIDATION_ERROR');return profile.read(db=>localReport(workflow(sessionRow(db,p.data.sessionId)),{offset:p.data.offset,limit:p.data.limit,...(p.data.expectedRevision!==undefined?{expectedRevision:p.data.expectedRevision}:{})}));},
   job,speech:(method:LocalSpeechCommand,raw:unknown)=>{const p=LocalSpeechCommandSchemas[method]?.safeParse(raw);if(!p?.success)fail('VALIDATION_ERROR');
    const operationId='operationId'in p!.data?p!.data.operationId:null;
-   if(typeof operationId==='string')profile.read(db=>{if(hints.ownsOperation(db,operationId))fail('VERSION_CONFLICT');});
+   if(typeof operationId==='string')profile.read(db=>{if(hints.ownsOperation(db,operationId)||learningHost.ownsOperation(db,operationId)||experimentHost.ownsOperation(db,operationId))fail('VERSION_CONFLICT');});
    return speech.command(method,p!.data);},
   authorize(raw:unknown){const i=LocalLiveGrantInputSchema.parse(raw),s=session(i.sessionId);if(s.phase==='completed'||i.expiresAt>s.deadlineAt||clock()>=s.deadlineAt)fail('LOCAL_GRANT_INACTIVE');const prior=live.activeGrant(i.sessionId),g=live.authorize(i);options.onGrant?.(g,prior?.grantId);authorizedSessions.add(i.sessionId);return g;},
   revoke(raw:{sessionId:string;expectedVersion:number}){const prior=live.activeGrant(raw.sessionId),result=live.revoke(raw);authorizedSessions.delete(raw.sessionId);if(prior)options.onRevoke?.(prior.grantId);for(const [id,a]of active)if(profile.read(db=>row(db,id).session_id)===raw.sessionId){a.cancelled=true;a.controller.abort();a.manager?.dispose();}return result;},
@@ -166,6 +186,20 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
   list:(offset=0,limit=100)=>{if(!Number.isSafeInteger(offset)||offset<0||offset>1000000||!Number.isInteger(limit)||limit<1||limit>100)fail('VALIDATION_ERROR');return profile.read(db=>(db.query('SELECT session_id FROM local_sessions ORDER BY created_at DESC,session_id DESC LIMIT ? OFFSET ?').all(limit,offset)as {session_id:string}[]).map(s=>session(s.session_id,true)));},
   listJobs:()=>profile.read(db=>(db.query('SELECT job_id FROM local_jobs ORDER BY created_at DESC,job_id DESC LIMIT 100').all()as {job_id:string}[]).map(j=>job(j.job_id))),
   memory:(role:RoleId)=>{RoleIdSchema.parse(role);return profile.read(db=>memoryIn(db,role));},
+  profileView:(raw:unknown)=>profile.read(db=>{const role=(raw&&typeof raw==='object'&&'roleId'in raw?RoleIdSchema.safeParse(raw.roleId):null);const roleId=role?.success?role.data:fail('VALIDATION_ERROR');
+   const workflows=(db.query('SELECT workflow FROM local_sessions WHERE role_id=? AND workflow IS NOT NULL').all(roleId) as {workflow:string}[]).map(r=>WorkflowSchema.parse(JSON.parse(r.workflow)));
+   return buildProfileView({memory:memoryIn(db,roleId),workflows,assetsRoot:profile.assetsRoot,now:clock(),rawQuery:raw});}),
+  practiceRecommendations:(raw:unknown)=>{const snap=profile.read(db=>{const role=(raw&&typeof raw==='object'&&'roleId'in raw?RoleIdSchema.safeParse(raw.roleId):null);const roleId=role?.success?role.data:fail('VALIDATION_ERROR');
+   const workflows=(db.query('SELECT workflow FROM local_sessions WHERE role_id=? AND workflow IS NOT NULL').all(roleId) as {workflow:string}[]).map(r=>WorkflowSchema.parse(JSON.parse(r.workflow)));
+   const statuses=new Map<string,ReturnType<typeof learningHost.skillStatus>>(roleSkillDefinitions(roleId).map(d=>[d.skillId,learningHost.skillStatus(db,roleId,d.skillId)]));
+   return{memory:memoryIn(db,roleId),workflows,now:clock(),statuses};});
+   return buildPracticeRecommendationsView({...snap,assetsRoot:profile.assetsRoot,rawQuery:raw,learningAvailable:learningHost.available,learningStatus:(_r,skillId)=>snap.statuses.get(skillId)??'unavailable'});},
+  learningAvailable:learningHost.available,learningStatus:learningHost.status,createLearningAssignment:learningHost.createAssignment,recordLearningEvent:learningHost.recordEvent,
+  verifyLearningPractice:learningHost.verifyPractice,planLearningRetest:learningHost.planRetest,pairLearningRetest:learningHost.pairRetestSession,
+  experimentsAvailable:experimentHost.available,experimentStatus:experimentHost.status,evaluateExperiment:experimentHost.evaluate,rollbackExperiment:experimentHost.rollback,
+  reflections:(raw:unknown)=>profile.read(db=>{const role=(raw&&typeof raw==='object'&&'roleId'in raw?RoleIdSchema.safeParse(raw.roleId):null);const roleId=role?.success?role.data:fail('VALIDATION_ERROR');
+   const workflows=(db.query('SELECT workflow FROM local_sessions WHERE role_id=? AND workflow IS NOT NULL').all(roleId) as {workflow:string}[]).map(r=>WorkflowSchema.parse(JSON.parse(r.workflow)));
+   return buildReflectionListView({workflows,now:clock(),rawQuery:raw});}),
   events:(id:string,afterSeq=0)=>profile.read(db=>{row(db,id);if(!Number.isSafeInteger(afterSeq)||afterSeq<0)fail('VALIDATION_ERROR');const max=(db.query('SELECT COALESCE(MAX(seq),0) AS n FROM local_events WHERE job_id=?').get(id)as {n:number}).n;if(afterSeq>max)fail('VERSION_CONFLICT');return(db.query('SELECT event FROM local_events WHERE job_id=? AND seq>? ORDER BY seq LIMIT 100').all(id,afterSeq)as {event:string}[]).map(e=>LocalEventSchema.parse(JSON.parse(e.event)));}),
   wait:async(id:string)=>{job(id);if(speech.owns(id))await speech.wait(id);else await pending.get(id)?.done;},
   cancel(id:string){const j=job(id);if(speech.owns(id)){speech.cancel(id);return job(id);}if(!['queued','running'].includes(j.status))return j;const a=active.get(id);if(a){a.cancelled=true;a.controller.abort();a.manager?.dispose();}else{const index=queue.indexOf(id);if(index>=0)queue.splice(index,1);pending.get(id)?.resolve();pending.delete(id);}terminate(id,'cancelled','RUN_CANCELLED');return job(id);},

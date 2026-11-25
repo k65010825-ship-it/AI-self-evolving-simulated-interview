@@ -12,9 +12,11 @@
 
 ## 2. 帧、任务与状态
 
-新建本地会话从当前实际使用的种子知识目录固定历史量规精确兼容清单，作为已有workflow JSON中的historyCompatibility保存；旧会话保留原策略，不补写或清空历史，无数据库版本升级、新表或新RPC。priorEvidenceCount仍为保留的原始历史总量，不代表全部参与能力估计；不兼容记录仍保留并用于避免重复考题。精确版本匹配只是宿主声明，不代表内容已经人工审核、不同量规具有测量等价性或来源模式已经获真人认证。
+新建本地会话固定实际使用的draft-preview开发目录快照（seed＋expansion中已配置技能的条目）、目录id/摘要及其精确historyCompatibility，保存在已有workflow JSON中；旧会话缺少pin时保留seed及原策略，不补写或清空历史，无数据库版本升级、新表或新RPC。priorEvidenceCount仍为保留的原始历史总量，不代表全部参与能力估计；不兼容记录仍保留并用于避免重复考题。目录摘要与精确版本匹配只是宿主完整性/兼容声明，不代表内容已经人工审核、不同量规具有测量等价性或来源模式已经获真人认证。reviewed-only目录为空时明确缺题，不降级到草案。
 
-新建会话固定local-v2规划策略，增加可选difficultyProgression标记；旧会话保留原策略与历史结果。profile版本仍为v3，既有workflow JSON读写即可保存，不新增DDL或repository接口，桌面不传该参数。Agent负责解释具体决策与校验；页面使用已提交问题和状态。题库不足时不承诺每次计划升难都能选到精确难度的题目。
+新建会话固定local-v4规划策略（`maxTurns=8`，旧已提交会话保持 `maxTurns=6`），支持 `practiceMode`（`weakness-focus` 弱点优先 | `broad-coverage` 未覆盖技能优先），保留 `difficultyProgression` 并显式启用 `catalog-unseen-v1` 回退；原计划技能耗尽时按策略优先级换到有合格未见题的技能，只有整个固定目录没有合格未见题才因 `knowledge_gap` 收尾。查询先排除已见题并按目标难度排序，再取Top-K。旧会话没有回退标记时保持原行为。profile版本仍为v3，既有workflow JSON保存目录及有效发题计划，不新增DDL或新表，桌面不传这些内部参数。页面使用已提交问题和状态；时长仍是预算，不承诺每次升难都能选到精确难度的题目。
+
+本地外挂内容包校验由 `apps/agent/src/knowledge/verify-content-pack.ts`（契约 `packages/contracts/src/content-pack.ts`）负责：验证清单 schema、运行时版本兼容性、无符号链接路径安全、逐文件 SHA-256 与字节长度、workspace/curation/六技能目录一致性，以及 `reviewSummary` 真实匹配与 `productionPublished` 未过审拦截；任一步失败均返回结构化失败码并保留内置兜底目录与进行中会话已固定的 `catalogPin`。
 
 UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显示给学生。单帧≤1MiB，回答≤10000 字符，最多 8 个在途请求。
 
@@ -33,8 +35,8 @@ UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显�
 | 方法 | 参数 / 结果 |
 | --- | --- |
 | runtime.initialize/status/shutdown | 初始化能力、运行状态、受控关闭；初始化不读取 Key |
-| roles.list | 双岗 id/label；六技能展示目录尚待补齐 |
-| session.create | operationId、roleId、goal、durationMinutes（15—25）、pressure?、mode?、liveConfig?、sessionBudget?、speech? → jobId/sessionId |
+| roles.list | 返回双岗六大主技术/项目技能＋独立 `collaboration` 维度目录（`RoleListSchema`），诚实标注 `draftCount`/`reviewedCount` |
+| session.create | operationId、roleId、goal、durationMinutes（15—25）、practiceMode?（`weakness-focus`/`broad-coverage`）、pressure?、mode?、liveConfig?、sessionBudget?、speech? → jobId/sessionId |
 | session.list | offset? / limit?（1—100）→ viewKind=summary 的会话数组；详情字段为空，hasReport/needsClarification与计数保留 |
 | session.get | sessionId → viewKind=full、presentationVersion=1、startedAt/deadlineAt、revision/phase、当前题、澄清/逐轮反馈与计数、默认首屏report、lastOperation、mode、authorizationStatus |
 | session.answers | sessionId、offset?、limit?（1—5，默认5）、expectedRevision? → 版本固定的逐题作答页，含评分/澄清/弃评 |
@@ -42,11 +44,17 @@ UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显�
 | session.nextQuestion | sessionId、operationId、expectedRevision → jobId/sessionId |
 | session.answer | 同上＋text；身份/当前题由宿主绑定 |
 | session.complete | 同 nextQuestion；正常收尾并保存报告/记忆 |
+| profile.get / practice.recommendations / reflection.list | 基于本机已提交会话与记忆只读投影（能力、`local-progress-views-v1`）；不修改状态、不发起模型调用 |
+| hint.status / hint.request | 当前题提示计数与一级/二级引导（见第 8 节，接入 HintRepository 后启用 `limited-hints-v1`） |
+| learning.status / assignment.create / event.record / retest.plan / retest.pair | 本地学习复测写协调器与 XP 查询（接入 LearningRepository 后启用 `local-learning-v1`；`verifyPractice` 仅限宿主内部受信任路径） |
+| experiment.status / evaluate / rollback | 离线策略实验读写与回滚（接入 ExperimentRepository 后启用 `local-experiments-v1`；始终 `not_published`） |
 | memory.get | roleId → 本机本岗有界记忆；不要直接把内部结构当最终画像页面 |
 | job.get/cancel | jobId → 任务视图；取消不表示供应商退款 |
 | job.events | jobId、afterSeq? → 有序公开事件 |
 
-初始化能力新增session-presentation-v1。会话视图已提供clarification（中性prompt与原回答previousText）、lastAnswer、submittedCount/scoredCount/unscoredCount及needsClarification；同题多次澄清只算一题，answeredCount仍沿用已评分题数。三种答案状态为scored/needs_clarification/abstained；数值0与null分开，不把任务失败当技术零分。新增能力见[接口导航](api.md)。提示目标为每题2次有效提示、不扣金币；尚无提示RPC，前端不能自行拼接未知方法。同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
+初始化能力除 `session-presentation-v1` 外，已提供 `local-progress-views-v1`；`limited-hints-v1`、`local-learning-v1`、`local-experiments-v1` 按对应持久化 repository 注入状态动态启用（未接入时明确返回 `*_STORAGE_UNAVAILABLE`）。会话视图已提供clarification（中性prompt与原回答previousText）、lastAnswer、submittedCount/scoredCount/unscoredCount及needsClarification；同题多次澄清只算一题，answeredCount仍沿用已评分题数。三种答案状态为scored/needs_clarification/abstained；数值0与null分开，不把任务失败当技术零分。新增能力见[接口导航](api.md)。提示每题最多2次有效提示、不扣金币，详情见第 8 节；同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
+
+主进程 SDK 已提供 `listRoles()`、`createSession()`、`getProfile()`、`getPracticeRecommendations()`、`listReflections()`，以及 `getLearningStatus()`、`createLearningAssignment()`、`recordLearningEvent()`、`planLearningRetest()`、`pairLearningRetestSession()`、`getExperimentStatus()`、`evaluateExperiment()`、`rollbackExperiment()`（均校验返回 schema；`verifyPractice` 不暴露给公开 renderer stdio）。
 
 ### 3.1 SDK读取、分页与安全展示
 
@@ -112,7 +120,7 @@ live.reconcile的预算写入与唯一对账回执在同一事务：任一步失
 
 复测要排除原记录中答过但未评分/弃评的题，不能因没有分数就当作新题。冻结记录保存完整历史/本场已评分及报告内未评分题ID，最多4400条，不截断；仅展示未作答的题仍须由宿主完整已发题清单排除。已有冻结记录不自动补写，缺来源信息的旧记录不能因此追认为独立复测证据。点击或自报完成不等于核验完成，模拟配对不能混入真人校准。
 
-RSI首版只允许声明的单步追问深度调整，其余策略参数必须完全不变；评估、激活候选和实验快照恢复使用相同约束。正式策略发布/客户端采用仍未验收，离线实验结果不可冒充已上线或真实教学改善。本轮补强的是Agent核心规则，尚无本地学习/复测/实验RPC与对应存储接线，前端不能自行构造方法名或用模拟成功代替交付。
+RSI首版只允许声明的单步追问深度调整，其余策略参数必须完全不变；评估、激活候选和实验快照恢复使用相同约束。正式策略发布/客户端采用仍未验收，离线实验结果不可冒充已上线或真实教学改善。Agent 侧现已提供 `learning.*` 与 `experiment.*` 协调器、stdio RPC 与测试 fixture；默认随包尚未注入数据库负责人正式 `LearningRepository` / `ExperimentRepository`（契约见[数据库交接 §8.5](database.md#85-学习复测与离线实验-repository-契约)），未注入时明确返回 unavailable，不能用模拟成功代替正式持久化交付。
 
 ## 8. 每题限次提示与辅助作答
 

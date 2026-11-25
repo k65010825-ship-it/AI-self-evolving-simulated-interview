@@ -7,6 +7,7 @@ import {AgentStateError} from '../planning/interview-state.ts';
 import type {HarnessPhase} from './profiles.ts';
 import type {HarnessHook} from './completion-gate.ts';
 import{isGroundedNeutralTransition}from'../../../../packages/interview-domain/src/question-transition.ts';
+// skillId is the host-resolved effective skill, including an authorized depletion fallback.
 const planningScope=z.object({roleId:RoleIdSchema,skillId:z.string().min(1).max(100),allowDraftKnowledge:z.boolean()}).strict();
 const deliveryScope=z.object({previousAnswerText:z.string().min(1).max(10000)}).strict();
 function deny():never{throw new AgentStateError('MODEL_OUTPUT_INVALID');}

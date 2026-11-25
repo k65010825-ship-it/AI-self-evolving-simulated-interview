@@ -632,5 +632,163 @@
         ]
       }
     ]
+  },
+  {
+    "id": "java-technical-jvm-gc",
+    "roleId": "java-backend",
+    "skillId": "java-jvm",
+    "questionType": "technical",
+    "difficulty": 2,
+    "question": "在 Java 服务中，如何定位频繁 Full GC 或老年代内存持续上涨的问题？说明排查顺序和常见误区。",
+    "keyPoints": [
+      "区分对象晋升过快、大对象分配与真实内存泄漏",
+      "结合 GC 日志、堆转储与引用链验证假设，避免盲目调大堆参数"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "原因归因与诊断",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称出现Full GC就一定是JVM Bug或只能加-Xmx"
+          },
+          {
+            "score": 1,
+            "description": "只列举GC名称"
+          },
+          {
+            "score": 2,
+            "description": "区分临时存活对象与长生命周期持有"
+          },
+          {
+            "score": 3,
+            "description": "给出GC日志与Heap Dump的排查步骤"
+          },
+          {
+            "score": 4,
+            "description": "完整区分泄漏、晋升与分配速率，并指出调参误区"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "验证与边界",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "不看引用链直接重启当作已根治"
+          },
+          {
+            "score": 1,
+            "description": "只说看监控"
+          },
+          {
+            "score": 2,
+            "description": "说明用Heap Dump看大对象"
+          },
+          {
+            "score": 3,
+            "description": "说明GC Roots保留路径与压测复现"
+          },
+          {
+            "score": 4,
+            "description": "区分观察证据、线上下线风险与验证边界"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "java-scenario-cache-consistency",
+    "roleId": "java-backend",
+    "skillId": "cache-distributed",
+    "questionType": "scenario",
+    "difficulty": 3,
+    "question": "商品详情读取并发高且更新频繁，缓存失效后瞬间大量请求打到数据库，同时还要避免长期读到旧值，你会如何设计？",
+    "keyPoints": [
+      "针对击穿/并发重建做互斥或有限保护，同时考虑失效退避",
+      "明确并发读写窗口中的脏数据与最终一致性取舍"
+    ],
+    "sourceIds": [
+      "team-original"
+    ],
+    "version": "bank-0.1",
+    "reviewStatus": "draft",
+    "rubric": [
+      {
+        "criterionId": "primary",
+        "dimension": "correctness",
+        "description": "并发击穿与一致性边界",
+        "maxScore": 4,
+        "weight": 0.6,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "声称简单先删缓存再更新数据库就能保证绝对强一致"
+          },
+          {
+            "score": 1,
+            "description": "只提加Redis缓存"
+          },
+          {
+            "score": 2,
+            "description": "提到互斥重建或过期时间"
+          },
+          {
+            "score": 3,
+            "description": "分析并发读回填旧值窗口及保护手段"
+          },
+          {
+            "score": 4,
+            "description": "清晰权衡击穿保护、延迟窗口与降级策略"
+          }
+        ]
+      },
+      {
+        "criterionId": "reasoning",
+        "dimension": "depth",
+        "description": "故障与验证",
+        "maxScore": 4,
+        "weight": 0.4,
+        "evidenceRule": "引用回答中对应的具体句段；缺少相关证据返回null，0分也需明确错误表述作为证据；不编造经历。",
+        "anchors": [
+          {
+            "score": 0,
+            "description": "假设缓存和网络永不超时"
+          },
+          {
+            "score": 1,
+            "description": "只说压测"
+          },
+          {
+            "score": 2,
+            "description": "提出验证缓存未命中时DB并发量"
+          },
+          {
+            "score": 3,
+            "description": "覆盖锁超时、Redis故障和并发更新场景"
+          },
+          {
+            "score": 4,
+            "description": "给出可观测指标与不一致窗口上限"
+          }
+        ]
+      }
+    ]
   }
 ]

@@ -3,7 +3,6 @@ import {createLocalHost} from '../../apps/agent/src/local/host.ts';import {Workf
 import {estimateSkills} from '../../apps/agent/src/planning/interview-state.ts';import {makeSpeechFixture} from '../speech/fixture.ts';
 import {createSqliteHintFixture} from '../../tests/fixtures/hint-repository.ts';
 import asrConfig from '../../apps/agent/src/speech/qianwen-omni.example.json' with {type:'json'};
-import javaSeed from '../../knowledge/java-backend/seed.json' with {type:'json'};import webSeed from '../../knowledge/web-frontend/seed.json' with {type:'json'};
 import {AgentRunRequestSchema} from '../../packages/contracts/src/agent-run.ts';import {validateWorkflowTransition} from '../../packages/agent-client/src/commit-validation.ts';
 /** Acceptance-only. Synthetic answers/audio and disposable SQLite fixture; never a production repository. */
 function check(ok:unknown,code:string):asserts ok{if(!ok)throw Error(code);}
@@ -45,11 +44,17 @@ export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',
   check((host.speech('speech.confirm',confirmation) as {jobId:string}).jobId===answer.jobId,'JOURNEY_CONFIRM_REPLAY_CHANGED');
   const assisted=host.answerPage({sessionId:id}).items.find(a=>a.assistance);check(assisted?.assistance?.receiptIds.length===2,'JOURNEY_ASSISTANCE_LOST');
   await run('session.nextQuestion',{operationId:'q3',sessionId:id,expectedRevision:revision()});
-  const stopped=workflow(id),selection=stopped.lastPlan?.selection;
-  check(stopped.phase==='ready_to_close'&&stopped.pendingReason==='knowledge_gap'&&selection?.status==='unavailable','JOURNEY_EXPECTED_KNOWLEDGE_FINDING_CHANGED');
-  const plannedSkillId=selection.plan.skillId,seen=new Set(stopped.askedQuestionIds),skills=new Set(stopped.state.skills.filter(s=>s.relevance>0).map(s=>s.skillId));
-  const remainingOtherSkillQuestions=[...javaSeed,...webSeed].filter(q=>q.roleId===roleId&&q.skillId!==plannedSkillId&&skills.has(q.skillId)&&!seen.has(q.id)).length;
-  check(remainingOtherSkillQuestions>0,'JOURNEY_FINDING_NOT_SUPPORTED');
+  const third=workflow(id);
+  check(third.phase==='awaiting_answer'&&third.askedQuestionIds.length===3&&third.current?.provenance?.catalogDigest===third.catalogPin?.digest,'JOURNEY_THIRD_QUESTION_MISSING');
+  for(let step=0;step<20&&host.session(id).phase!=='ready_to_close';step++){
+   const view=host.session(id);
+   if(view.phase==='awaiting_answer')await run('session.answer',{operationId:'continued-answer-'+step,sessionId:id,expectedRevision:revision(),text:'我会给出前提、处理边界和失败恢复方式，并用具体场景验证取舍。'});
+   else if(view.phase==='ready_to_plan')await run('session.nextQuestion',{operationId:'continued-plan-'+step,sessionId:id,expectedRevision:revision()});
+   else check(false,'JOURNEY_UNEXPECTED_PHASE');
+  }
+  const stopped=workflow(id);
+  check(stopped.phase==='ready_to_close'&&stopped.pendingReason==='plan_finished'&&stopped.turns.length===stopped.policy.parameters.maxTurns,'JOURNEY_PREMATURE_CLOSE');
+  check(new Set(stopped.askedQuestionIds).size===stopped.askedQuestionIds.length,'JOURNEY_REPEATED_QUESTION');
   const finishCommand={operationId:'finish',sessionId:id,expectedRevision:revision()},finished=await run('session.complete',finishCommand);
   const events=host.events(finished.jobId);check(events.at(-1)?.status==='completed','JOURNEY_MISSING_COMMIT_EVENT');
   const closed=workflow(id),report=closed.closeout!.report,memory=host.memory(roleId);
@@ -59,23 +64,24 @@ export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',
    const stripped=structuredClone(closed);for(const a of stripped.closeout!.report.assessments)delete a.assistance;
    expectCode(()=>validateWorkflowTransition(operation,stripped,closed.closeout!.generatedAt),'COMMIT_TRANSITION_INVALID');
   }finally{gateDb.close();}
-  check(closed.phase==='completed'&&report.coverage.totalAnswers===2&&report.assessments.length===2&&!(report.unscoredAnswers?.length),'JOURNEY_REPORT_COVERAGE');
-  check(report.coverage.independentQuestions===1,'JOURNEY_ASSISTED_MASTERY_CONTAMINATION');
+  const scored=stopped.turns.length;
+  check(closed.phase==='completed'&&report.coverage.totalAnswers===scored&&report.assessments.length===scored&&!(report.unscoredAnswers?.length),'JOURNEY_REPORT_COVERAGE');
+  check(report.coverage.independentQuestions===scored-1,'JOURNEY_ASSISTED_MASTERY_CONTAMINATION');
   check(report.expression.status==='audio_descriptions'&&report.expression.coverage.speechAnswers===1,'JOURNEY_SPEECH_SOURCE_LOST');
   check(closed.closeout!.reflection.candidate===null,'JOURNEY_ASSISTED_RSI_CANDIDATE');
-  check(memory.sessions[0]?.observations.length===2&&memory.sessions[0].observations.filter(o=>o.assistance).length===1,'JOURNEY_MEMORY_PROVENANCE_LOST');
+  check(memory.sessions[0]?.observations.length===scored&&memory.sessions[0].observations.filter(o=>o.assistance).length===1,'JOURNEY_MEMORY_PROVENANCE_LOST');
   await close();host=await createLocalHost(options);
   check(JSON.stringify(host.events(finished.jobId))===JSON.stringify(events),'JOURNEY_EVENT_REPLAY_CHANGED');
   check(host.command('session.complete',finishCommand).jobId===finished.jobId,'JOURNEY_FINISH_REPLAY_CHANGED');
   check(JSON.stringify(host.hint(hint))===JSON.stringify(firstReceipt),'JOURNEY_COMPLETED_HINT_REPLAY_CHANGED');
   const next=await run('session.create',{operationId:'next-session',roleId,goal:'合成记忆召回验收',durationMinutes:20});
   const nextWorkflow=workflow(next.sessionId),estimates=estimateSkills(nextWorkflow.state,Date.now()),independent=estimates.reduce((n,s)=>n+s.independentQuestions,0);
-  check(nextWorkflow.state.priorEvidence.length===2&&independent===1,'JOURNEY_RECALL_CONTAMINATION');
+  check(nextWorkflow.state.priorEvidence.length===scored&&independent===scored-1,'JOURNEY_RECALL_CONTAMINATION');
   const final=host.status();check(totals.modelHttpAttempts+final.modelHttpAttempts===0&&totals.speechHttpAttempts+final.speechHttpAttempts===0&&guard.attempts===0,'JOURNEY_UNEXPECTED_HTTP');
-  return{roleId,status:'completed-with-experience-findings' as const,experienceStatus:'needs-improvement' as const,
-   finding:{code:'PLANNED_SKILL_DEPLETED_WITHOUT_FALLBACK' as const,reason:'knowledge_gap',plannedSkillId,remainingSeconds:selection.plan.remainingSeconds,remainingOtherSkillQuestions},
+  return{roleId,status:'passed-offline-journey' as const,experienceStatus:'passed' as const,
+   findings:[] as {code:string}[],planningTermination:stopped.pendingReason,closeoutReason:closed.closeout!.reason,
    askedQuestions:closed.askedQuestionIds.length,scoredAnswers:report.assessments.length,unscoredAnswers:report.unscoredAnswers?.length??0,independentQuestions:report.coverage.independentQuestions,
-   hintReceipts:2,memoryObservations:2,recalledObservations:nextWorkflow.state.priorEvidence.length,recalledIndependentQuestions:independent,speechAnswers:1,
+   hintReceipts:2,memoryObservations:scored,recalledObservations:nextWorkflow.state.priorEvidence.length,recalledIndependentQuestions:independent,speechAnswers:1,
    idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:false,
    questions:closed.issuedQuestions.map(q=>({id:q.questionId,rubricId:q.content!.rubric.id,rubricVersion:q.content!.rubric.version,
     criteria:q.content!.rubric.criteria.map(c=>c.id),sourceVersion:q.content!.source.version,reviewStatus:q.content!.source.reviewStatus})),
@@ -84,7 +90,7 @@ export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',
  }catch(error){if(evidence.evidenceDir)await writeFile(join(evidence.evidenceDir,'failure.json'),JSON.stringify({roleId,errorCode:failureCode(error),synthetic:true,productionEligible:false}));throw error;
  }finally{try{await close();}finally{await preserve(dataDir,evidence.evidenceDir);if(evidence.evidenceDir)await writeFile(join(evidence.evidenceDir,'http-evidence.json'),JSON.stringify({...totals,deniedNetworkAttempts:guard.attempts}));await rm(dataDir,{recursive:true,force:true});}}
 }
-/** Separate profile is intentional: do not pretend the short mixed session reached a third question. */
+/** Separate provider branch/profile intentionally verifies abstention without fabricating a score. */
 export async function runAbstentionJourney(roleId:'java-backend'|'web-frontend',evidence:JourneyOptions={}){
  if(evidence.evidenceDir)await mkdir(evidence.evidenceDir,{recursive:true});const guard=networkGuard();
  const dataDir=await mkdtemp(join(tmpdir(),'abstention-journey-')),host=await createLocalHost({dataDir,assetsRoot:process.cwd(),hints:createSqliteHintFixture().repository,liveFetch:guard.deny,speechFetch:guard.deny});

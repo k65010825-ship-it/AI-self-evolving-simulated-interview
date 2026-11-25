@@ -18,12 +18,15 @@ export function seedHistoryCompatibility(roleId:ToolContext['roleId'],skillIds:r
   return HistoryCompatibilityPolicySchema.parse({id:'local-seed-'+digest,mode:'strict',allowed});
 }
 /** Development seed adapter; draft records are explicit, never a production repository. */
-export function createKnowledgeExecutor(context: ToolContext, options: { maxCalls?: number; includeDrafts?: boolean; catalog?: KnowledgeItem[] } = {}) {
+export function createKnowledgeExecutor(context: ToolContext, options: { maxCalls?: number; includeDrafts?: boolean; catalog?: KnowledgeItem[];
+ excludeQuestionIds?:readonly string[];targetDifficulty?:number } = {}) {
   const ctx = ToolContextSchema.parse(context);
   const maxCalls = options.maxCalls ?? 5;
   if (!Number.isInteger(maxCalls) || maxCalls < 0) throw new RangeError('maxCalls must be a nonnegative integer.');
   // Empty injected catalogs must stay empty, never fall back to the development seeds.
   const catalog = options.catalog === undefined ? seed : z.array(KnowledgeItemSchema).max(400).parse(options.catalog);
+  const excluded=new Set(options.excludeQuestionIds??[]),target=options.targetDifficulty;
+  if(target!==undefined&&(!Number.isInteger(target)||target<1||target>5))throw new RangeError('Invalid target difficulty');
   let calls = 0;
   return async (callId: string, raw: unknown, signal?: AbortSignal): Promise<ToolReceipt> => {
     const started = performance.now();
@@ -41,9 +44,11 @@ export function createKnowledgeExecutor(context: ToolContext, options: { maxCall
     if (calls >= maxCalls) return fail('TOOL_BUDGET_EXCEEDED');
     calls++;
     const query = input.query?.toLocaleLowerCase();
-    const items = catalog.filter((item) => item.roleId === ctx.roleId && item.skillId === input.skillId
+    const eligible = catalog.filter((item) => item.roleId === ctx.roleId && item.skillId === input.skillId&&!excluded.has(item.id)
       && (options.includeDrafts !== false || item.reviewStatus === 'reviewed')
-      && (!query || `${item.question} ${item.keyPoints.join(' ')}`.toLocaleLowerCase().includes(query))).slice(0, input.limit);
+      && (!query || `${item.question} ${item.keyPoints.join(' ')}`.toLocaleLowerCase().includes(query)));
+    if(target!==undefined)eligible.sort((a,b)=>Math.abs(a.difficulty-target)-Math.abs(b.difficulty-target)||(a.id<b.id?-1:a.id>b.id?1:0));
+    const items=eligible.slice(0,input.limit);
     if (signal?.aborted) return fail('RUN_CANCELLED');
     if (Date.now() >= ctx.deadlineAt) return fail('DEADLINE_EXCEEDED');
     return ToolReceiptSchema.parse({ ...base(), status: items.length ? 'ok' : 'empty',

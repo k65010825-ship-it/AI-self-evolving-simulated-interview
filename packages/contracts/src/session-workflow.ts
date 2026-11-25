@@ -5,7 +5,8 @@ import{PlanningPolicyVersionSchema}from'./policy.ts';
 import{ReportInputSchema,ContentReportSchema}from'./report.ts';
 import{ReflectionSchema}from'./reflection.ts';
 import{PlannerResultSchema}from'./knowledge-planner.ts';
-import{QuestionSelectionSchema}from'./question-selection.ts';
+import{QuestionSelectionSchema,ExecutedQuestionPlanSchema}from'./question-selection.ts';
+import {KnowledgeCatalogPinSchema} from './knowledge-catalog.ts';
 import{ToolContextSchema}from'./tools.ts';
 import{TurnInputSchema}from'./evaluation.ts';
 import{SpeechAnswerSchema}from'./speech.ts';
@@ -16,7 +17,8 @@ const id=z.string().min(1).max(100);
 const selected=QuestionSelectionSchema.options[2];
 export const IssuedQuestionContentSchema=z.object({question:TurnInputSchema.shape.question,rubric:selected.shape.rubric,source:selected.shape.source,
  text:z.string().min(1).max(4200),stateVersion:z.number().int().nonnegative(),policyId:id,
- planRunId:ToolContextSchema.shape.runId,planAttemptId:ToolContextSchema.shape.attemptId,delivery:QuestionDeliverySchema.optional()}).strict().superRefine((c,ctx)=>{
+  planRunId:ToolContextSchema.shape.runId,planAttemptId:ToolContextSchema.shape.attemptId,delivery:QuestionDeliverySchema.optional(),
+  effectivePlan:ExecutedQuestionPlanSchema.omit({questionId:true,issuedAt:true}).optional()}).strict().superRefine((c,ctx)=>{
  const d=c.delivery,b=d?.basedOn,same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
  if(c.question.id!==c.source.knowledgeId||c.rubric.id!==c.question.id||c.rubric.roleId!==c.question.roleId||c.rubric.version!==c.source.version
   ||c.text!==(d?.text??c.question.text)||d&&(!same(d.question,c.question)||b!.stateVersion!==c.stateVersion||b!.runId!==c.planRunId||b!.attemptId!==c.planAttemptId
@@ -25,13 +27,13 @@ export const IssuedQuestionContentSchema=z.object({question:TurnInputSchema.shap
 export const IssuedQuestionRecordSchema=z.object({questionId:id,issuedAt:z.number().int().nonnegative(),content:IssuedQuestionContentSchema.optional()}).strict();
 export const CreateWorkflowSchema=z.object({identity:MemoryIdentitySchema,session:CreateInterviewStateSchema,policy:PlanningPolicyVersionSchema,
  goal:z.string().min(1).max(500),skillLabels:ReportInputSchema.shape.skillLabels,memory:MemorySnapshotSchema.optional(),
- allowDraftKnowledge:z.boolean().default(false),now:z.number().int().nonnegative()}).strict();
+  allowDraftKnowledge:z.boolean().default(false),catalogPin:KnowledgeCatalogPinSchema.optional(),now:z.number().int().nonnegative()}).strict();
 export const CloseoutSchema=z.object({kind:z.literal('uncommitted-interview-closeout'),sessionId:id,sessionVersion:z.number().int().nonnegative(),
  generatedAt:z.number().int().nonnegative(),sourceGroupId:id,requestRevision:z.number().int().nonnegative(),requestMode:z.enum(['automatic','user_stop']),reason:z.enum(['plan_finished','knowledge_gap','user_stop']),
  report:ContentReportSchema,memoryCandidate:MemorySnapshotSchema,memoryDisposition:z.enum(['appended','unchanged_no_answers']),reflection:ReflectionSchema}).strict();
 export const WorkflowSchema=z.object({kind:z.literal('uncommitted-interview-session'),revision:z.number().int().nonnegative(),
  identity:MemoryIdentitySchema,state:InterviewStateSchema,policy:PlanningPolicyVersionSchema,goal:z.string().min(1).max(500),
- skillLabels:ReportInputSchema.shape.skillLabels,baseMemory:MemorySnapshotSchema,allowDraftKnowledge:z.boolean(),
+  skillLabels:ReportInputSchema.shape.skillLabels,baseMemory:MemorySnapshotSchema,allowDraftKnowledge:z.boolean(),catalogPin:KnowledgeCatalogPinSchema.optional(),
  phase:z.enum(['ready_to_plan','awaiting_answer','ready_to_close','completed']),
  turns:ReportInputSchema.shape.turns,clarificationAttempts:z.array(WorkflowClarificationAttemptSchema).max(600).optional(),askedQuestionIds:z.array(id).max(200),
  issuedQuestions:z.array(IssuedQuestionRecordSchema).max(200),

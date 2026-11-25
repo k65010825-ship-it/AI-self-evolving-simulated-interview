@@ -1,4 +1,7 @@
-import {LOCAL_PRESENTATION_CAPABILITY} from '../../../../packages/contracts/src/local-presentation.ts';
+import {LOCAL_PRESENTATION_CAPABILITY,LOCAL_PROGRESS_VIEWS_CAPABILITY} from '../../../../packages/contracts/src/local-presentation.ts';
+import {LOCAL_LEARNING_CAPABILITY} from '../../../../packages/contracts/src/local-learning.ts';
+import {LOCAL_EXPERIMENTS_CAPABILITY} from '../../../../packages/contracts/src/local-experiment.ts';
+import {AgentStateError} from '../planning/interview-state.ts';
 import {z} from 'zod';import {LocalRequestSchema,LocalCommandSchemas,LocalNotificationSchema,type LocalCommand} from '../../../../packages/contracts/src/local-runtime.ts';
 import {RoleIdSchema} from '../../../../packages/contracts/src/tools.ts';import {createLocalHost} from './host.ts';import {LocalError} from './profile-store.ts';
 import {write as writeFd} from 'node:fs';
@@ -8,6 +11,7 @@ import {LocalLiveReconciliationSchema} from '../../../../packages/contracts/src/
 import {LocalSpeechCommandSchemas,type LocalSpeechCommand} from '../../../../packages/contracts/src/local-speech-api.ts';
 import {HintError} from '../hints/limited-hints.ts';
 import {createRuntimeDiagnostics} from './process-diagnostics.ts';
+import {buildRoleCatalogList} from '../knowledge/catalog.ts';
 const MAX=1024*1024;
 export async function serveLocalStdio(options:Parameters<typeof createLocalHost>[0]){
  const diagnose=createRuntimeDiagnostics(line=>process.stderr.write(line));let lastMethod='';
@@ -28,7 +32,7 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
  const unsubscribe=host.subscribe(event=>{try{void send(LocalNotificationSchema.parse({protocolVersion:1,type:'event',event})).catch(()=>{failed=true;process.stdin.destroy();});}catch{failed=true;process.stdin.destroy();}});
  const empty=z.object({}).strict(),id=z.string().min(1).max(80).regex(/^[A-Za-z0-9_.-]+$/);
  async function dispatch(method:string,raw:unknown){if(method!==lastMethod){lastMethod=method;diagnose({stage:'rpc',code:'REQUEST_RECEIVED',method});}if(!initialized&&method!=='runtime.initialize'&&method!=='runtime.shutdown')throw new LocalError('LOCAL_NOT_INITIALIZED');
-  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_PRESENTATION_CAPABILITY,LOCAL_CREDENTIAL_CAPABILITY,...(host.hintsAvailable?['limited-hints-v1']:[])],liveModelCalls:0};}
+  if(method==='runtime.initialize'){const p=z.object({capabilities:z.array(z.literal(LOCAL_CREDENTIAL_CAPABILITY)).max(1).default([])}).strict().parse(raw);credentialEnabled=p.capabilities.includes(LOCAL_CREDENTIAL_CAPABILITY);broker.setNegotiated(credentialEnabled);initialized=true;return{protocolVersion:1,mode:'local-runtime',storage:'local-sqlite',capabilities:['text-interview','persistent-memory','persistent-jobs','event-replay','local-speech-v1',LOCAL_PRESENTATION_CAPABILITY,LOCAL_PROGRESS_VIEWS_CAPABILITY,LOCAL_CREDENTIAL_CAPABILITY,...(host.hintsAvailable?['limited-hints-v1']:[]),...(host.learningAvailable?[LOCAL_LEARNING_CAPABILITY]:[]),...(host.experimentsAvailable?[LOCAL_EXPERIMENTS_CAPABILITY]:[])],liveModelCalls:0};}
   if(method==='runtime.shutdown'){empty.parse(raw);await stop();return{stopped:true};}
   if(method==='hint.status')return host.hintStatus(raw);
   if(method==='hint.request')return host.hint(raw);
@@ -39,12 +43,23 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
   if(method==='live.reconcile')return host.reconcile(LocalLiveReconciliationSchema.parse(raw));
   if(Object.hasOwn(LocalSpeechCommandSchemas,method)){if(method==='speech.authorize'&&!credentialEnabled)throw new LocalError('CREDENTIAL_NOT_NEGOTIATED');return host.speech(method as LocalSpeechCommand,raw);}
   if(Object.hasOwn(LocalCommandSchemas,method))return host.command(method as LocalCommand,raw);
-  if(method==='roles.list'){empty.parse(raw);return[{id:'java-backend',label:'Java 后端'},{id:'web-frontend',label:'Web 前端'}];}
+  if(method==='roles.list'){empty.parse(raw);return buildRoleCatalogList();}
   if(method==='session.list'){const p=z.object({offset:z.number().int().min(0).max(1000000).default(0),limit:z.number().int().min(1).max(100).default(100)}).strict().parse(raw);return host.list(p.offset,p.limit);}
   if(method==='session.get')return host.session(z.object({sessionId:id}).strict().parse(raw).sessionId);
   if(method==='session.answers')return host.answerPage(raw);
   if(method==='session.report')return host.report(raw);
   if(method==='memory.get')return host.memory(z.object({roleId:RoleIdSchema}).strict().parse(raw).roleId);
+  if(method==='profile.get')return host.profileView(raw);
+  if(method==='practice.recommendations')return host.practiceRecommendations(raw);
+  if(method==='reflection.list')return host.reflections(raw);
+  if(method==='learning.status')return host.learningStatus(raw);
+  if(method==='learning.assignment.create')return host.createLearningAssignment(raw);
+  if(method==='learning.event.record')return host.recordLearningEvent(raw);
+  if(method==='learning.retest.plan')return host.planLearningRetest(raw);
+  if(method==='learning.retest.pair')return host.pairLearningRetest(raw);
+  if(method==='experiment.status')return host.experimentStatus(raw);
+  if(method==='experiment.evaluate')return host.evaluateExperiment(raw);
+  if(method==='experiment.rollback')return host.rollbackExperiment(raw);
   if(method==='job.get'||method==='job.cancel'){const p=z.object({jobId:id}).strict().parse(raw);return method==='job.get'?host.job(p.jobId):host.cancel(p.jobId);}
   if(method==='job.events'){const p=z.object({jobId:id,afterSeq:z.number().int().nonnegative().default(0)}).strict().parse(raw);return host.events(p.jobId,p.afterSeq);}
   throw new LocalError('NOT_IMPLEMENTED');
@@ -58,7 +73,7 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
   }const request=p.data;
   const base={protocolVersion:1,type:'response',id:request.id};
   try{const result=await dispatch(request.method,request.params);enqueue({...base,ok:true,result});}
-  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError||e instanceof HintError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
+  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError||e instanceof HintError||e instanceof AgentStateError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
  }
  const signal=()=>{void stop().then(()=>{process.stdin.destroy();},()=>{failed=true;process.stdin.destroy();});};
  process.once('SIGTERM',signal);process.once('SIGINT',signal);

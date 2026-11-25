@@ -56,7 +56,7 @@ export async function runScenario(id: ScenarioId, manifest: DeliveryReport['sour
     }
     case 'knowledge_catalog': {
       const c = buildKnowledgeCatalog(loadKnowledgeWorkspace(), { mode: 'draft-preview' });
-      flags = [roles.every(role => c.items.some(i => i.roleId === role)), c.summary.total === 24 && c.summary.readyForHumanReview === 20,
+      flags = [roles.every(role => c.items.some(i => i.roleId === role)), c.summary.total === 29 && c.summary.readyForHumanReview === 22,
         c.summary.reviewed === 0 && c.items.every(i => i.reviewStatus === 'draft')]; break;
     }
     case 'curated_knowledge': {

@@ -4,7 +4,9 @@ import type{Api,Model,AssistantMessage}from'@earendil-works/pi-ai';
 import{type ModelRuntime,type AgentSession,type ToolDefinition}from'@earendil-works/pi-coding-agent';
 import{PlannerInputSchema,PlannerQuerySchema,PlannerChoiceSchema,PlannerResultSchema,type PlannerResult}from'../../../../../packages/contracts/src/knowledge-planner.ts';
 import type{ErrorCode,ToolReceipt,KnowledgeItem}from'../../../../../packages/contracts/src/tools.ts';
-import{AgentStateError,decideNextAction,estimateSkills}from'../../planning/interview-state.ts';
+import{AgentStateError,resolveQuestionPlan,estimateSkills}from'../../planning/interview-state.ts';
+import {eligibleQuestions} from '../../../../../packages/interview-domain/src/question-eligibility.ts';
+import {fallbackGuidance} from '../../harness/skills/planning.ts';
 import{selectNextQuestion}from'../../planning/select-question.ts';
 import{createKnowledgeExecutor}from'../../tools/knowledge-executor.ts';
 import{createCuratedKnowledgeExecutor}from'../../knowledge/catalog.ts';
@@ -30,9 +32,13 @@ export function createPiQuestionPlanner(config:{cwd:string;modelRuntime:ModelRun
   if(signal.aborted)throw new AgentStateError('RUN_CANCELLED');
   const deadline=Math.min(input.context.deadlineAt,input.state.deadlineAt,startedAt+options.timeoutMs);
   if(startedAt>=deadline)throw new AgentStateError('DEADLINE_EXCEEDED');
-  const plan=decideNextAction(input.state,startedAt,policy);
-  if(plan.action==='finish')return PlannerResultSchema.parse({kind:'uncommitted-knowledge-plan',selection:{status:'finished',plan},receipts:[],modelMessages:0});
-  const system=await harnessSkills.load('planning');
+  const {plan,provenance}=resolveQuestionPlan(input.state,startedAt,policy,input.askedQuestionIds,input.catalogPin,input.allowDraftKnowledge);
+  const binding=provenance?{provenance}:{};
+  if(plan.action==='finish')return PlannerResultSchema.parse({kind:'uncommitted-knowledge-plan',selection:{status:'finished',plan,...binding},receipts:[],modelMessages:0});
+  const eligible=provenance?eligibleQuestions(input.catalogPin!.items,{roleId:input.state.roleId,skillIds:input.state.skills.filter(s=>s.relevance>0).map(s=>s.skillId),
+   askedQuestionIds:input.askedQuestionIds,priorEvidence:input.state.priorEvidence,observations:input.state.observations,allowDraftKnowledge:input.allowDraftKnowledge,targetDifficulty:plan.difficulty}):undefined;
+  if(eligible&&!eligible.length)return PlannerResultSchema.parse({kind:'uncommitted-knowledge-plan',selection:{status:'unavailable',plan,...binding,reason:'no_eligible_question'},receipts:[],modelMessages:0});
+  const system=(await harnessSkills.load('planning'))+(provenance?'\n'+fallbackGuidance:'');
   const payload={roleId:input.context.roleId,goal:input.goal,plan,skills:estimateSkills(input.state,startedAt),policy,
    memory:[] as ReturnType<typeof projectMemoryForPrompt>};
   if(system.length+JSON.stringify(payload).length>options.maxInputCharacters)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');
@@ -40,7 +46,10 @@ export function createPiQuestionPlanner(config:{cwd:string;modelRuntime:ModelRun
   payload.memory=memoryView.memory;
   const prompt=JSON.stringify(payload);
   if(system.length+prompt.length>options.maxInputCharacters)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');
-  const execute=options.knowledgeMode==='seed'
+  const execute=input.catalogPin
+   ?createKnowledgeExecutor({...input.context,deadlineAt:deadline},{maxCalls:options.maxToolCalls,includeDrafts:input.allowDraftKnowledge,catalog:eligible??input.catalogPin.items,
+    ...(provenance?{excludeQuestionIds:[...input.askedQuestionIds,...input.state.priorEvidence.map(o=>o.questionId),...input.state.observations.map(o=>o.questionId)],targetDifficulty:plan.difficulty}:{})})
+   :options.knowledgeMode==='seed'
    ?createKnowledgeExecutor({...input.context,deadlineAt:deadline},{maxCalls:options.maxToolCalls,includeDrafts:input.allowDraftKnowledge})
    :createCuratedKnowledgeExecutor({...input.context,deadlineAt:deadline},{maxCalls:options.maxToolCalls,mode:options.knowledgeMode});
   const receipts:ToolReceipt[]=[],retrieved=new Map<string,KnowledgeItem>();
@@ -54,15 +63,15 @@ export function createPiQuestionPlanner(config:{cwd:string;modelRuntime:ModelRun
   const onAbort=()=>fail('RUN_CANCELLED');signal.addEventListener('abort',onAbort,{once:true});
   timer=setTimeout(()=>fail('DEADLINE_EXCEEDED'),Math.max(1,deadline-Date.now()));
   const selection=(items:KnowledgeItem[],now=Date.now())=>selectNextQuestion({state:input.state,now,knowledge:items,
-   askedQuestionIds:input.askedQuestionIds,planningPolicy:input.planningPolicy},{allowDraftKnowledge:input.allowDraftKnowledge});
+   askedQuestionIds:input.askedQuestionIds,planningPolicy:input.planningPolicy,...(input.catalogPin?{catalogPin:input.catalogPin}:{})},{allowDraftKnowledge:input.allowDraftKnowledge});
   const tool:ToolDefinition={name:'query_role_knowledge',label:'当前规划技能知识',description:'Read host-authorized knowledge for the planned skill. Initially omit query and use skillId/limit only. query is an exact literal substring filter, never semantic search. No identity or role arguments.',
    parameters:Type.Unsafe(z.toJSONSchema(PlannerQuerySchema,{io:'input'})),execute:async(callId,rawQuery,toolSignal)=>{
     check();toolCalls++;if(toolCalls>options.maxToolCalls){fail('TOOL_BUDGET_EXCEEDED');throw failure;}
     const query=PlannerQuerySchema.safeParse(rawQuery);
-    if(!query.success||query.data.skillId!==plan.skillId){fail('VALIDATION_ERROR');throw failure;}
+    if(!query.success||query.data.skillId!==plan.skillId||provenance&&toolCalls===1&&query.data.query!==undefined){fail('VALIDATION_ERROR');throw failure;}
     const receipt=await execute(callId,{...query.data,roleId:input.context.roleId,purpose:'questioning'},toolSignal);check();
     if(receipt.status==='error'){fail(receipt.error!.code);throw failure;}
-    const items=receipt.data!.items.filter(item=>selection([item]).status==='selected');
+    const items=provenance?receipt.data!.items:receipt.data!.items.filter(item=>selection([item]).status==='selected');
     const filtered:ToolReceipt={...receipt,status:items.length?'ok':'empty',sourceIds:[...new Set(items.flatMap(i=>i.sourceIds))],data:{items,
      ...(receipt.data!.guidance?{guidance:receipt.data!.guidance.filter(g=>items.some(i=>i.id===g.itemId))}:{})}};
     const text=JSON.stringify(filtered);toolCharacters+=text.length;

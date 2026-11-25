@@ -1,4 +1,4 @@
 {
   "name": "@interview/interview-domain", "version": "0.1.0", "private": true, "type": "module",
-  "exports": { ".": "./src/planning.ts", "./feedback": "./src/feedback.ts", "./feedback-publication": "./src/feedback-publication.ts", "./feedback-revision": "./src/feedback-revision.ts", "./evidence-support": "./src/evidence-support.ts", "./verification-binding": "./src/verification-binding.ts", "./clarification": "./src/clarification.ts" }
+  "exports": { ".": "./src/planning.ts", "./question-eligibility": "./src/question-eligibility.ts", "./feedback": "./src/feedback.ts", "./feedback-publication": "./src/feedback-publication.ts", "./feedback-revision": "./src/feedback-revision.ts", "./evidence-support": "./src/evidence-support.ts", "./verification-binding": "./src/verification-binding.ts", "./clarification": "./src/clarification.ts" }
 }

@@ -15,6 +15,8 @@ import{buildInterviewReport}from'../reporting/build-report.ts';
 import{reflectSession}from'../reflection/reflect-session.ts';
 import{deliverQuestion}from'../questioning/deliver-question.ts';
 import type{BridgeGenerator}from'../../../../packages/contracts/src/question-delivery.ts';
+import {validCatalogPin} from '../../../../packages/interview-domain/src/question-eligibility.ts';
+import {validatePinnedPlan} from '../../../../packages/interview-domain/src/planning.ts';
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
 function retrieved(p:PlannerResult){
  const items=new Map<string,NonNullable<PlannerResult['receipts'][number]['data']>['items'][number]>();
@@ -28,9 +30,37 @@ function snapshot(raw:unknown){
  if(typeof text!=='string')throw new AgentStateError('VALIDATION_ERROR');
  if(text.length>8*1024*1024)throw new AgentStateError('CONTEXT_BUDGET_EXCEEDED');const s=parse(WorkflowSchema,raw);
  validateAttempts(s);
+  if(s.catalogPin&&(!validCatalogPin(s.catalogPin)||s.catalogPin.roleId!==s.identity.roleId))throw new AgentStateError('VALIDATION_ERROR');
+  if(s.policy.parameters.questionFallback){
+   if(!s.catalogPin||!same(s.state.historyCompatibility,{id:s.catalogPin.id,mode:'strict',allowed:s.catalogPin.items.map(q=>({skillId:q.skillId,rubricId:q.id,rubricVersion:q.version}))}))throw new AgentStateError('VALIDATION_ERROR');
+   for(const [index,q] of s.issuedQuestions.entries()){
+    const preceding=s.turns.filter(t=>s.askedQuestionIds.indexOf(t.input.question.id)<index);
+    const state=preceding.at(-1)?.proposal.nextState??{...s.state,version:0,observations:[],currentSkillId:null,followupDepth:0,difficulty:2};
+    const selected=selectNextQuestion({state,now:q.issuedAt,knowledge:s.catalogPin.items,catalogPin:s.catalogPin,
+     askedQuestionIds:s.askedQuestionIds.slice(0,index),planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
+    if(selected.status!=='selected'||!q.content||!same(q.content.question,selected.question)||!same(q.content.rubric,selected.rubric)
+     ||!same(q.content.source,selected.source)||!same(q.content.effectivePlan,{plan:selected.plan,provenance:selected.provenance}))throw new AgentStateError('VALIDATION_ERROR');
+    if(q.questionId===s.askedQuestionIds.at(-1)&&s.lastPlan?.selection.status==='selected'){
+     try{validatePinnedPlan({state,planningPolicy:s.policy,askedQuestionIds:s.askedQuestionIds.slice(0,index),catalogPin:s.catalogPin,allowDraftKnowledge:s.allowDraftKnowledge},s.lastPlan,
+      {now:q.issuedAt,notBefore:Math.max(state.startedAt,...state.observations.map(o=>o.observedAt)),deadlineAt:state.deadlineAt});}catch{throw new AgentStateError('VALIDATION_ERROR');}
+     if(!same(s.lastPlan.selection,selected))throw new AgentStateError('VALIDATION_ERROR');
+    }
+   }
+   if(s.lastPlan?.selection.status==='selected'&&s.lastPlan.selection.question.id!==s.askedQuestionIds.at(-1))throw new AgentStateError('VALIDATION_ERROR');
+   if(s.lastPlan&&s.lastPlan.selection.status!=='selected'){
+    try{validatePinnedPlan({state:s.state,planningPolicy:s.policy,askedQuestionIds:s.askedQuestionIds,catalogPin:s.catalogPin,allowDraftKnowledge:s.allowDraftKnowledge},s.lastPlan,
+     {now:s.closeout?.generatedAt??s.lastPlan.selection.provenance?.decidedAt??0,notBefore:Math.max(s.state.startedAt,...s.state.observations.map(o=>o.observedAt),...s.issuedQuestions.map(q=>q.issuedAt)),deadlineAt:s.state.deadlineAt});}
+    catch{throw new AgentStateError('VALIDATION_ERROR');}
+   }
+   if(s.pendingReason==='knowledge_gap'&&s.lastPlan?.selection.status!=='unavailable')throw new AgentStateError('VALIDATION_ERROR');
+   if(s.pendingReason==='plan_finished'&&s.lastPlan?.selection.status!=='finished'){
+    const at=Math.max(s.state.startedAt,...s.state.observations.map(o=>o.observedAt),...(s.clarificationAttempts??[]).map(a=>a.resolution.issuedAt));
+    if(decideNextAction(s.state,at,s.policy.parameters).action!=='finish')throw new AgentStateError('VALIDATION_ERROR');
+   }
+  }
  if(s.current){
   const verified=selectNextQuestion({state:s.state,now:s.currentIssuedAt!,knowledge:retrieved(s.lastPlan!),
-   askedQuestionIds:s.askedQuestionIds.filter(id=>id!==s.current!.question.id),planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
+   askedQuestionIds:s.askedQuestionIds.filter(id=>id!==s.current!.question.id),planningPolicy:s.policy,...(s.catalogPin?{catalogPin:s.catalogPin}:{})},{allowDraftKnowledge:s.allowDraftKnowledge});
   if(!same(verified,s.current))throw new AgentStateError('VALIDATION_ERROR');
  }
  return s;
@@ -96,32 +126,35 @@ export function createInterviewWorkflow(raw:unknown):InterviewWorkflow{
  const memory=c.memory??createMemory(c.identity,c.now);
  const state=startSessionFromMemory(memory,{...c.identity,now:c.now,session:c.session});
  return snapshot({kind:'uncommitted-interview-session',revision:0,identity:c.identity,state,policy:c.policy,goal:c.goal,skillLabels:c.skillLabels,
-  baseMemory:memory,allowDraftKnowledge:c.allowDraftKnowledge,phase:'ready_to_plan',turns:[],askedQuestionIds:[],issuedQuestions:[],current:null,currentIssuedAt:null,lastPlan:null,pendingReason:null,closeout:null});
+  baseMemory:memory,allowDraftKnowledge:c.allowDraftKnowledge,...(c.catalogPin?{catalogPin:c.catalogPin}:{}),phase:'ready_to_plan',turns:[],askedQuestionIds:[],issuedQuestions:[],current:null,currentIssuedAt:null,lastPlan:null,pendingReason:null,closeout:null});
 }
 export async function planInterviewQuestion(raw:unknown,command:unknown,deps:Timing&{plan:(input:PlannerInput,signal:AbortSignal)=>Promise<PlannerResult>;deliver?:BridgeGenerator;onPresent?:()=>void}):Promise<InterviewWorkflow>{
  const s=snapshot(raw),c=parse(PlanQuestionCommandSchema,command);authorize(s,c);
  if(s.phase!=='ready_to_plan')throw new AgentStateError('VERSION_CONFLICT');
  return bounded(async(signal,check)=>{
   const at=check(),plan=decideNextAction(s.state,at,s.policy.parameters);
-  const result=plan.action==='finish'?{kind:'uncommitted-knowledge-plan',selection:{status:'finished',plan},receipts:[],modelMessages:0}
-   :await deps.plan({state:s.state,context:c.context,goal:s.goal,askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy,allowDraftKnowledge:s.allowDraftKnowledge},signal);
+  const result=plan.action==='finish'?{kind:'uncommitted-knowledge-plan',selection:selectNextQuestion({state:s.state,now:at,knowledge:[],askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy,...(s.catalogPin?{catalogPin:s.catalogPin}:{})},{allowDraftKnowledge:s.allowDraftKnowledge}),receipts:[],modelMessages:0}
+   :await deps.plan({state:s.state,context:c.context,goal:s.goal,askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy,allowDraftKnowledge:s.allowDraftKnowledge,...(s.catalogPin?{catalogPin:s.catalogPin}:{})},signal);
   const p=parse(PlannerResultSchema,result),done=check();
+  if(s.policy.parameters.questionFallback)validatePinnedPlan({state:s.state,planningPolicy:s.policy,askedQuestionIds:s.askedQuestionIds,...(s.catalogPin?{catalogPin:s.catalogPin}:{}),allowDraftKnowledge:s.allowDraftKnowledge},p,
+   {now:done,notBefore:at,deadlineAt:c.context.deadlineAt});
   const verified=selectNextQuestion({state:s.state,now:done,knowledge:retrieved(p),
-   askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
+   askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy,...(s.catalogPin?{catalogPin:s.catalogPin}:{})},{allowDraftKnowledge:s.allowDraftKnowledge});
   if(p.selection.status!==verified.status||(p.selection.status==='selected'&&(verified.status!=='selected'||
    !same(p.selection.question,verified.question)||!same(p.selection.rubric,verified.rubric)||!same(p.selection.source,verified.source))))throw new AgentStateError('MODEL_OUTPUT_INVALID');
-  if(p.selection.status!=='finished'&&!p.receipts.length)throw new AgentStateError('MODEL_OUTPUT_INVALID');
+  if(p.selection.status!=='finished'&&!p.receipts.length&&!(s.policy.parameters.questionFallback&&verified.status==='unavailable'&&p.modelMessages===0))throw new AgentStateError('MODEL_OUTPUT_INVALID');
   let delivery;const previous=s.turns.at(-1)?.input.answer;
   if(verified.status==='selected'&&deps.deliver&&previous){deps.onPresent?.();
    delivery=await deliverQuestion({context:c.context,state:s.state,selection:verified,previousAnswer:previous,wrapUpSeconds:s.policy.parameters.wrapUpSeconds},
     {generate:deps.deliver,signal,now:deps.now??Date.now});check();
   }
-  const issuedAt=check(),fresh=selectNextQuestion({state:s.state,now:issuedAt,knowledge:retrieved(p),askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy},{allowDraftKnowledge:s.allowDraftKnowledge});
+  const issuedAt=check(),fresh=selectNextQuestion({state:s.state,now:issuedAt,knowledge:retrieved(p),askedQuestionIds:s.askedQuestionIds,planningPolicy:s.policy,...(s.catalogPin?{catalogPin:s.catalogPin}:{})},{allowDraftKnowledge:s.allowDraftKnowledge});
   if(fresh.status==='selected'&&(verified.status!=='selected'||!same(fresh.question,verified.question)||!same(fresh.rubric,verified.rubric)||!same(fresh.source,verified.source)))throw new AgentStateError('MODEL_OUTPUT_INVALID');
   const selected=fresh.status==='selected'?fresh:null;
   return snapshot({...s,revision:s.revision+1,lastPlan:{...p,selection:fresh},current:selected,currentIssuedAt:selected?issuedAt:null,
    issuedQuestions:selected?[...s.issuedQuestions,{questionId:selected.question.id,issuedAt,content:{question:selected.question,rubric:selected.rubric,source:selected.source,
-    text:delivery?.text??selected.question.text,stateVersion:s.state.version,policyId:s.policy.id,planRunId:c.context.runId,planAttemptId:c.context.attemptId,...(delivery?{delivery}:{})}}]:s.issuedQuestions,
+     text:delivery?.text??selected.question.text,stateVersion:s.state.version,policyId:s.policy.id,planRunId:c.context.runId,planAttemptId:c.context.attemptId,...(delivery?{delivery}:{}),
+     ...(selected.provenance?{effectivePlan:{plan:selected.plan,provenance:selected.provenance}}:{})}}]:s.issuedQuestions,
    askedQuestionIds:selected?[...s.askedQuestionIds,selected.question.id]:s.askedQuestionIds,
    phase:selected?'awaiting_answer':'ready_to_close',pendingReason:selected?null:fresh.status==='finished'?'plan_finished':'knowledge_gap'});
  },deps,c.context.deadlineAt);
@@ -160,7 +193,10 @@ async function closeCandidates(s:InterviewWorkflow,c:z.infer<typeof FinishWorkfl
  const gaps=unscored(s),reportInput={state:s.state,generatedAt:at,policyVersion:s.policy.id,skillLabels:s.skillLabels,turns:s.turns,...(gaps.length?{unscoredTurns:gaps}:{})};
  const report=await buildInterviewReport(reportInput);check();
  const memoryCandidate=s.turns.length?await appendMemory(s.baseMemory,{...s.identity,expectedVersion:s.baseMemory.version,sessionStatus:'completed',now:at,reportInput}):s.baseMemory;check();
- const reflection=await reflectSession({reportInput,baselinePolicy:s.policy,generatedAt:at,sourceGroupId:c.sourceGroupId});check();
+ const reflection=await reflectSession({reportInput,baselinePolicy:s.policy,generatedAt:at,sourceGroupId:c.sourceGroupId,
+  ...(s.policy.parameters.questionFallback?{catalogPin:s.catalogPin,allowDraftKnowledge:s.allowDraftKnowledge,
+   issuedQuestions:s.issuedQuestions.map(q=>({questionId:q.questionId,issuedAt:q.issuedAt,question:q.content!.question,rubric:q.content!.rubric,source:q.content!.source})),
+   executedPlans:s.issuedQuestions.map(q=>({questionId:q.questionId,issuedAt:q.issuedAt,...q.content!.effectivePlan!}))}:{})});check();
  return parse(CloseoutSchema,{kind:'uncommitted-interview-closeout',sessionId:s.state.sessionId,sessionVersion:s.state.version,generatedAt:at,
   sourceGroupId:c.sourceGroupId,requestRevision:s.closeout?.requestRevision??c.expectedRevision,requestMode:c.mode,reason,report,memoryCandidate,memoryDisposition:s.turns.length?'appended':'unchanged_no_answers',reflection});
 }
@@ -173,7 +209,7 @@ export async function finishInterviewWorkflow(raw:unknown,command:unknown,deps:T
    if(!same(expected,s.closeout))throw new AgentStateError('VALIDATION_ERROR');return s;},deps);
  }
  if(c.mode==='automatic'&&s.phase!=='ready_to_close')throw new AgentStateError('VERSION_CONFLICT');
- return bounded(async(_signal,check)=>{const closeout=await closeCandidates(s,c,check(),check);
+ return bounded(async(_signal,check)=>{const at=check();if(s.lastPlan?.selection.provenance&&s.lastPlan.selection.provenance.decidedAt>at)throw new AgentStateError('VALIDATION_ERROR');const closeout=await closeCandidates(s,c,at,check);
   return snapshot({...s,revision:s.revision+1,phase:'completed',current:null,currentIssuedAt:null,pendingReason:closeout.reason,closeout});},deps);
 }
 export async function restoreInterviewWorkflow(json:string,identity:unknown):Promise<InterviewWorkflow>{

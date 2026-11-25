@@ -537,5 +537,110 @@
         "locator": "Tasks vs. microtasks；微任务检查点与递归调度警告"
       }
     ]
+  },
+  {
+    "itemId": "java-technical-jvm-gc",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-25",
+    "applicability": "Java 服务端 GC 与内存排查通用场景；不绑定特定厂商收集器调优。",
+    "answerGuide": "先通过 GC 日志区分晋升速率、大对象分配还是回收后老年代基线持续抬升；再在可控样本上抓取 Heap Dump 查看 GC Roots 保留路径，避免未确认根因前仅调大堆内存或定时重启掩盖问题。",
+    "followups": [
+      {
+        "question": "如果开启 Heap Dump 会带来停顿风险，线下和线上观察如何分级？",
+        "assesses": "诊断代价控制与证据边界"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "java-scenario-cache-consistency",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-25",
+    "applicability": "高并发读多写少场景下的缓存与数据库一致性设计；不宣称零窗口绝对强一致。",
+    "answerGuide": "先说明缓存击穿的互斥锁或逻辑过期防线，再分析更新数据库与删/改缓存在并发读回填下的脏数据窗口，说明超时/失败补偿与最终一致性边界，并给出压测与未覆盖故障条件。",
+    "followups": [
+      {
+        "question": "如果删除缓存失败或锁超时，最坏会读到多久的旧数据？",
+        "assesses": "不一致窗口上限与失败恢复"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-browser-network",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-25",
+    "applicability": "浏览器标准 Fetch / CORS 与 HTTP 缓存策略；不把本地禁用跨域插件当作可行方案。",
+    "answerGuide": "说明简单请求与非简单请求触发 OPTIONS 预检的边界，CORS 由服务端响应头授权而非客户端绕过；同时区分强缓存与协商缓存，确保带哈希静态资源与 HTML 入口/接口版本配合一致。",
+    "followups": [
+      {
+        "question": "带凭证（Cookie）请求时 Access-Control-Allow-Origin 为什么不能用通配符？",
+        "assesses": "CORS 凭证边界"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "mdn-fetch",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Using the Fetch API：Headers、Credentials 与 CORS 请求基础"
+      }
+    ]
+  },
+  {
+    "itemId": "web-technical-react-reconciliation",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-25",
+    "applicability": "React 列表协调与组件状态复用；以官方读取日页面为依据。",
+    "answerGuide": "React 通过同级 key 识别节点归属。列表中间插入、删除或重排时，使用索引会导致旧组件实例、非受控输入值和 Effect 挂载错误对齐；应选用稳定且同级唯一的业务 ID，不以随机数替代。",
+    "followups": [
+      {
+        "question": "如果列表项本身没有服务端 ID，什么时候需要构造稳定标识？",
+        "assesses": "前端本地唯一标识设计"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "react-learn",
+        "sourceVersion": "docs-2026-11-03",
+        "locator": "Rendering Lists / Preserving and Resetting State"
+      }
+    ]
+  },
+  {
+    "itemId": "web-scenario-perf-a11y",
+    "itemVersion": "bank-0.1",
+    "version": "dossier-0.1",
+    "authoredAt": "2026-11-25",
+    "applicability": "浏览器长列表与弹层交互场景；明确自动化检查不能代替人工键盘与读屏测试。",
+    "answerGuide": "先用 Performance 定位渲染节点数、布局抖动或长任务，再用虚拟滚动/分页/事件收敛降开销；同时保障原生语义、弹层打开焦点移入、Escape/关闭按钮焦点回退原触发元素及可见焦点样式。",
+    "followups": [
+      {
+        "question": "虚拟滚动只渲染可视区域时，键盘上下导航或读屏计数会遇到什么边界？",
+        "assesses": "性能与可访问性协同"
+      }
+    ],
+    "sourceReferences": [
+      {
+        "sourceId": "team-original",
+        "sourceVersion": "original-1",
+        "locator": "团队原创场景、答题指南与量规；无外部效果背书"
+      }
+    ]
   }
 ]

@@ -1,7 +1,12 @@
-import type {z} from 'zod';
-import {LocalAnswerPageSchema,LocalReportViewSchema,type LocalReadPageOptions} from '../../contracts/src/local-presentation.ts';
+import {z} from 'zod';
+import {LocalAnswerPageSchema,LocalReportViewSchema,LocalProfileViewSchema,LocalPracticeRecommendationsViewSchema,LocalReflectionListViewSchema,
+ type LocalReadPageOptions,type LocalProfileQuery,type LocalPracticeRecommendationsQuery,type LocalReflectionListQuery} from '../../contracts/src/local-presentation.ts';
 import type {ChildProcessWithoutNullStreams} from 'node:child_process';import {randomUUID} from 'node:crypto';
-import {LocalRequestSchema,LocalResponseSchema,LocalNotificationSchema,LocalSessionViewSchema,type LocalRequest,type LocalEvent} from '../../contracts/src/local-runtime.ts';
+import {LocalCommandSchemas,LocalRequestSchema,LocalResponseSchema,LocalNotificationSchema,LocalSessionViewSchema,LocalId,type LocalRequest,type LocalEvent} from '../../contracts/src/local-runtime.ts';
+import {RoleListSchema} from '../../contracts/src/role-catalog.ts';
+import {LocalLearningAssignmentViewSchema,LocalLearningRetestPlanViewSchema,LocalLearningStatusSchema,type LocalLearningCreateAssignmentInputSchema,type LocalLearningRecordEventInputSchema,type LocalLearningRetestPairInputSchema} from '../../contracts/src/local-learning.ts';
+import {LocalExperimentActionResultSchema,LocalExperimentStatusSchema,type LocalExperimentEvaluateInputSchema,type LocalExperimentRollbackInputSchema} from '../../contracts/src/local-experiment.ts';
+const LocalCreateSessionResultSchema=z.object({jobId:LocalId,sessionId:LocalId}).strict();
 import {createMainCredentialBroker,type LocalCredentialResolver} from './credential-broker.ts';
 import {LOCAL_CREDENTIAL_CAPABILITY} from '../../contracts/src/local-credential.ts';
 import {LocalSpeechGrantSchema} from '../../contracts/src/local-speech.ts';
@@ -64,10 +69,23 @@ export function bindLocalProcess(child:ChildProcessWithoutNullStreams,options:{t
   listeners.clear();
  })();}
  return{request,diagnostics:diagnostics.snapshot,
+  listRoles:async()=>validated(RoleListSchema,await request('roles.list',{})),
+  createSession:async(params:z.input<typeof LocalCommandSchemas['session.create']>)=>validated(LocalCreateSessionResultSchema,await request('session.create',params)),
   getSession:async(sessionId:string)=>validated(LocalSessionViewSchema,await request('session.get',{sessionId})),
   listSessions:async(options:{offset?:number;limit?:number}={})=>validated(LocalSessionViewSchema.array().max(100),await request('session.list',options)),
   getAnswerPage:async(sessionId:string,options:LocalReadPageOptions={})=>validated(LocalAnswerPageSchema,await request('session.answers',{...options,sessionId})),
   getReport:async(sessionId:string,options:LocalReadPageOptions={})=>validated(LocalReportViewSchema.nullable(),await request('session.report',{...options,sessionId})),
+  getProfile:async(options:LocalProfileQuery)=>validated(LocalProfileViewSchema,await request('profile.get',options)),
+  getPracticeRecommendations:async(options:LocalPracticeRecommendationsQuery)=>validated(LocalPracticeRecommendationsViewSchema,await request('practice.recommendations',options)),
+  listReflections:async(options:LocalReflectionListQuery)=>validated(LocalReflectionListViewSchema,await request('reflection.list',options)),
+  getLearningStatus:async(roleId:z.input<typeof LocalCommandSchemas['session.create']>['roleId'])=>validated(LocalLearningStatusSchema,await request('learning.status',{roleId})),
+  createLearningAssignment:async(params:z.input<typeof LocalLearningCreateAssignmentInputSchema>)=>validated(LocalLearningAssignmentViewSchema,await request('learning.assignment.create',params)),
+  recordLearningEvent:async(params:z.input<typeof LocalLearningRecordEventInputSchema>)=>validated(LocalLearningAssignmentViewSchema,await request('learning.event.record',params)),
+  planLearningRetest:async(params:{assignmentId:string;sessionId:string})=>validated(LocalLearningRetestPlanViewSchema,await request('learning.retest.plan',params)),
+  pairLearningRetest:async(params:z.input<typeof LocalLearningRetestPairInputSchema>)=>validated(LocalLearningAssignmentViewSchema,await request('learning.retest.pair',params)),
+  getExperimentStatus:async(roleId:z.input<typeof LocalCommandSchemas['session.create']>['roleId'])=>validated(LocalExperimentStatusSchema,await request('experiment.status',{roleId})),
+  evaluateExperiment:async(params:z.input<typeof LocalExperimentEvaluateInputSchema>)=>validated(LocalExperimentActionResultSchema,await request('experiment.evaluate',params)),
+  rollbackExperiment:async(params:z.input<typeof LocalExperimentRollbackInputSchema>)=>validated(LocalExperimentActionResultSchema,await request('experiment.rollback',params)),
   subscribe(fn:(event:LocalEvent)=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
   async waitForJob(jobId:string){const end=Date.now()+30000;for(;;){const value=await request('job.get',{jobId}) as {status:string};if(!['queued','running'].includes(value.status))return value;if(Date.now()>=end)throw new LocalAgentClientError('LOCAL_JOB_TIMEOUT');await new Promise(r=>setTimeout(r,20));}},
   close,

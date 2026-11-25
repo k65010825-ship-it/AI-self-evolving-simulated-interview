@@ -149,4 +149,12 @@ Agent提供 `HintBinding/HintJournal/HintAssistance` 契约及 `HintRepository` 
 
 稳定issue由宿主对身份、session、完整已发题记录（含来源/版本、plan run、issuedAt）计算摘要。成功提示由宿主在save所在事务中更新现有workflow JSON的hintAssistance、revision和storage_version；repository不得再创建第二份正式workflow或单独提交辅助标签。每题最多2条committed、最多1条reserved，失败操作保留released且不计成功次数；每题操作日志上限128，超限拒绝，不清空旧操作来腾空间。ACK丢失重放原回执；启动释放预占不会解除模型账本unknown。
 
-交付需覆盖：同题并发及两次上限、澄清不换issue、成功回执与辅助标签原子写入、故障回滚、重启保留/预占释放、旧owner拒绝、跨题/业务/语音operation冲突、仓库缺失时禁用新提示、仓库历史缺失与宿主标记不符时拒绝。仓库依赖后来不可用时，已存在workflow辅助标记仍用于回答/记忆/评测隔离，不能把历史提示抹成独立作答。真实repository、备份迁移与正式随包启用仍须联合验收。
+交付需覆盖：同题并发及两次上限、澄清不换issue、成功回执与辅助标签原子写入、故障回滚、重启保留/预占释放、旧owner拒绝、跨题/业务/语音operation冲突、仓库缺失时禁用新提示、仓库历史缺失与宿主标记不符时拒绝。仓库依赖后来不可用时，已存在workflow辅助标记仍用于回答/记忆/评测隔离，不能把历史提示抹成独立作答。提示只使用测试repository时，不能记为正式持久化交付；真实repository、备份迁移与正式随包启用仍须联合验收。
+
+### 8.5 学习复测与离线实验 repository 契约
+
+Agent 侧已完成宿主写入协调器与只读端口定义，数据库负责人按与 8.4 同等的原子持久化契约在用户本机 SQLite 同一 profile 连接上提供正式实现，默认随包尚未接入时由宿主返回 `LEARNING_STORAGE_UNAVAILABLE` / `EXPERIMENT_STORAGE_UNAVAILABLE`（`available: false`）：
+
+- **LearningRepository（`apps/agent/src/learning/repository-port.ts`）**：`list(db, userId, roleId)`、`load(db, userId, assignmentId)`、`findOperation(db, userId, operationId)`、`save(db, userId, record, expectedVersion)`。保存时须以 `expectedVersion` 作 CAS，并在同一事务中提交记录与操作幂等回执（按 `operationId` 与请求摘要校验同内容重放/异内容 `VERSION_CONFLICT`）；测试 fixture 见 `tests/fixtures/learning-repository.ts`。
+- **ExperimentRepository（`apps/agent/src/reflection/repository-port.ts`）**：`list(db, userId, roleId)`、`load(db, userId, experimentId)`、`findOperation(db, userId, operationId)`、`pending(db, userId)`、`save(db, userId, record, expectedVersion)`。启动恢复通过 `pending` 将未完成 `queued`/`running` 运行标记为 `interrupted`（`INTERRUPTED`），保留原记录、CAS 版本号与操作幂等日志，`deploymentStatus` 始终保持 `not_published`；测试 fixture 见 `tests/fixtures/experiment-repository.ts`。
+- **信任与防刷边界**：`verifyPractice` 仅限宿主受信任路径，不暴露到公开 renderer stdio RPC；公开 `learning.recordEvent` 仅允许 `self_reported_complete`。复测排除已作答/未评分同题、XP 对同次复测与正常面试不叠加均由宿主协调器强校验，repository 不得绕过宿主直接写入完成核验或发布状态。

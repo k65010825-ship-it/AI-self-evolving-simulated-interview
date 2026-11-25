@@ -1,12 +1,12 @@
 import {test,expect} from 'bun:test';import {runIntegratedJourney,runAbstentionJourney} from '../experiments/local-runtime/integrated-journey.ts';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {Database} from 'bun:sqlite';
-for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: mixed journey retains early knowledge-gap finding rather than claiming complete experience`,async()=>{
+for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: mixed journey issues a third unseen question and reaches its valid turn budget`,async()=>{
  const result=await runIntegratedJourney(roleId);
- expect(result).toMatchObject({roleId,status:'completed-with-experience-findings',experienceStatus:'needs-improvement',askedQuestions:2,scoredAnswers:2,unscoredAnswers:0,
-  independentQuestions:1,hintReceipts:2,memoryObservations:2,recalledObservations:2,recalledIndependentQuestions:1,
+ expect(result).toMatchObject({roleId,status:'passed-offline-journey',experienceStatus:'passed',askedQuestions:8,scoredAnswers:8,unscoredAnswers:0,
+  independentQuestions:7,hintReceipts:2,memoryObservations:8,recalledObservations:8,recalledIndependentQuestions:7,
   speechAnswers:1,idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:false});
- expect(new Set(result.questions.map(q=>q.id)).size).toBe(2);expect(result.questions.every(q=>q.reviewStatus==='draft')).toBe(true);
- expect(result.finding).toMatchObject({code:'PLANNED_SKILL_DEPLETED_WITHOUT_FALLBACK',reason:'knowledge_gap'});expect(result.finding.remainingOtherSkillQuestions).toBeGreaterThan(0);
+ expect(new Set(result.questions.map(q=>q.id)).size).toBe(8);expect(result.questions.every(q=>q.reviewStatus==='draft')).toBe(true);
+ expect(result.findings).toEqual([]);expect(result.planningTermination).toBe('plan_finished');expect(result.closeoutReason).toBe('user_stop');
  expect(result.httpEvidence).toEqual({modelHttpAttempts:0,speechHttpAttempts:0,instances:3,deniedNetworkAttempts:0});
 },30000);
 for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: separate fresh-profile abstention closes with null score and no fabricated memory`,async()=>{

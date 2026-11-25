@@ -3,7 +3,10 @@ import {runIntegratedJourney,runAbstentionJourney} from '../experiments/local-ru
 import {acceptLocalAgent} from './accept-local-agent.ts';import {acceptLocalSpeechAgent} from './accept-local-speech-agent.ts';
 import {collectDeliverySources} from '../evals/delivery/sources.ts';import {canonical,contentHash} from '../evals/answers/validation.ts';
 const recoveryFiles=['tests/local-recovery-boundaries.test.ts','tests/local-reconciliation-atomic.test.ts','tests/local-live-host-recovery.test.ts','tests/local-process-lifecycle.test.ts','tests/local-process-integration.test.ts','tests/local-clarification-continuity.test.ts'];
-/** Offline evidence only; exit 2 means completed with experience findings, not a passed product acceptance. */
+/** Offline evidence only; exit 0 never denotes real-user or production-repository acceptance. */
+export function localJourneyExitCode(result:{mechanismStatus:string;experienceStatus:string}){
+ return result.mechanismStatus!=='passed'?1:result.experienceStatus==='passed'?0:2;
+}
 export async function acceptLocalJourney(){
  const root=process.cwd(),sourceManifest=await collectDeliverySources(root);await mkdir('.cache/journey-acceptance',{recursive:true});const output=await mkdtemp(resolve('.cache/journey-acceptance/run-'));
  const lanes:{id:string;status:'passed'|'failed';evidence?:unknown;errorCode?:string;evidencePath?:string}[]=[];
@@ -24,19 +27,19 @@ export async function acceptLocalJourney(){
   return{status:'passed',passed,failed,files:recoveryFiles,logDigest:contentHash(log),liveModelCalls:0};
  });
  const sourceStable=canonical(sourceManifest)===canonical(await collectDeliverySources(root));
- const findings=integrated.map(c=>({roleId:c.roleId,...c.finding}));
+ const findings=integrated.flatMap(c=>c.findings.map(f=>({roleId:c.roleId,...f})));
  const mechanismStatus=sourceStable&&lanes.every(l=>l.status==='passed')?'passed':'failed';
- const experienceStatus=findings.length?'needs-improvement':'not-evaluated';
- const body={schemaVersion:1,status:mechanismStatus==='failed'?'failed':'needs-improvement',mechanismStatus,experienceStatus,
+ const experienceStatus=findings.length?'needs-improvement':integrated.length===2&&integrated.every(c=>c.experienceStatus==='passed')?'passed':'not-evaluated';
+ const body={schemaVersion:1,status:mechanismStatus==='failed'?'failed':experienceStatus==='passed'?'passed-offline-journey':'needs-improvement',mechanismStatus,experienceStatus,
   evidenceMode:'offline-synthetic',sourceStable,sourceManifest,lanes,findings,
   liveModelCalls:0,liveAsrCalls:0,liveTtsCalls:0,realUserAcceptance:false,humanReferenceCount:0,qualityClaimEligible:false,
   desktopVerified:false,microphoneVerified:false,speakerVerified:false,productionHintRepositoryVerified:false,
   limitations:['Mixed host lane uses a disposable SQLite hint fixture; it is not the production repository.',
    'Packaged production text and injected-test-only speech are separate evidence lanes, not one deployed desktop.',
-   'Skill depletion causes early close despite other unasked development content. Experience acceptance has not passed.',
+   'Experience checks cover bounded synthetic progression through the turn budget, not real interview quality or elapsed-duration adequacy.',
    'All answers/audio and supplier HTTP are synthetic; no human grading, real speech quality or historical intermittent root cause claim.']};
  const reportPath=join(output,'report.json');await writeFile(reportPath,JSON.stringify({...body,digest:contentHash(body)},null,2)+'\n',{flag:'wx'});
- await writeFile(join(output,'review.md'),`# 双岗会话与恢复验收\n\n机制：${mechanismStatus}；体验：${experienceStatus}。\n\n${lanes.map(l=>'- '+l.id+': '+l.status+(l.evidencePath?'；材料 '+l.evidencePath:'')).join('\n')}\n\n## 未通过的体验项\n\n${findings.map(f=>'- '+f.roleId+': '+f.code+'；当前技能 '+f.plannedSkillId+'；其他技能未见草案题 '+f.remainingOtherSkillQuestions+'；剩余 '+f.remainingSeconds+' 秒。').join('\n')}\n\n正式提示repository、真人质量、麦克风/扬声器、桌面与非开发机安装未验收。报告及recovery.log保留，不能把机制回归通过当体验全部通过。\n`,{flag:'wx'});
- return{output,reportPath,status:body.status,mechanismStatus,lanes:lanes.length,findings:findings.length,liveModelCalls:0};
+ await writeFile(join(output,'review.md'),`# 双岗会话与恢复验收\n\n机制：${mechanismStatus}；合成体验：${experienceStatus}。\n\n${lanes.map(l=>'- '+l.id+': '+l.status+(l.evidencePath?'；材料 '+l.evidencePath:'')).join('\n')}\n\n## 未通过的体验项\n\n${findings.map(f=>'- '+f.roleId+': '+f.code).join('\n')||'本次已执行的合成体验检查无发现；不代表真人质量通过。'}\n\n正式提示repository、真人质量、麦克风/扬声器、桌面与非开发机安装未验收。报告及recovery.log保留。\n`,{flag:'wx'});
+ return{output,reportPath,status:body.status,mechanismStatus,experienceStatus,lanes:lanes.length,findings:findings.length,liveModelCalls:0};
 }
-if(import.meta.main){const result=await acceptLocalJourney();console.log(JSON.stringify(result));process.exitCode=result.mechanismStatus==='failed'?1:2;}
+if(import.meta.main){const result=await acceptLocalJourney();console.log(JSON.stringify(result));process.exitCode=localJourneyExitCode(result);}

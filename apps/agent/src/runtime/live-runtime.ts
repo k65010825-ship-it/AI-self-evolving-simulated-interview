@@ -57,7 +57,7 @@ export function createLiveRunManager(raw:unknown,deps:LiveModelDependencies){
      timeoutMs:Math.min(8000,l.timeoutMs),maxInputCharacters:Math.min(40000,l.maxInputCharacters)})(request,signal);}
     catch(e){if(blocked())throw new AgentStateError('DEPENDENCY_UNAVAILABLE');throw e;}
    }}:{}),
-   ...(c.planning==='pi-knowledge'?{plan:async(input,signal)=>{const b=await prepare();return createPiQuestionPlanner({cwd:deps.assetsRoot??process.cwd(),modelRuntime:b.runtime,model:b.model,
+    ...(c.planning==='pi-knowledge'?{plan:async(input,signal)=>{const b=await prepare();return createPiQuestionPlanner({cwd:deps.assetsRoot??process.cwd(),modelRuntime:b.runtime,model:b.model,knowledgeMode:input.catalogPin?.mode??'seed',
      timeoutMs:Math.min(30000,c.profile.limits.timeoutMs)})(input,signal);}}:{})};
  }},{maxRuns:c.authorization.maxRuns,maxActiveRuns:Math.min(c.authorization.maxRuns,4),timeoutMs:c.profile.limits.timeoutMs});
  return{...manager,modelAccounting:()=>gates.map(g=>g.snapshot()),evaluationDiagnostics:()=>structuredClone([...outputDiagnostics].map(([runId,events])=>({runId,events}))),
