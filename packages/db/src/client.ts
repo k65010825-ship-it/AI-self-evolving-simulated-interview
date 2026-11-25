@@ -17,7 +17,7 @@ export interface DatabaseOptions {
 }
 
 /**
- * Opens a PostgreSQL connection pool. Only the business API owns this handle;
+ * Opens a PostgreSQL connection pool. Only the management API or explicit operator migrations own this handle;
  * renderer and Agent code must not import it.
  */
 export function createDatabase(options: DatabaseOptions = {}): DatabaseHandle {
