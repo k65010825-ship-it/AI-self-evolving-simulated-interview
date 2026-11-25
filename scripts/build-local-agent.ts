@@ -11,7 +11,7 @@ export async function buildLocalAgent(){
  const files=[];for(const name of ['runtime.js','bun.exe'])files.push({name,sha256:createHash('sha256').update(Buffer.from(await Bun.file(join(output,name)).arrayBuffer())).digest('hex')});
  const ws=loadKnowledgeWorkspace(),curated=buildKnowledgeCatalog(ws,{mode:'draft-preview'});
  const workspaceDigest=createHash('sha256').update(JSON.stringify({items:ws.items,sources:ws.sources,dossiers:ws.dossiers,reviews:ws.reviews})).digest('hex');
-  await writeFile(join(output,'assets','manifest.json'),JSON.stringify({version:1,mode:'local-runtime',defaultSessionMode:'offline-fixture',protocolVersion:1,profileSchemaVersion:3,knowledge:'embedded-pinned-development-catalog',knowledgeCatalog:{version:'catalog-v1',roleCatalogVersion:ROLE_CATALOG_VERSION,workspaceDigest,counts:curated.summary},files},null,2)+'\n',{flag:'wx'});
+  await writeFile(join(output,'assets','manifest.json'),JSON.stringify({version:1,mode:'local-runtime',defaultSessionMode:'offline-fixture',protocolVersion:1,profileSchemaVersion:4,knowledge:'embedded-pinned-development-catalog',knowledgeCatalog:{version:'catalog-v1',roleCatalogVersion:ROLE_CATALOG_VERSION,workspaceDigest,counts:curated.summary},files},null,2)+'\n',{flag:'wx'});
  return{output,executable:join(output,'bun.exe'),entry:join(output,'runtime.js'),assetsRoot:join(output,'assets')};
 }
 if(import.meta.main){try{console.log(JSON.stringify(await buildLocalAgent()));}catch{console.error('LOCAL_BUILD_FAILED');process.exitCode=1;}}

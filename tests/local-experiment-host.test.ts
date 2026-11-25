@@ -10,8 +10,8 @@ import {spawnLocalAgent} from '../packages/local-agent-client/src/index.ts';
 import {LOCAL_EXPERIMENTS_CAPABILITY} from '../packages/contracts/src/local-experiment.ts';
 import {Database} from 'bun:sqlite';
 
-test('default local host disables experiments with EXPERIMENT_STORAGE_UNAVAILABLE and not_published',async()=>{
- const data=await mkdtemp(join(tmpdir(),'exp-unavail-')),host=await createLocalHost({dataDir:data,assetsRoot:process.cwd()});
+test('explicit null experiments repo disables experiments with EXPERIMENT_STORAGE_UNAVAILABLE and not_published',async()=>{
+ const data=await mkdtemp(join(tmpdir(),'exp-unavail-')),host=await createLocalHost({dataDir:data,assetsRoot:process.cwd(),experiments:null});
  try{
   expect(host.experimentStatus({roleId:'java-backend'})).toEqual({available:false,reason:'EXPERIMENT_STORAGE_UNAVAILABLE',deploymentStatus:'not_published',experiments:[]});
   await expect(host.evaluateExperiment({operationId:'e1',experimentId:'exp1',roleId:'java-backend',sourceSessionId:'s1',nextSessionId:'next1'})).rejects.toThrow('EXPERIMENT_STORAGE_UNAVAILABLE');
@@ -113,13 +113,13 @@ test('experiment host evaluates offline candidate, supports rollback, atomic fau
  }finally{await host.close();await rm(data,{recursive:true,force:true});}
 });
 
-test('stdio runtime without injected experiments repo reports unavailable and does not advertise local-experiments-v1',async()=>{
+test('stdio runtime enables default formal experiments repo and advertises local-experiments-v1',async()=>{
  const data=await mkdtemp(join(tmpdir(),'exp-stdio-'));
  const client=await spawnLocalAgent({executable:process.execPath,entry:resolve('apps/agent/src/local/index.ts'),dataDir:data,assetsRoot:process.cwd(),cwd:tmpdir()});
  try{
   const init=await client.request('runtime.initialize',{}) as {capabilities:string[]};
-  expect(init.capabilities).not.toContain(LOCAL_EXPERIMENTS_CAPABILITY);
+  expect(init.capabilities).toContain(LOCAL_EXPERIMENTS_CAPABILITY);
   const st=await client.getExperimentStatus('java-backend');
-  expect(st).toEqual({available:false,reason:'EXPERIMENT_STORAGE_UNAVAILABLE',deploymentStatus:'not_published',experiments:[]});
+  expect(st).toEqual({available:true,reason:null,deploymentStatus:'not_published',experiments:[]});
  }finally{await client.close();await rm(data,{recursive:true,force:true});}
 });

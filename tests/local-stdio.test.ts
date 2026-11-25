@@ -7,8 +7,8 @@ test('stdio child works from another cwd, returns only versioned frames and rest
  try{const ready=await client.request('runtime.initialize',{});expect(ready).toMatchObject({protocolVersion:1,mode:'local-runtime'});
   const c=await client.request('session.create',{operationId:'stdio-create',roleId:'java-backend',goal:'本机练习',durationMinutes:20}) as {jobId:string;sessionId:string};
   await client.waitForJob(c.jobId);expect(await client.request('session.get',{sessionId:c.sessionId})).toMatchObject({revision:0});
-  expect(await client.request('hint.status',{sessionId:c.sessionId})).toMatchObject({available:false,reason:'HINT_STORAGE_UNAVAILABLE'});
-  let hintError='';try{await client.request('hint.request',{operationId:'hint',sessionId:c.sessionId,issueId:'a'.repeat(64),expectedRevision:0});}catch(e){hintError=(e as Error).message;}expect(hintError).toBe('HINT_STORAGE_UNAVAILABLE');
+  expect(await client.request('hint.status',{sessionId:c.sessionId})).toMatchObject({available:false,reason:'NO_CURRENT_QUESTION'});
+  let hintError='';try{await client.request('hint.request',{operationId:'hint',sessionId:c.sessionId,issueId:'a'.repeat(64),expectedRevision:0});}catch(e){hintError=(e as Error).message;}expect(hintError).toBe('HINT_ISSUE_MISMATCH');
   const events=await client.request('job.events',{jobId:c.jobId,afterSeq:0}) as unknown[];expect(events.length).toBeGreaterThan(1);
   let rejected='';try{await client.request('session.create',{operationId:'bad',userId:'forged'});}catch(e){rejected=(e as Error).message;}expect(rejected).toBe('VALIDATION_ERROR');
   await client.close();client=await spawnLocalAgent({executable:process.execPath,entry,dataDir:data,assetsRoot,cwd:tmpdir()});await client.request('runtime.initialize',{});

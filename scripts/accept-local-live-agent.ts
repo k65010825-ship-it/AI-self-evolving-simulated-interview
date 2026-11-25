@@ -17,7 +17,7 @@ export async function buildInjectedLocalLiveAgent(){
  const result=await Bun.build({entrypoints:[resolve('experiments/local-runtime/live-fixture.ts')],outdir:output,target:'bun',format:'esm',naming:'injected-runtime.js',minify:false});requireCheck(result.success,'LOCAL_INJECTED_BUILD_FAILED');
  const executable=join(output,'bun.exe'),entry=join(output,'injected-runtime.js');await copyFile(resolve('node_modules/@oven/bun-windows-x64/bin/bun.exe'),executable);
  const files=[];for(const name of ['injected-runtime.js','bun.exe'])files.push({name,sha256:createHash('sha256').update(await readFile(join(output,name))).digest('hex')});
- const manifest={version:1,purpose:'injected-test-only',distribution:'non-production',productionEligible:false,protocolVersion:1,profileSchemaVersion:3,bunVersion:Bun.version,syntheticCredentialFixture:true,realNetworkDisabled:true,knowledge:'embedded-versioned-development-seed',files};
+ const manifest={version:1,purpose:'injected-test-only',distribution:'non-production',productionEligible:false,protocolVersion:1,profileSchemaVersion:4,bunVersion:Bun.version,syntheticCredentialFixture:true,realNetworkDisabled:true,knowledge:'embedded-versioned-development-seed',files};
  await writeFile(join(assetsRoot,'manifest.json'),JSON.stringify({...manifest,digest:contentHash(manifest)},null,2)+'\n',{flag:'wx'});
  return{output,entry,executable,assetsRoot,manifest};
 }

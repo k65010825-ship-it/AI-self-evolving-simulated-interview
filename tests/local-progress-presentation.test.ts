@@ -3,7 +3,6 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createLocalHost} from '../apps/agent/src/local/host.ts';
-import {createSqliteHintFixture} from './fixtures/hint-repository.ts';
 import {buildProfileView,buildPracticeRecommendationsView,buildReflectionListView} from '../apps/agent/src/local/progress-presentation.ts';
 import {createMemory} from '../apps/agent/src/memory/session-memory.ts';
 import {WorkflowSchema} from '../packages/contracts/src/session-workflow.ts';
@@ -31,8 +30,8 @@ test('empty profile views stay honest with 6 main skills, unavailable learning s
 });
 
 test('profile, recommendations, and reflections isolate assisted answers, enforce version conflicts, and never trigger writes or model calls',async()=>{
- const data=await mkdtemp(join(tmpdir(),'progress-views-')),hints=createSqliteHintFixture();
- const host=await createLocalHost({dataDir:data,assetsRoot:process.cwd(),hints:hints.repository});
+ const data=await mkdtemp(join(tmpdir(),'progress-views-'));
+ const host=await createLocalHost({dataDir:data,assetsRoot:process.cwd()});
  const run=async(m:Parameters<typeof host.command>[0],p:unknown)=>{const r=host.command(m,p);await host.wait(r.jobId);expect(host.job(r.jobId).status).toBe('completed');return r;};
  try{
   const s1=await run('session.create',{operationId:'c1',roleId:'java-backend',goal:'g1',durationMinutes:20});
@@ -54,7 +53,7 @@ test('profile, recommendations, and reflections isolate assisted answers, enforc
   expect(()=>host.profileView({roleId:'java-backend',expectedMemoryVersion:99})).toThrow('VERSION_CONFLICT');
 
   const rec=await host.practiceRecommendations({roleId:'java-backend',maxGoals:4});
-  expect(rec.learningProgressAvailable).toBe(false);
+  expect(rec.learningProgressAvailable).toBe(true);
   expect(rec.goals).toHaveLength(4);
   expect(JSON.stringify(rec)).not.toContain('anchors');
   expect(()=>WorkflowSchema.parse(rec)).toThrow();

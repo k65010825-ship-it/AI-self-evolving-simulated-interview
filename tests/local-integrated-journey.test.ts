@@ -4,7 +4,7 @@ for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: mi
  const result=await runIntegratedJourney(roleId);
  expect(result).toMatchObject({roleId,status:'passed-offline-journey',experienceStatus:'passed',askedQuestions:8,scoredAnswers:8,unscoredAnswers:0,
   independentQuestions:7,hintReceipts:2,memoryObservations:8,recalledObservations:8,recalledIndependentQuestions:7,
-  speechAnswers:1,idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:false});
+  speechAnswers:1,idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:true});
  expect(new Set(result.questions.map(q=>q.id)).size).toBe(8);expect(result.questions.every(q=>q.reviewStatus==='draft')).toBe(true);
  expect(result.findings).toEqual([]);expect(result.planningTermination).toBe('plan_finished');expect(result.closeoutReason).toBe('user_stop');
  expect(result.httpEvidence).toEqual({modelHttpAttempts:0,speechHttpAttempts:0,instances:3,deniedNetworkAttempts:0});

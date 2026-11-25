@@ -1,0 +1,23 @@
+{
+  "name": "@interview/local-db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/schema.ts",
+    "./schema": "./src/schema.ts",
+    "./profile": "./src/profile/upgrade.ts",
+    "./profile/schema": "./src/profile/v4-schema.ts",
+    "./repositories": "./src/repositories/index.ts"
+  },
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:check": "drizzle-kit check"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.11"
+  }
+}

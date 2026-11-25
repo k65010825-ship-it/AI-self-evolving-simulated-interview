@@ -1,5 +1,6 @@
 import {Database} from 'bun:sqlite';
 import {migrateLocalProfile} from './migration.ts';
+import {PROFILE_SCHEMA_VERSION,PROFILE_V4_TABLES,upgradeProfileV3ToV4} from '../../../../packages/local-db/src/profile/upgrade.ts';
 import {randomUUID} from 'node:crypto';
 import {existsSync,lstatSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {dirname,isAbsolute,join,relative,resolve} from 'node:path';
@@ -21,7 +22,7 @@ export function openLocalProfile(options:{dataDir:string;assetsRoot:string;now?:
  const time=()=>{const t=clock();if(!Number.isSafeInteger(t)||t<0)fail('LOCAL_CLOCK_INVALID');return t;};
  try{
   const version=(db.query('PRAGMA user_version').get() as {user_version:number}).user_version;
-  if(version>3||version<0)fail('LOCAL_SCHEMA_UNSUPPORTED');
+  if(version>PROFILE_SCHEMA_VERSION||version<0)fail('LOCAL_SCHEMA_UNSUPPORTED');
   if(version===0&&(db.query("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get()as {n:number}).n)fail('LOCAL_SCHEMA_UNSUPPORTED');
   db.exec('PRAGMA busy_timeout=1000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;');
   db.transaction(()=>{if(version===0)db.exec(`
@@ -41,6 +42,8 @@ export function openLocalProfile(options:{dataDir:string;assetsRoot:string;now?:
    else writeFileSync(manifest,JSON.stringify({version:1,profileId})+'\n',{flag:'wx'});
    db.query('INSERT INTO local_control VALUES(1,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,fence=excluded.fence,lease_until=excluded.lease_until,last_time=excluded.last_time').run(owner,fence,at+leaseMs,profileId,at);
    if(version<3)migrateLocalProfile(db,paths.profile,profileId,version);
+   if(version<PROFILE_SCHEMA_VERSION)upgradeProfileV3ToV4(db,{profileDir:paths.profile,profileId,owner,fence,now:at,backup:version===3});
+   else{const tables=new Set((db.query("SELECT name FROM sqlite_master WHERE type='table'").all()as {name:string}[]).map(r=>r.name));if(PROFILE_V4_TABLES.some(t=>!tables.has(t)))fail('LOCAL_SCHEMA_UNSUPPORTED');}
    db.query("UPDATE local_budget SET status='unknown' WHERE status='dispatched'").run();
    db.query("UPDATE local_budget SET status='released' WHERE status='reserved'").run();
   }).immediate();

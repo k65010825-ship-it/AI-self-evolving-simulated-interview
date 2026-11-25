@@ -26,12 +26,15 @@ import {createLocalLearningHost} from './learning-host.ts';
 import type {LearningRepository} from '../learning/repository-port.ts';
 import {createLocalExperimentHost} from './experiment-host.ts';
 import type {ExperimentRepository} from '../reflection/repository-port.ts';
+import {createExperimentRepository,createHintRepository,createLearningRepository} from '../../../../packages/local-db/src/repositories/index.ts';
+import type {LocalLearningRecord} from '../../../../packages/contracts/src/local-learning.ts';
+import type {LocalExperimentRecord} from '../../../../packages/contracts/src/local-experiment.ts';
 import {roleSkillConfigs,roleSkillDefinitions,roleSkillLabels} from '../../../../packages/contracts/src/role-catalog.ts';
 type Job={job_id:string;operation_id:string;session_id:string;role_id:RoleId;digest:string;request:string;ticket:string;status:string;snapshot:string|null;receipt:string|null;error_code:string|null;created_at:number};
 type Session={session_id:string;role_id:RoleId;storage_version:number;workflow:string|null;created_at:number;deadline_at:number};
 function fail(code:string):never{throw new LocalError(code);}
 function safeCode(error:unknown){const c=(error as {code?:unknown}|null)?.code;return typeof c==='string'&&/^[A-Z_]{1,80}$/.test(c)?c:'DEPENDENCY_UNAVAILABLE';}
-type LocalHostOptions={hints?:HintRepository;learning?:LearningRepository;experiments?:ExperimentRepository;dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void};
+type LocalHostOptions={hints?:HintRepository|null;learning?:LearningRepository|null;experiments?:ExperimentRepository|null;dataDir:string;assetsRoot:string;now?:()=>number;leaseMs?:number;resolveCredential?:(binding:LocalCredentialBinding,options:{signal:AbortSignal})=>Promise<string>;liveFetch?:LiveFetch;speechFetch?:LocalSpeechDependencies['fetch'];onSpeechGrant?:(binding:LocalCredentialBinding,previous?:string)=>void;onGrant?:(grant:LocalLiveGrant,previousGrantId?:string)=>void;onRevoke?:(grantId:string)=>void};
 export async function createLocalHost(options:LocalHostOptions){
  const profile=openLocalProfile(options),cleanup=[()=>profile.close()];
  try{return initializeLocalHost(profile,options,cleanup);}
@@ -54,7 +57,10 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
  function terminate(id:string,status:'failed'|'cancelled'|'interrupted',code:string){let event:LocalEvent|undefined;
   profile.write(db=>{const j=row(db,id);if(!['queued','running'].includes(j.status))return;db.query('UPDATE local_jobs SET status=?,error_code=? WHERE job_id=?').run(status,code,id);event=eventIn(db,id,status,null);});if(event)notify(event);
  }
- const hints=createLocalHintHost({profile,...(options.hints?{repository:options.hints}:{}),now:clock,
+ const hintsRepo=options.hints===undefined?createHintRepository({now:clock}):options.hints??undefined;
+ const learningRepo=options.learning===undefined?createLearningRepository<LocalLearningRecord>({now:clock}):options.learning??undefined;
+ const experimentRepo=options.experiments===undefined?createExperimentRepository<LocalExperimentRecord>({now:clock}):options.experiments??undefined;
+ const hints=createLocalHintHost({profile,...(hintsRepo?{repository:hintsRepo}:{}),now:clock,
   session:(db,id)=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w!,deadlineAt:s.deadline_at};},
   commitAssistance:(db,w,assistance)=>{const s=sessionRow(db,w.state.sessionId);
    const next=WorkflowSchema.parse({...w,revision:w.revision+1,hintAssistance:[...(w.hintAssistance??[]).filter(h=>h.questionId!==w.current!.question.id),{questionId:w.current!.question.id,assistance}]});
@@ -72,12 +78,12 @@ function initializeLocalHost(profile:LocalProfile,options:LocalHostOptions,clean
    ||db.query("SELECT 1 FROM local_speech_tasks WHERE json_extract(body,'$.operationId')=?").get(operationId)
    ||hints.ownsOperation(db,operationId)||learningHost.ownsOperation(db,operationId)||experimentHost.ownsOperation(db,operationId))fail('VERSION_CONFLICT');
  };
- const learningHost=createLocalLearningHost({profile,...(options.learning?{repository:options.learning}:{}),now:clock,
+ const learningHost=createLocalLearningHost({profile,...(learningRepo?{repository:learningRepo}:{}),now:clock,
   session:(db,id)=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w!,deadlineAt:s.deadline_at};},
   completedWorkflows:(db,roleId)=>(db.query('SELECT workflow FROM local_sessions WHERE role_id=? AND workflow IS NOT NULL').all(roleId) as {workflow:string}[])
    .map(r=>WorkflowSchema.parse(JSON.parse(r.workflow))).filter(w=>w.phase==='completed'&&!!w.closeout),
   assertOperationFree});
- const experimentHost=createLocalExperimentHost({profile,...(options.experiments?{repository:options.experiments}:{}),now:clock,
+ const experimentHost=createLocalExperimentHost({profile,...(experimentRepo?{repository:experimentRepo}:{}),now:clock,
   session:(db,id)=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w!,deadlineAt:s.deadline_at};},
   assertOperationFree});
  const speech=createLocalSpeechHost({profile,now:clock,session:id=>profile.read(db=>{const s=sessionRow(db,id),w=workflow(s);if(!w)fail('VERSION_CONFLICT');return{workflow:w,deadlineAt:s.deadline_at,mode:live.budget(id)?'live':'offline-fixture'};}),submitAnswer:(input,source)=>command('session.answer',input,source),notify,interviewActive:()=>active.size,onIdle:drain,cancelAnswer:id=>{const a=active.get(id);if(a){a.cancelled=true;a.controller.abort();a.manager?.dispose();}const ix=queue.indexOf(id);if(ix>=0)queue.splice(ix,1);terminate(id,'cancelled','RUN_CANCELLED');if(!a){pending.get(id)?.resolve();pending.delete(id);}},...(options.resolveCredential?{resolveCredential:options.resolveCredential}:{}),...(options.onSpeechGrant?{onGrant:options.onSpeechGrant}:{}),...(options.onRevoke?{onRevoke:options.onRevoke}:{}),...(options.speechFetch?{fetch:options.speechFetch}:{})});

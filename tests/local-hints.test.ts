@@ -3,12 +3,12 @@ import {createLocalHost} from '../apps/agent/src/local/host.ts';
 import type {HintRepository} from '../apps/agent/src/hints/repository-port.ts';
 import {createSqliteHintFixture as fixture} from './fixtures/hint-repository.ts';
 import {Database} from 'bun:sqlite';import {reserveHint} from '../apps/agent/src/hints/limited-hints.ts';import type {HintJournal} from '../packages/contracts/src/hints.ts';
-async function setup(roleId:'java-backend'|'web-frontend',hints?:HintRepository){const dataDir=await mkdtemp(join(tmpdir(),'hint-host-'));const options={dataDir,assetsRoot:process.cwd(),...(hints?{hints}:{})};
+async function setup(roleId:'java-backend'|'web-frontend',hints?:HintRepository|null){const dataDir=await mkdtemp(join(tmpdir(),'hint-host-'));const options={dataDir,assetsRoot:process.cwd(),...(hints!==undefined?{hints}:{})};
  let host=await createLocalHost(options);const created=host.command('session.create',{operationId:'create',roleId,goal:'hint tests',durationMinutes:20});await host.wait(created.jobId);
  const q=host.command('session.nextQuestion',{operationId:'plan',sessionId:created.sessionId,expectedRevision:0});await host.wait(q.jobId);
  return{host,options,sessionId:created.sessionId,cleanup:()=>rm(dataDir,{recursive:true,force:true})};}
-test('default local host exposes unavailable status and cannot silently use volatile hint counters',async()=>{
- const f=await setup('java-backend');try{expect(f.host.hintStatus({sessionId:f.sessionId})).toMatchObject({available:false,reason:'HINT_STORAGE_UNAVAILABLE'});
+test('explicit null hint repository exposes unavailable status and cannot silently use volatile hint counters',async()=>{
+ const f=await setup('java-backend',null);try{expect(f.host.hintStatus({sessionId:f.sessionId})).toMatchObject({available:false,reason:'HINT_STORAGE_UNAVAILABLE'});
   expect(()=>f.host.hint({operationId:'h',sessionId:f.sessionId,issueId:'a'.repeat(64),expectedRevision:1})).toThrow('HINT_STORAGE_UNAVAILABLE');
  }finally{await f.host.close();await f.cleanup();}
 });
@@ -49,7 +49,7 @@ for(const roleId of ['java-backend','web-frontend'] as const)test(`${roleId}: in
 test('removing the optional repository after a committed hint cannot erase assistance on restart',async()=>{
  const port=fixture(),f=await setup('java-backend',port.repository);let host=f.host;
  try{const s=host.hintStatus({sessionId:f.sessionId});host.hint({operationId:'hint',sessionId:f.sessionId,issueId:s.issueId,expectedRevision:1});
-  await host.close();host=await createLocalHost({dataDir:f.options.dataDir,assetsRoot:f.options.assetsRoot});
+  await host.close();host=await createLocalHost({dataDir:f.options.dataDir,assetsRoot:f.options.assetsRoot,hints:null});
   expect(()=>host.speech('speech.tts.start',{operationId:'hint',sessionId:f.sessionId,expectedRevision:host.session(f.sessionId).revision})).toThrow('VERSION_CONFLICT');
   const task=host.command('session.answer',{operationId:'answer',sessionId:f.sessionId,expectedRevision:host.session(f.sessionId).revision,text:'我先明确前提与边界。'});await host.wait(task.jobId);
   expect(host.job(task.jobId).status).toBe('completed');expect(host.answerPage({sessionId:f.sessionId}).items[0]?.assistance).toMatchObject({kind:'hint-assisted',receiptIds:['hint']});

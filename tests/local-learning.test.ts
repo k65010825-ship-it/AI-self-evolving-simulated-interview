@@ -21,8 +21,8 @@ async function completeDualSkillSession(host:Awaited<ReturnType<typeof createLoc
  return{sessionId:c.sessionId,item:view.items[1]!};
 }
 
-test('default local host disables learning writes with LEARNING_STORAGE_UNAVAILABLE',async()=>{
- const data=await mkdtemp(join(tmpdir(),'learning-unavail-')),host=await createLocalHost({dataDir:data,assetsRoot:process.cwd()});
+test('explicit null learning repository disables writes with LEARNING_STORAGE_UNAVAILABLE',async()=>{
+ const data=await mkdtemp(join(tmpdir(),'learning-unavail-')),host=await createLocalHost({dataDir:data,assetsRoot:process.cwd(),learning:null});
  try{
   expect(host.learningStatus({roleId:'java-backend'})).toEqual({available:false,reason:'LEARNING_STORAGE_UNAVAILABLE',assignments:[],xp:null});
   await expect(host.createLearningAssignment({operationId:'op1',roleId:'java-backend',sourceSessionId:'s',sourceAnswerId:'a',skillId:'java-jvm',resourceIds:[],requiredExerciseIds:['ex1'],predictedTargetScore:0.8})).rejects.toThrow('LEARNING_STORAGE_UNAVAILABLE');
@@ -126,13 +126,13 @@ test('learning host enforces trust boundaries, retest exclusion, XP rules, CAS, 
  }finally{await host.close();await rm(data,{recursive:true,force:true});}
 });
 
-test('stdio runtime without injected learning repo reports unavailable and does not advertise local-learning-v1',async()=>{
+test('stdio runtime enables default formal learning repo and advertises local-learning-v1',async()=>{
  const data=await mkdtemp(join(tmpdir(),'learning-stdio-'));
  const client=await spawnLocalAgent({executable:process.execPath,entry:resolve('apps/agent/src/local/index.ts'),dataDir:data,assetsRoot:process.cwd(),cwd:tmpdir()});
  try{
   const init=await client.request('runtime.initialize',{}) as {capabilities:string[]};
-  expect(init.capabilities).not.toContain(LOCAL_LEARNING_CAPABILITY);
+  expect(init.capabilities).toContain(LOCAL_LEARNING_CAPABILITY);
   const st=await client.getLearningStatus('java-backend');
-  expect(st).toEqual({available:false,reason:'LEARNING_STORAGE_UNAVAILABLE',assignments:[],xp:null});
+  expect(st).toEqual({available:true,reason:null,assignments:[],xp:{totalXp:0,level:1,completedInterviews:0,verifiedLearnings:0,completedRetests:0}});
  }finally{await client.close();await rm(data,{recursive:true,force:true});}
 });

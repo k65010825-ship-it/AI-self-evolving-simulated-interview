@@ -9,6 +9,7 @@ import {
 import type {ExperimentRepository} from '../reflection/repository-port.ts';
 import {createExperimentRegistry,applyExperimentOperation} from '../reflection/experiment-registry.ts';
 import {evaluateWorkflowRsi} from '../reflection/evaluate-workflow-rsi.ts';
+import {LocalRepositoryError} from '../../../../packages/local-db/src/repositories/shared.ts';
 import {LocalError,type LocalProfile} from './profile-store.ts';
 
 function fail(code:string):never{throw new LocalError(code);}
@@ -35,7 +36,9 @@ export function createLocalExperimentHost(o:{
  });
 
  function replayOrReject(db:Database,operationId:string,digest:string){
-  const prior=requireRepo().findOperation(db,o.profile.profileId,operationId);
+  let prior;
+  try{prior=requireRepo().findOperation(db,o.profile.profileId,operationId);}
+  catch(e){if(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT')return fail('VERSION_CONFLICT');throw e;}
   if(!prior)return null;
   const op=prior.operations.find(x=>x.operationId===operationId);
   if(!op||op.digest!==digest)return fail('VERSION_CONFLICT');
@@ -44,7 +47,10 @@ export function createLocalExperimentHost(o:{
 
  return{
   available:!!repo,
-  ownsOperation:(db:Database,operationId:string)=>!!repo?.findOperation(db,o.profile.profileId,operationId),
+  ownsOperation:(db:Database,operationId:string)=>{
+   try{return!!repo?.findOperation(db,o.profile.profileId,operationId);}
+   catch(e){if(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT')return false;throw e;}
+  },
   status(raw:unknown):LocalExperimentStatus{
    const p=LocalExperimentStatusInputSchema.safeParse(raw);
    if(!p.success)return fail('VALIDATION_ERROR');

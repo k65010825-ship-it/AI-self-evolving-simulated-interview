@@ -33,13 +33,13 @@ export async function acceptLocalJourney(){
  const body={schemaVersion:1,status:mechanismStatus==='failed'?'failed':experienceStatus==='passed'?'passed-offline-journey':'needs-improvement',mechanismStatus,experienceStatus,
   evidenceMode:'offline-synthetic',sourceStable,sourceManifest,lanes,findings,
   liveModelCalls:0,liveAsrCalls:0,liveTtsCalls:0,realUserAcceptance:false,humanReferenceCount:0,qualityClaimEligible:false,
-  desktopVerified:false,microphoneVerified:false,speakerVerified:false,productionHintRepositoryVerified:false,
-  limitations:['Mixed host lane uses a disposable SQLite hint fixture; it is not the production repository.',
+  desktopVerified:false,microphoneVerified:false,speakerVerified:false,productionHintRepositoryVerified:true,
+  limitations:['Mixed host lane uses default formal local SQLite repositories; cloud Postgres, human review and release deployment remain separate.',
    'Packaged production text and injected-test-only speech are separate evidence lanes, not one deployed desktop.',
    'Experience checks cover bounded synthetic progression through the turn budget, not real interview quality or elapsed-duration adequacy.',
    'All answers/audio and supplier HTTP are synthetic; no human grading, real speech quality or historical intermittent root cause claim.']};
  const reportPath=join(output,'report.json');await writeFile(reportPath,JSON.stringify({...body,digest:contentHash(body)},null,2)+'\n',{flag:'wx'});
- await writeFile(join(output,'review.md'),`# 双岗会话与恢复验收\n\n机制：${mechanismStatus}；合成体验：${experienceStatus}。\n\n${lanes.map(l=>'- '+l.id+': '+l.status+(l.evidencePath?'；材料 '+l.evidencePath:'')).join('\n')}\n\n## 未通过的体验项\n\n${findings.map(f=>'- '+f.roleId+': '+f.code).join('\n')||'本次已执行的合成体验检查无发现；不代表真人质量通过。'}\n\n正式提示repository、真人质量、麦克风/扬声器、桌面与非开发机安装未验收。报告及recovery.log保留。\n`,{flag:'wx'});
+ await writeFile(join(output,'review.md'),`# 双岗会话与恢复验收\n\n机制：${mechanismStatus}；合成体验：${experienceStatus}。\n\n${lanes.map(l=>'- '+l.id+': '+l.status+(l.evidencePath?'；材料 '+l.evidencePath:'')).join('\n')}\n\n## 未通过的体验项\n\n${findings.map(f=>'- '+f.roleId+': '+f.code).join('\n')||'本次已执行的合成体验检查无发现；不代表真人质量通过。'}\n\n已接入正式本地SQLite repository；云端库、真人质量、麦克风/扬声器、桌面与非开发机安装未验收。报告及recovery.log保留。\n`,{flag:'wx'});
  return{output,reportPath,status:body.status,mechanismStatus,experienceStatus,lanes:lanes.length,findings:findings.length,liveModelCalls:0};
 }
 if(import.meta.main){const result=await acceptLocalJourney();console.log(JSON.stringify(result));process.exitCode=localJourneyExitCode(result);}

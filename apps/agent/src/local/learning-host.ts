@@ -15,6 +15,7 @@ import {createLearningProgress,recordLearningEvent,summarizeLearning} from '../l
 import {createPrediction,pairRetest} from '../learning/retest-pair.ts';
 import {planRetestQuestion} from '../learning/plan-retest.ts';
 import {resolvePinnedCatalog} from '../knowledge/catalog.ts';
+import {LocalRepositoryError} from '../../../../packages/local-db/src/repositories/shared.ts';
 import {LocalError,type LocalProfile} from './profile-store.ts';
 
 function fail(code:string):never{throw new LocalError(code);}
@@ -64,7 +65,9 @@ export function createLocalLearningHost(o:{
  const repo=o.repository;
  function requireRepo(){return repo??fail('LEARNING_STORAGE_UNAVAILABLE');}
  function replayOrReject(db:Database,operationId:string,digest:string){
-  const prior=requireRepo().findOperation(db,o.profile.profileId,operationId);
+  let prior;
+  try{prior=requireRepo().findOperation(db,o.profile.profileId,operationId);}
+  catch(e){if(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT')return fail('VERSION_CONFLICT');throw e;}
   if(!prior)return null;
   const op=prior.operations.find(x=>x.operationId===operationId);
   if(!op||op.digest!==digest)return fail('VERSION_CONFLICT');
@@ -81,10 +84,14 @@ export function createLocalLearningHost(o:{
 
  return{
   available:!!repo,
-  ownsOperation:(db:Database,operationId:string)=>!!repo?.findOperation(db,o.profile.profileId,operationId),
+  ownsOperation:(db:Database,operationId:string)=>{
+   try{return!!repo?.findOperation(db,o.profile.profileId,operationId);}
+   catch(e){if(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT')return false;throw e;}
+  },
   skillStatus:(db:Database,roleId:RoleId,skillId:string)=>{
    if(!repo)return 'unavailable' as const;
-   const records=repo.list(db,o.profile.profileId,roleId).filter(r=>r.progress.skillId===skillId);
+   const records=repo.list(db,o.profile.profileId,roleId).filter(r=>r.progress.skillId===skillId)
+    .sort((a,b)=>a.progress.updatedAt-b.progress.updatedAt||a.version-b.version||a.assignmentId.localeCompare(b.assignmentId));
    const latest=records.at(-1);
    if(!latest)return 'not_started' as const;
    return summarizeLearning(latest.progress,{userId:o.profile.profileId,roleId,assignmentId:latest.assignmentId}).status;

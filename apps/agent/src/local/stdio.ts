@@ -4,6 +4,8 @@ import {LOCAL_EXPERIMENTS_CAPABILITY} from '../../../../packages/contracts/src/l
 import {AgentStateError} from '../planning/interview-state.ts';
 import {z} from 'zod';import {LocalRequestSchema,LocalCommandSchemas,LocalNotificationSchema,type LocalCommand} from '../../../../packages/contracts/src/local-runtime.ts';
 import {RoleIdSchema} from '../../../../packages/contracts/src/tools.ts';import {createLocalHost} from './host.ts';import {LocalError} from './profile-store.ts';
+import {ProfileUpgradeError} from '../../../../packages/local-db/src/profile/upgrade.ts';
+import {LocalRepositoryError} from '../../../../packages/local-db/src/repositories/shared.ts';
 import {write as writeFd} from 'node:fs';
 import {createRuntimeCredentialBroker} from './credential-broker.ts';
 import {LOCAL_CREDENTIAL_CAPABILITY,LocalCredentialError} from '../../../../packages/contracts/src/local-credential.ts';
@@ -73,7 +75,7 @@ export async function serveLocalStdio(options:Parameters<typeof createLocalHost>
   }const request=p.data;
   const base={protocolVersion:1,type:'response',id:request.id};
   try{const result=await dispatch(request.method,request.params);enqueue({...base,ok:true,result});}
-  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError||e instanceof HintError||e instanceof AgentStateError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
+  catch(e){const code=e instanceof LocalError||e instanceof LocalCredentialError||e instanceof HintError||e instanceof AgentStateError||e instanceof LocalRepositoryError||e instanceof ProfileUpgradeError?e.code:e instanceof z.ZodError?'VALIDATION_ERROR':'DEPENDENCY_UNAVAILABLE';enqueue({...base,ok:false,error:{code}});}
  }
  const signal=()=>{void stop().then(()=>{process.stdin.destroy();},()=>{failed=true;process.stdin.destroy();});};
  process.once('SIGTERM',signal);process.once('SIGINT',signal);

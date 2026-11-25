@@ -30,7 +30,7 @@ test('stdio progress views expose profile, practice recommendations, and reflect
   const statusAfter=await client.request('runtime.status',{}) as {executionStarts:number;modelHttpAttempts:number};
   expect(statusAfter).toEqual(statusBefore);
   expect(profile.memoryVersion).toBe(1);
-  expect(rec.learningProgressAvailable).toBe(false);
+  expect(rec.learningProgressAvailable).toBe(true);
   expect(refl.deploymentStatus).toBe('not_published');
   expect(refl.items).toHaveLength(1);
 

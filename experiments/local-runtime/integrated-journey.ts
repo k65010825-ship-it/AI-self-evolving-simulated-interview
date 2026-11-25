@@ -1,10 +1,9 @@
 import {mkdtemp,rm,cp,writeFile,mkdir} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {createHash} from 'node:crypto';import {Database} from 'bun:sqlite';
 import {createLocalHost} from '../../apps/agent/src/local/host.ts';import {WorkflowSchema} from '../../packages/contracts/src/session-workflow.ts';
 import {estimateSkills} from '../../apps/agent/src/planning/interview-state.ts';import {makeSpeechFixture} from '../speech/fixture.ts';
-import {createSqliteHintFixture} from '../../tests/fixtures/hint-repository.ts';
 import asrConfig from '../../apps/agent/src/speech/qianwen-omni.example.json' with {type:'json'};
 import {AgentRunRequestSchema} from '../../packages/contracts/src/agent-run.ts';import {validateWorkflowTransition} from '../../packages/agent-client/src/commit-validation.ts';
-/** Acceptance-only. Synthetic answers/audio and disposable SQLite fixture; never a production repository. */
+/** Acceptance-only. Synthetic answers/audio with default formal local SQLite repositories. */
 function check(ok:unknown,code:string):asserts ok{if(!ok)throw Error(code);}
 const failureCode=(error:unknown)=>{const code=(error as Error)?.message;return typeof code==='string'&&/^[A-Z_]{1,100}$/.test(code)?code:'JOURNEY_FAILURE';};
 const speech={asrConfig,ttsConfig:{enabled:false,endpoint:'https://cn-beijing.maas.qianwenaiapi.com/api/v1/services/aigc/multimodal-generation/generation',model:'qwen3-tts-flash',voice:'Cherry',credentialEnv:'INTERVIEW_BAILIAN_ASR_API_KEY'},asrBudget:{maxCalls:6,maxAudioMs:120000,maxCostMicros:1000000,reserveCostMicrosPerCall:10000},ttsBudget:{maxCalls:6,maxCharacters:6000,maxCostMicros:1000000,reserveCostMicrosPerCall:10000},totalMaxCostMicros:2000000};
@@ -14,7 +13,7 @@ async function preserve(dataDir:string,dir:string|undefined){if(!dir)return;awai
 export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',evidence:JourneyOptions={}){
  if(evidence.evidenceDir)await mkdir(evidence.evidenceDir,{recursive:true});
  const guard=networkGuard(),totals={modelHttpAttempts:0,speechHttpAttempts:0,instances:0},accounted=new WeakSet<object>();
- const dataDir=await mkdtemp(join(tmpdir(),'integrated-journey-')),port=createSqliteHintFixture(),options={dataDir,assetsRoot:process.cwd(),hints:port.repository,liveFetch:guard.deny,speechFetch:guard.deny};let host=await createLocalHost(options);
+ const dataDir=await mkdtemp(join(tmpdir(),'integrated-journey-')),options={dataDir,assetsRoot:process.cwd(),liveFetch:guard.deny,speechFetch:guard.deny};let host=await createLocalHost(options);
  const close=async()=>{if(accounted.has(host))return;accounted.add(host);const s=host.status();totals.modelHttpAttempts+=s.modelHttpAttempts;totals.speechHttpAttempts+=s.speechHttpAttempts;totals.instances++;await host.close();};
  const workflow=(id:string)=>{const db=new Database(join(dataDir,'agent','profiles','default','profile.sqlite'),{readonly:true});try{const row=db.query('SELECT workflow FROM local_sessions WHERE session_id=?').get(id) as {workflow:string};return WorkflowSchema.parse(JSON.parse(row.workflow));}finally{db.close();}};
  const run=async(method:Parameters<typeof host.command>[0],params:unknown)=>{const task=host.command(method,params);await host.wait(task.jobId);const job=host.job(task.jobId);check(job.status==='completed','JOURNEY_'+method.toUpperCase().replace(/\./g,'_')+'_'+(job.errorCode??job.status));return task;};
@@ -82,7 +81,7 @@ export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',
    findings:[] as {code:string}[],planningTermination:stopped.pendingReason,closeoutReason:closed.closeout!.reason,
    askedQuestions:closed.askedQuestionIds.length,scoredAnswers:report.assessments.length,unscoredAnswers:report.unscoredAnswers?.length??0,independentQuestions:report.coverage.independentQuestions,
    hintReceipts:2,memoryObservations:scored,recalledObservations:nextWorkflow.state.priorEvidence.length,recalledIndependentQuestions:independent,speechAnswers:1,
-   idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:false,
+   idempotencyPreserved:true,eventReplayPreserved:true,liveModelCalls:0,liveAsrCalls:0,productionRepositoryVerified:true,
    questions:closed.issuedQuestions.map(q=>({id:q.questionId,rubricId:q.content!.rubric.id,rubricVersion:q.content!.rubric.version,
     criteria:q.content!.rubric.criteria.map(c=>c.id),sourceVersion:q.content!.source.version,reviewStatus:q.content!.source.reviewStatus})),
    httpEvidence:{modelHttpAttempts:totals.modelHttpAttempts+final.modelHttpAttempts,speechHttpAttempts:totals.speechHttpAttempts+final.speechHttpAttempts,instances:totals.instances+1,deniedNetworkAttempts:guard.attempts},
@@ -93,7 +92,7 @@ export async function runIntegratedJourney(roleId:'java-backend'|'web-frontend',
 /** Separate provider branch/profile intentionally verifies abstention without fabricating a score. */
 export async function runAbstentionJourney(roleId:'java-backend'|'web-frontend',evidence:JourneyOptions={}){
  if(evidence.evidenceDir)await mkdir(evidence.evidenceDir,{recursive:true});const guard=networkGuard();
- const dataDir=await mkdtemp(join(tmpdir(),'abstention-journey-')),host=await createLocalHost({dataDir,assetsRoot:process.cwd(),hints:createSqliteHintFixture().repository,liveFetch:guard.deny,speechFetch:guard.deny});
+ const dataDir=await mkdtemp(join(tmpdir(),'abstention-journey-')),host=await createLocalHost({dataDir,assetsRoot:process.cwd(),liveFetch:guard.deny,speechFetch:guard.deny});
  const run=async(method:Parameters<typeof host.command>[0],params:unknown)=>{const task=host.command(method,params);await host.wait(task.jobId);check(host.job(task.jobId).status==='completed','ABSTENTION_JOB_FAILED');return task;};
  try{const c=await run('session.create',{operationId:'create',roleId,goal:'独立合成弃评场景',durationMinutes:20});const sessionId=c.sessionId,revision=()=>host.session(sessionId).revision;
   await run('session.nextQuestion',{operationId:'plan',sessionId,expectedRevision:revision()});

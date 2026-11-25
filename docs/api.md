@@ -18,10 +18,10 @@
 | 学生页面 | 当前可用入口（feature/agent） | 尚待补充 / 团队协同项 |
 | --- | --- | --- |
 | 关卡 | roles.list（六主技能＋独立collaboration，诚实draftCount）、session.create（含practiceMode与maxTurns=8） | 正式人工审核题库分发、桌面UI接线 |
-| 试炼 | session.get/answers（澄清、弃评、逐轮反馈）、hint.status/hint.request（limited-hints-v1）及原命令/任务/语音 | 数据库负责人提供正式 HintRepository；真实语音设备与桌面接线 |
+| 试炼 | session.get/answers（澄清、弃评、逐轮反馈）、hint.status/hint.request（limited-hints-v1，默认已接入 `@interview/local-db` 本地持久仓储）及原命令/任务/语音 | 真实语音设备与桌面UI接线 |
 | 战报 | session.report分页、session.get首屏，含有界原文证据、逐题分维评分、辅助作答标记和发布状态 | 跨量规统一汇总仍有意不提供 |
-| 修炼 | learning.status/assignment.create/event.record/retest.plan/retest.pair（local-learning-v1） | 数据库负责人提供正式 LearningRepository；verifyPractice 仅限宿主受信任路径；桌面UI |
-| 进化/面板 | profile.get、practice.recommendations、reflection.list（local-progress-views-v1）及 experiment.status/evaluate/rollback（local-experiments-v1） | 数据库负责人提供正式 ExperimentRepository；策略保持 not_published；桌面UI |
+| 修炼 | learning.status/assignment.create/event.record/retest.plan/retest.pair（local-learning-v1，默认已接入 `@interview/local-db`） | verifyPractice 仅限宿主受信任路径；云端同步与桌面UI |
+| 进化/面板 | profile.get、practice.recommendations、reflection.list（local-progress-views-v1）及 experiment.status/evaluate/rollback（local-experiments-v1，默认已接入 `@interview/local-db`） | 策略保持 not_published；云端管理台与桌面UI |
 
 不能按原型假数据推断字段已开放。新增方法先确定输入/结果、状态、权限、幂等和错误，再改 contracts 和实现；renderer 不接收内部 workflow、rubric、来源全文或任意文件路径。
 

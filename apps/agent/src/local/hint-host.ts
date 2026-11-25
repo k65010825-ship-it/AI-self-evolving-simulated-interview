@@ -3,6 +3,7 @@ import {HintRequestSchema,HintStatusInputSchema,HintReceiptSchema,type HintBindi
 import type {InterviewWorkflow} from '../../../../packages/contracts/src/session-workflow.ts';
 import type {HintRepository} from '../hints/repository-port.ts';
 import {createHintJournal,reserveHint,commitHint,releaseHint,recoverHints,restoreHintJournal,hintAssistance,renderHint} from '../hints/limited-hints.ts';
+import {LocalRepositoryError} from '../../../../packages/local-db/src/repositories/shared.ts';
 import {LocalError,type LocalProfile} from './profile-store.ts';
 const fail=(code:string):never=>{throw new LocalError(code);};
 type Session={workflow:InterviewWorkflow;deadlineAt:number};
@@ -33,7 +34,7 @@ export function createLocalHintHost(o:{profile:LocalProfile;repository?:HintRepo
  });
  return{
   available:!!repo,
-  ownsOperation:(db:Database,id:string)=>!!repo?.findOperation(db,o.profile.profileId,id)||!!db.query("SELECT 1 FROM local_sessions s,json_each(s.workflow,'$.hintAssistance') h,json_each(h.value,'$.assistance.receiptIds') r WHERE r.value=? LIMIT 1").get(id),
+  ownsOperation:(db:Database,id:string)=>{let owned=false;try{owned=!!repo?.findOperation(db,o.profile.profileId,id);}catch(e){if(!(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT'))throw e;}return owned||!!db.query("SELECT 1 FROM local_sessions s,json_each(s.workflow,'$.hintAssistance') h,json_each(h.value,'$.assistance.receiptIds') r WHERE r.value=? LIMIT 1").get(id);},
   assistanceIn(db:Database,w:InterviewWorkflow){const b=current(w);if(!b)return undefined;
    const durable=w.hintAssistance?.find(h=>h.questionId===b.questionId)?.assistance;
    if(durable&&durable.issueId!==b.issueId)fail('HINT_BINDING_MISMATCH');
@@ -50,7 +51,8 @@ export function createLocalHintHost(o:{profile:LocalProfile;repository?:HintRepo
   },
   request(raw:unknown){const p=HintRequestSchema.safeParse(raw);if(!p.success)return fail('VALIDATION_ERROR');if(!repo)return fail('HINT_STORAGE_UNAVAILABLE');const c=p.data;
    const reservation=o.profile.write(db=>{const {workflow:w,deadlineAt}=o.session(db,c.sessionId),q=w.issuedQuestions.find(q=>q.content&&binding(w,q).issueId===c.issueId);
-    if(!q)return fail('HINT_ISSUE_MISMATCH');const b=binding(w,q),s=load(db,b),known=repo.findOperation(db,o.profile.profileId,c.operationId);
+    if(!q)return fail('HINT_ISSUE_MISMATCH');const b=binding(w,q),s=load(db,b);
+    let known:HintBinding|null=null;try{known=repo.findOperation(db,o.profile.profileId,c.operationId);}catch(e){if(e instanceof LocalRepositoryError&&e.code==='OPERATION_CONFLICT')return fail('HINT_OPERATION_CONFLICT');throw e;}
     if(known&&known.issueId!==b.issueId)fail('HINT_OPERATION_CONFLICT');verifyProvenance(w,b,s);
     const prior=s?.entries.find(e=>e.operationId===c.operationId);if(prior?.status==='committed')return{receipt:receipt(s!,c.operationId)};
     // Replay precedes current revision/phase/budget checks; a committed receipt never regenerates.
