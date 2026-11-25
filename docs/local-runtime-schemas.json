@@ -128,7 +128,13 @@
                 "LOCAL_PATH_INVALID",
                 "LOCAL_CONFIG_INVALID",
                 "LOCAL_CLOCK_INVALID",
-                "LOCAL_DATA_INVALID"
+                "LOCAL_DATA_INVALID",
+                "LOCAL_PROFILE_INVALID",
+                "LOCAL_SCHEMA_CONFLICT",
+                "LOCAL_SCHEMA_MISSING",
+                "LOCAL_BACKUP_INVALID",
+                "LOCAL_UPGRADE_VERIFICATION_FAILED",
+                "PROFILE_BINDING_MISMATCH"
               ]
             },
             "exitCode": {
@@ -312,7 +318,13 @@
                   "LOCAL_PATH_INVALID",
                   "LOCAL_CONFIG_INVALID",
                   "LOCAL_CLOCK_INVALID",
-                  "LOCAL_DATA_INVALID"
+                  "LOCAL_DATA_INVALID",
+                  "LOCAL_PROFILE_INVALID",
+                  "LOCAL_SCHEMA_CONFLICT",
+                  "LOCAL_SCHEMA_MISSING",
+                  "LOCAL_BACKUP_INVALID",
+                  "LOCAL_UPGRADE_VERIFICATION_FAILED",
+                  "PROFILE_BINDING_MISMATCH"
                 ]
               },
               "exitCode": {
@@ -479,7 +491,13 @@
                   "LOCAL_PATH_INVALID",
                   "LOCAL_CONFIG_INVALID",
                   "LOCAL_CLOCK_INVALID",
-                  "LOCAL_DATA_INVALID"
+                  "LOCAL_DATA_INVALID",
+                  "LOCAL_PROFILE_INVALID",
+                  "LOCAL_SCHEMA_CONFLICT",
+                  "LOCAL_SCHEMA_MISSING",
+                  "LOCAL_BACKUP_INVALID",
+                  "LOCAL_UPGRADE_VERIFICATION_FAILED",
+                  "PROFILE_BINDING_MISMATCH"
                 ]
               },
               "exitCode": {

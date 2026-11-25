@@ -153,7 +153,7 @@ Agent提供 `HintBinding/HintJournal/HintAssistance` 契约及 `HintRepository` 
 
 ### 8.5 学习复测与离线实验 repository 契约
 
-Agent 侧已完成宿主写入协调器与只读端口定义，数据库负责人按与 8.4 同等的原子持久化契约在用户本机 SQLite 同一 profile 连接上提供正式实现，默认随包尚未接入时由宿主返回 `LEARNING_STORAGE_UNAVAILABLE` / `EXPERIMENT_STORAGE_UNAVAILABLE`（`available: false`）：
+Agent 侧已完成宿主写入协调器与只读端口定义，并已接入 `@interview/local-db` 的 `profile v3 -> v4` 备份升级（`packages/local-db/src/profile/upgrade.ts`）与三项正式本机 SQLite repository 实现（`packages/local-db/src/repositories/index.ts`）；仅当显式传入 `null` 禁用存储依赖时由宿主降级返回 `LEARNING_STORAGE_UNAVAILABLE` / `EXPERIMENT_STORAGE_UNAVAILABLE`（`available: false`）：
 
 - **LearningRepository（`apps/agent/src/learning/repository-port.ts`）**：`list(db, userId, roleId)`、`load(db, userId, assignmentId)`、`findOperation(db, userId, operationId)`、`save(db, userId, record, expectedVersion)`。保存时须以 `expectedVersion` 作 CAS，并在同一事务中提交记录与操作幂等回执（按 `operationId` 与请求摘要校验同内容重放/异内容 `VERSION_CONFLICT`）；测试 fixture 见 `tests/fixtures/learning-repository.ts`。
 - **ExperimentRepository（`apps/agent/src/reflection/repository-port.ts`）**：`list(db, userId, roleId)`、`load(db, userId, experimentId)`、`findOperation(db, userId, operationId)`、`pending(db, userId)`、`save(db, userId, record, expectedVersion)`。启动恢复通过 `pending` 将未完成 `queued`/`running` 运行标记为 `interrupted`（`INTERRUPTED`），保留原记录、CAS 版本号与操作幂等日志，`deploymentStatus` 始终保持 `not_published`；测试 fixture 见 `tests/fixtures/experiment-repository.ts`。

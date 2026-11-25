@@ -52,7 +52,7 @@ UTF-8 JSONL，protocolVersion=1；stdout 仅协议，原始 stderr 不直接显�
 | job.get/cancel | jobId → 任务视图；取消不表示供应商退款 |
 | job.events | jobId、afterSeq? → 有序公开事件 |
 
-初始化能力除 `session-presentation-v1` 外，已提供 `local-progress-views-v1`；`limited-hints-v1`、`local-learning-v1`、`local-experiments-v1` 按对应持久化 repository 注入状态动态启用（未接入时明确返回 `*_STORAGE_UNAVAILABLE`）。会话视图已提供clarification（中性prompt与原回答previousText）、lastAnswer、submittedCount/scoredCount/unscoredCount及needsClarification；同题多次澄清只算一题，answeredCount仍沿用已评分题数。三种答案状态为scored/needs_clarification/abstained；数值0与null分开，不把任务失败当技术零分。新增能力见[接口导航](api.md)。提示每题最多2次有效提示、不扣金币，详情见第 8 节；同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
+初始化能力除 `session-presentation-v1` 外，已提供 `local-progress-views-v1`；默认随包运行时现已接入 `@interview/local-db` 的 `profile v4` 迁移与正式 SQLite repository，`runtime.initialize` 默认启用 `limited-hints-v1`、`local-learning-v1` 与 `local-experiments-v1`（当显式禁用对应存储依赖时仍诚实返回 `*_STORAGE_UNAVAILABLE`）。会话视图已提供clarification（中性prompt与原回答previousText）、lastAnswer、submittedCount/scoredCount/unscoredCount及needsClarification；同题多次澄清只算一题，answeredCount仍沿用已评分题数。三种答案状态为scored/needs_clarification/abstained；数值0与null分开，不把任务失败当技术零分。新增能力见[接口导航](api.md)。提示每题最多2次有效提示、不扣金币，详情见第 8 节；同岗位只允许一场未完成、未过期会话；不同岗位可以并行。
 
 主进程 SDK 已提供 `listRoles()`、`createSession()`、`getProfile()`、`getPracticeRecommendations()`、`listReflections()`，以及 `getLearningStatus()`、`createLearningAssignment()`、`recordLearningEvent()`、`planLearningRetest()`、`pairLearningRetestSession()`、`getExperimentStatus()`、`evaluateExperiment()`、`rollbackExperiment()`（均校验返回 schema；`verifyPractice` 不暴露给公开 renderer stdio）。
 
